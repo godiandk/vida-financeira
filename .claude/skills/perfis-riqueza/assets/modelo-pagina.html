@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<!--
+  Molde de página para os perfis. Copie para a raiz do repositório com o nome
+  final (por exemplo `historias.html`), troque o título, a descrição e o
+  conteúdo dentro de <main>, e marque com class="on" a entrada certa do menu.
+
+  Não acrescente cores nem tipos de letra novos: o `estilo.css` já define a
+  paleta e a tipografia do site. O <style> abaixo só tem o que é específico
+  desta página.
+-->
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TÍTULO — Vida Financeira</title>
+<meta name="description" content="DESCRIÇÃO EM UMA FRASE, ATÉ 160 CARACTERES.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1512">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css?v=2">
+<style>
+.txt{max-width:760px}
+.txt h2{margin-top:52px}
+.txt h2:first-child{margin-top:0}
+.txt p{color:var(--cream-dim);margin-bottom:14px}
+.txt b{color:var(--cream)}
+
+/* ---------- um perfil ---------- */
+.perfil{
+  background:var(--ink-2);border:1px solid rgba(217,178,110,.18);
+  border-radius:var(--radius);padding:30px 28px;margin-bottom:22px;
+}
+.perfil h3{font-size:1.35rem;color:var(--gold-soft);margin-bottom:6px}
+.perfil .resumo{color:var(--cream-dim);font-size:.95rem;margin-bottom:22px;font-style:italic}
+
+.campo{margin-bottom:18px}
+.campo h4{
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);font-weight:800;margin-bottom:7px;
+}
+.campo p{margin-bottom:8px}
+.campo p:last-child{margin-bottom:0}
+
+/* O que costuma ser cortado dos artigos: marcado para se ver que é a parte
+   que distingue este conteúdo do resto. */
+.campo.cortado{
+  border-left:2px solid var(--down);padding-left:16px;
+  background:rgba(224,113,92,.05);border-radius:0 10px 10px 0;
+  padding-top:12px;padding-bottom:12px;
+}
+.campo.cortado h4{color:var(--down)}
+
+/* A lição transferível: é o que o leitor leva dali. */
+.campo.serve{
+  border-left:2px solid var(--up);padding-left:16px;
+  background:rgba(62,207,142,.05);border-radius:0 10px 10px 0;
+  padding-top:12px;padding-bottom:12px;
+}
+.campo.serve h4{color:var(--up)}
+
+.fontes{border-top:1px solid rgba(217,178,110,.12);margin-top:20px;padding-top:14px}
+.fontes h4{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim);font-weight:700;margin-bottom:8px}
+.fontes ol{margin:0;padding-left:18px}
+.fontes li{font-size:.82rem;color:var(--cream-dim);margin-bottom:5px;word-break:break-word}
+
+/* Aviso de método, no topo da página. */
+.metodo{
+  background:linear-gradient(140deg,rgba(217,178,110,.1),rgba(217,178,110,.02));
+  border:1px solid rgba(217,178,110,.28);border-radius:var(--radius);
+  padding:22px 26px;margin-bottom:40px;
+}
+.metodo p{margin-bottom:10px}
+.metodo p:last-child{margin-bottom:0}
+
+@media(max-width:640px){
+  .perfil{padding:24px 20px}
+  .perfil h3{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">
+      <img class="logo-mark" src="img/logo-marca.png" alt="">
+      <div class="logo-name">VIDA<small>FINANCEIRA</small></div>
+    </a>
+    <nav class="links" id="menu">
+      <a href="index.html">Início</a>
+      <a href="app.html">O meu mês</a>
+      <a href="historias.html" class="on">Histórias</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="conta.html" id="nav-conta">Entrar / Criar conta</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn btn-gold" href="app.html">Começar</a>
+      <button class="burger" id="burger" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <div class="eyebrow">SOBRETÍTULO</div>
+      <h1>TÍTULO com <i>uma palavra</i> em destaque</h1>
+      <p class="lead">Uma ou duas frases a dizer ao leitor o que vai encontrar.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap txt">
+
+      <div class="metodo">
+        <p><b>Como estes perfis são escritos.</b> Cada afirmação tem fonte, e as
+        fontes estão no fim de cada perfil. Onde as fontes se contradizem,
+        dizemo-lo em vez de escolher a versão mais bonita.</p>
+        <p>Cada perfil inclui de propósito o que a pessoa recebeu à partida e o
+        que lhe calhou sem ter feito por isso. Não é para diminuir ninguém: é
+        porque a parte replicável de uma história só se vê depois de separar
+        dela a parte que não é.</p>
+      </div>
+
+      <!-- ============ um perfil ============ -->
+      <div class="perfil">
+        <h3>NOME</h3>
+        <p class="resumo">Uma frase factual. Sem hipérbole, sem "o génio que".</p>
+
+        <div class="campo">
+          <h4>De onde partiu</h4>
+          <p>Situação concreta no início: dinheiro da família, escolaridade,
+          país, contactos. Números com data sempre que existam.</p>
+        </div>
+
+        <div class="campo">
+          <h4>O que fez</h4>
+          <p>A sequência de decisões, em verbos. Datas e valores.</p>
+        </div>
+
+        <div class="campo">
+          <h4>O que ajudou e não dependia dela</h4>
+          <p>Timing, herança, ligações, momento histórico, sorte. Esta secção
+          nunca fica vazia.</p>
+        </div>
+
+        <div class="campo cortado">
+          <h4>O que os artigos costumam cortar</h4>
+          <p>A falência, o processo, o sócio que ficou sem nada, os anos
+          sustentados por outra pessoa.</p>
+        </div>
+
+        <div class="campo serve">
+          <h4>O que daqui serve para si</h4>
+          <p>Uma coisa concreta e transferível — ou a admissão honesta de que
+          este caminho não está disponível a quem vive de um salário. A ligação
+          ao que dá para fazer hoje em <a href="app.html">O meu mês</a>.</p>
+        </div>
+
+        <div class="fontes">
+          <h4>Fontes</h4>
+          <ol>
+            <li><a href="URL" rel="noopener">Publicação — título do artigo (data)</a></li>
+          </ol>
+        </div>
+      </div>
+      <!-- ============ fim do perfil ============ -->
+
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-bottom">
+      © <span id="ano"></span> Vida Financeira · <a href="index.html">Início</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=2"></script>
+<script src="site.js?v=2"></script>
+</body>
+</html>
