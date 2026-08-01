@@ -61,15 +61,18 @@ header{
   border-bottom:1px solid rgba(217,178,110,.14);
 }
 .nav{display:flex;align-items:center;justify-content:space-between;height:74px;gap:18px}
-.logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex:none}
-.logo-mark{
-  width:40px;height:44px;display:grid;place-items:center;
-  background:linear-gradient(160deg,var(--gold-soft),var(--gold));
-  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
-  color:var(--ink);font-family:'Playfair Display',serif;font-weight:800;font-size:1.05rem;
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none;flex:none}
+/* Símbolo: imagem real, de fundo transparente. As barras são vazadas, por
+   isso assentam no fundo escuro da página e lêem-se como barras escuras.
+   O nome fica em texto e não em imagem — assim mantém-se nítido em
+   qualquer ecrã e continua a ser lido por leitores de ecrã. */
+.logo-mark{width:38px;height:auto;display:block;flex:none}
+.logo-name{font-family:'Playfair Display',serif;letter-spacing:.26em;font-weight:700;color:var(--gold-soft);font-size:1rem;line-height:1.1}
+.logo-name small{display:block;font-family:'Manrope',sans-serif;letter-spacing:.34em;font-size:.52rem;color:var(--cream-dim);font-weight:600;margin-top:2px}
+@media(max-width:640px){
+  .logo-mark{width:32px}
+  .logo-name{font-size:.88rem}
 }
-.logo-name{letter-spacing:.28em;font-weight:800;color:var(--gold-soft);font-size:.92rem}
-.logo-name small{display:block;letter-spacing:.44em;font-size:.55rem;color:var(--cream-dim);font-weight:600}
 nav.links{display:flex;gap:20px;flex-wrap:nowrap;align-items:center}
 nav.links a{color:var(--cream-dim);text-decoration:none;font-size:.84rem;font-weight:600;transition:color .2s;white-space:nowrap;position:relative;padding:6px 0}
 nav.links a:hover{color:var(--gold)}
@@ -165,7 +168,7 @@ footer{border-top:1px solid rgba(217,178,110,.14);padding:44px 0 28px}
 .app-modal[hidden]{display:none}
 .app-modal-box{background:var(--ink-2);border:1px solid rgba(217,178,110,.25);border-radius:22px;max-width:430px;width:100%;padding:34px 28px;text-align:center;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .app-modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--cream-dim);font-size:1.8rem;cursor:pointer;line-height:1}
-.app-modal-logo{width:66px;height:72px;margin:0 auto 16px;display:grid;place-items:center;background:linear-gradient(160deg,var(--gold-soft),var(--gold));clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);color:var(--ink);font-family:'Playfair Display',serif;font-weight:800;font-size:1.5rem}
+.app-modal-logo{width:auto;height:72px;margin:0 auto 16px;display:block}
 .app-modal-box h3{font-size:1.3rem;margin-bottom:8px}
 .app-modal-box>p{color:var(--cream-dim);font-size:.9rem;margin-bottom:22px}
 .app-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}

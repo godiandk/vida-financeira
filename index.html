@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=1">
+<link rel="stylesheet" href="estilo.css?v=2">
 <style>
 .hero{
   min-height:100vh;display:flex;align-items:center;
@@ -53,6 +53,9 @@
   .hero{padding:110px 0 70px;min-height:0}
   .hero-grid{grid-template-columns:1fr;gap:34px}
   .preview{order:-1}
+  /* "1 640,00 €" partia em duas linhas nas caixas estreitas */
+  .pv-dois .v{font-size:.94rem;white-space:nowrap}
+  .pv-dois div{padding:11px 12px}
 }
 
 /* blocos de conteúdo */
@@ -83,7 +86,7 @@
 <header>
   <div class="wrap nav">
     <a class="logo" href="index.html">
-      <div class="logo-mark">VF</div>
+      <img class="logo-mark" src="img/logo-marca.png" alt="">
       <div class="logo-name">VIDA<small>FINANCEIRA</small></div>
     </a>
     <nav class="links" id="menu">
@@ -201,7 +204,7 @@
     <div class="footer-grid">
       <div>
         <a class="logo" href="index.html">
-          <div class="logo-mark">VF</div>
+          <img class="logo-mark" src="img/logo-marca.png" alt="">
           <div class="logo-name">VIDA<small>FINANCEIRA</small></div>
         </a>
         <p>Controlo de contas pessoais. Simples, offline e sem ligar o seu banco a lado nenhum.</p>
@@ -230,7 +233,7 @@
 <div class="app-modal" id="app-modal" hidden>
   <div class="app-modal-box">
     <button class="app-modal-close" data-fechar aria-label="Fechar">×</button>
-    <div class="app-modal-logo">VF</div>
+    <img class="app-modal-logo" src="img/logo-marca.png" alt="">
     <h3>Instalar no telemóvel</h3>
     <p>Fica com um ícone no ecrã inicial, como qualquer app. Não passa por nenhuma loja.</p>
     <div class="app-choice">
@@ -259,7 +262,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=1"></script>
-<script src="site.js?v=1"></script>
+<script src="firebase-config.js?v=2"></script>
+<script src="site.js?v=2"></script>
 </body>
 </html>
