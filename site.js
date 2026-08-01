@@ -208,10 +208,10 @@ function raizDoSite() {
   let botao;
   if (!naApp) {
     botao = document.createElement('a');
-    botao.href = 'app/';
+    botao.href = raizDoSite() + 'app/';
     botao.className = 'app-float';
-    botao.setAttribute('aria-label', 'Abrir a aplicação Vida Financeira');
-    botao.innerHTML = '<span class="af-ic">📊</span> Abrir aplicação';
+    botao.setAttribute('aria-label', 'Abrir a app Vida Financeira');
+    botao.innerHTML = '<span><span class="af-ic">📱</span>APP</span>';
     document.body.appendChild(botao);
     return;   // sem modal: este botão navega, não abre nada
   }
@@ -220,7 +220,7 @@ function raizDoSite() {
   botao.type = 'button';
   botao.className = 'app-float';
   botao.setAttribute('aria-label', 'Pôr a Vida Financeira no ecrã do telemóvel');
-  botao.innerHTML = '<span class="af-ic">📲</span> Pôr no telemóvel';
+  botao.innerHTML = '<span><span class="af-ic">📲</span>INSTALAR</span>';
   document.body.appendChild(botao);
 
   /* ---------- modal ---------- */
