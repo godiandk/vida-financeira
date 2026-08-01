@@ -17,9 +17,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=15">
-<link rel="stylesheet" href="../app-financas.css?v=15">
-<link rel="stylesheet" href="../app-shell.css?v=15">
+<link rel="stylesheet" href="../estilo.css?v=16">
+<link rel="stylesheet" href="../app-financas.css?v=16">
+<link rel="stylesheet" href="../app-shell.css?v=16">
+<link rel="stylesheet" href="../assistente.css?v=16">
 </head>
 <body class="app-shell">
 
@@ -87,6 +88,12 @@
         <div id="plano-corpo"></div>
         </div>
 
+      <button class="accao-grande" type="button" data-ir="apoios" style="background:linear-gradient(135deg,#3ecf8e,#2ba572);box-shadow:0 12px 30px rgba(62,207,142,.24)">
+        <span class="ic">🎁</span>
+        <span><b>Apoios que talvez não receba</b><span>Muita gente tem direito a três e recebe um</span></span>
+        <span class="seta">›</span>
+      </button>
+
       <button class="accao-grande" type="button" data-ir="lancar">
         <span class="ic">➕</span>
         <span><b>Lançar um gasto</b><span>Em vinte segundos, sem sair daqui</span></span>
@@ -105,6 +112,9 @@
         </div>
 
       <div class="atalhos">
+        <button class="atalho destaque" type="button" data-ir="wesley">
+          <span class="ic">💬</span><b>Falar com o Wesley</b><small>Perguntas de dinheiro, respondidas</small>
+        </button>
         <button class="atalho" type="button" data-ir="mes">
           <span class="ic">📊</span><b>O meu mês</b><small>Movimentos e categorias</small>
         </button>
@@ -243,6 +253,130 @@
     </div>
   </section>
 
+
+  <!-- ============ ASSISTENTE ============ -->
+  <section class="ecra" id="ecra-wesley">
+    <div class="wrap">
+      <div class="assist-cabeca">
+        <div class="foto"><img src="../img/wesley.jpg" alt="Wesley Vianna"></div>
+        <div>
+          <b>Wesley Vianna</b>
+          <span>Fundador da Vida Financeira. Começou sem nada e construiu a partir de negócios pequenos.</span>
+        </div>
+      </div>
+
+      <div class="assist-fio" id="assist-fio"></div>
+
+      <div class="assist-sugs">
+        <button class="assist-sug" type="button" data-q="não sobra nada">Não sobra nada</button>
+        <button class="assist-sug" type="button" data-q="recebo subsídio">Recebo subsídio</button>
+        <button class="assist-sug" type="button" data-q="por onde começar">Por onde começo?</button>
+        <button class="assist-sug" type="button" data-q="quanto guardar reserva">Quanto devo guardar?</button>
+        <button class="assist-sug" type="button" data-q="tenho dívidas cartão">Tenho dívidas</button>
+        <button class="assist-sug" type="button" data-q="ganhar mais negócio">Como ganho mais?</button>
+      </div>
+
+      <form class="assist-form" id="assist-form" novalidate>
+        <input id="assist-campo" type="text" placeholder="Escreva a sua pergunta…" autocomplete="off">
+        <button type="submit" aria-label="Enviar">↑</button>
+      </form>
+
+      <p class="assist-nota">
+        As respostas são escritas e revistas, não geradas — e usam os números
+        que você já lançou. Isto é educação financeira, não aconselhamento de
+        investimento: não recomendo produtos nem digo onde pôr dinheiro.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ APOIOS ============ -->
+  <section class="ecra" id="ecra-apoios">
+    <div class="wrap">
+      <h1 class="ecra-titulo">Apoios</h1>
+      <p class="ecra-sub">
+        Muita gente recebe um apoio e tem direito a três. Estes são os mais
+        esquecidos — e nenhum deles é automático para toda a gente.
+      </p>
+
+      <div class="apoio-pais">
+        <button type="button" data-pais="pt" aria-pressed="true">🇵🇹 Portugal</button>
+        <button type="button" data-pais="br" aria-pressed="false">🇧🇷 Brasil</button>
+      </div>
+
+      <div id="apoios-pt">
+        <div class="apoio">
+          <h4>⚡ Tarifa social de energia</h4>
+          <p class="quem">Desconto na factura da luz para quem tem baixos rendimentos ou recebe certos apoios.</p>
+          <p>É atribuída automaticamente em muitos casos — mas não em todos, e há muita gente com direito que nunca a recebeu. Confirme no seu comercializador ou na <a href="https://www.erse.pt/" target="_blank" rel="noopener">ERSE</a>.</p>
+        </div>
+        <div class="apoio">
+          <h4>💧 Tarifa social da água</h4>
+          <p class="quem">Depende do município e quase nunca é automática.</p>
+          <p>Pergunte na câmara municipal ou na empresa das águas da sua zona. É dos apoios mais esquecidos que existem.</p>
+        </div>
+        <div class="apoio">
+          <h4>🏛️ Rendimento Social de Inserção</h4>
+          <p class="quem">Apoio em dinheiro mais um programa de inserção, para quem está em situação de pobreza.</p>
+          <p>Pede-se na Segurança Social. Confirme as condições actuais na <a href="https://www.seg-social.pt/" target="_blank" rel="noopener">Segurança Social</a> — mudam de ano para ano.</p>
+        </div>
+        <div class="apoio">
+          <h4>👶 Abono de família</h4>
+          <p class="quem">Para crianças e jovens do agregado, com escalões conforme o rendimento.</p>
+          <p>Há majorações que muita gente não pede. Verifique na Segurança Social Direta o escalão em que está.</p>
+        </div>
+        <div class="apoio">
+          <h4>🧓 Complemento solidário para idosos</h4>
+          <p class="quem">Para pessoas com 66 anos ou mais e baixos rendimentos.</p>
+          <p>Não é automático — tem de ser pedido, e é dos que mais fica por pedir.</p>
+        </div>
+        <div class="apoio">
+          <h4>🤝 Ajuda gratuita com dívidas</h4>
+          <p class="quem">A RACE — Rede de Apoio ao Consumidor Endividado.</p>
+          <p>Entidades reconhecidas pela Direcção-Geral do Consumidor, com parecer do Banco de Portugal. Gratuito e confidencial. <a href="https://clientebancario.bportugal.pt/pt-pt/entidades-da-race" target="_blank" rel="noopener">Ver as entidades por distrito</a>.</p>
+        </div>
+      </div>
+
+      <div id="apoios-br" hidden>
+        <div class="apoio">
+          <h4>📋 Cadastro Único</h4>
+          <p class="quem">É a porta de entrada para quase tudo o resto.</p>
+          <p>Sem estar no CadÚnico e com os dados actualizados, não se acede à maioria dos programas. Faz-se no CRAS da sua cidade, e é gratuito.</p>
+        </div>
+        <div class="apoio">
+          <h4>🏛️ Bolsa Família</h4>
+          <p class="quem">Transferência mensal para famílias em situação de pobreza.</p>
+          <p>Depende do CadÚnico actualizado. Confirme as regras em vigor no <a href="https://www.gov.br/mds/" target="_blank" rel="noopener">gov.br/mds</a>.</p>
+        </div>
+        <div class="apoio">
+          <h4>♿ Benefício de Prestação Continuada</h4>
+          <p class="quem">Um salário mínimo mensal para idosos ou pessoas com deficiência, com baixo rendimento familiar.</p>
+          <p>Pede-se no INSS. Não exige ter contribuído.</p>
+        </div>
+        <div class="apoio">
+          <h4>⚡ Tarifa Social de Energia Elétrica</h4>
+          <p class="quem">Desconto na conta de luz para famílias no CadÚnico.</p>
+          <p>Nem sempre é aplicado sozinho. Confirme junto da distribuidora se já está a receber.</p>
+        </div>
+        <div class="apoio">
+          <h4>🔥 Auxílio Gás</h4>
+          <p class="quem">Apoio para a compra do botijão, a cada dois meses.</p>
+          <p>Também depende do CadÚnico.</p>
+        </div>
+        <div class="apoio">
+          <h4>🤝 Renegociar dívidas</h4>
+          <p class="quem">Procon da sua cidade e campanhas dos credores.</p>
+          <p>As campanhas de renegociação abrem e fecham. Confirme junto do credor e do Procon quais estão abertas no momento em que ler isto.</p>
+        </div>
+      </div>
+
+      <p class="assist-nota">
+        Esta lista é informativa e não substitui a fonte oficial. As condições
+        e os valores mudam — confirme sempre antes de contar com o dinheiro, e
+        não deixe de perguntar por achar que não tem direito.
+      </p>
+    </div>
+  </section>
+
   <!-- ============ MAIS ============ -->
   <section class="ecra" id="ecra-mais">
     <div class="wrap">
@@ -256,6 +390,7 @@
       </a>
 
       <div class="atalhos">
+        <button class="atalho" type="button" data-ir="apoios"><span class="ic">🎁</span><b>Apoios</b><small>O que talvez não receba</small></button>
         <a class="atalho" href="../ferramentas.html"><span class="ic">🧮</span><b>Ferramentas</b><small>Nove calculadoras</small></a>
         <a class="atalho" href="../metodo.html"><span class="ic">📗</span><b>Método</b><small>Reserva com salário baixo</small></a>
         <a class="atalho js-abrir-app" href="#"><span class="ic">📲</span><b>Pôr no telemóvel</b><small>Ícone no ecrã inicial</small></a>
@@ -271,17 +406,18 @@
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
   <button class="aba" role="tab" data-ecra="inicio" aria-selected="true"><span class="ic">🏠</span><small>Início</small></button>
   <button class="aba" role="tab" data-ecra="lancar" aria-selected="false"><span class="ic">➕</span><small>Lançar</small></button>
+  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Wesley</small></button>
   <button class="aba" role="tab" data-ecra="mes" aria-selected="false"><span class="ic">📊</span><small>Mês</small></button>
   <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">⭐</span><small>Mais</small></button>
-  <a class="aba" href="../conta.html"><span class="ic">👤</span><small>Conta</small></a>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=15"></script>
-<script src="../site.js?v=15"></script>
-<script src="../app-financas.js?v=15"></script>
+<script src="../firebase-config.js?v=16"></script>
+<script src="../site.js?v=16"></script>
+<script src="../app-financas.js?v=16"></script>
+<script src="../assistente.js?v=16"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
@@ -318,6 +454,16 @@
   const h = new Date().getHours();
   const t = document.getElementById('saudacao-titulo');
   if (t) t.textContent = (h < 6 ? 'Boa noite' : h < 13 ? 'Bom dia' : h < 20 ? 'Boa tarde' : 'Boa noite') + ' 👋';
+})();
+
+/* Apoios: trocar de país. Dois blocos, um visível. */
+(function apoios(){
+  const bts = [...document.querySelectorAll('.apoio-pais button')];
+  bts.forEach(b => b.addEventListener('click', () => {
+    bts.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.getElementById('apoios-pt').hidden = b.dataset.pais !== 'pt';
+    document.getElementById('apoios-br').hidden = b.dataset.pais !== 'br';
+  }));
 })();
 </script>
 </body>

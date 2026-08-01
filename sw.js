@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v6';
+const VERSAO = 'vida-financeira-v8';
 
 const FICHEIROS = [
   './',
@@ -28,12 +28,17 @@ const FICHEIROS = [
   './premium.html',
   './ferramentas.css',
   './ferramentas.js',
+  './app-shell.css',
+  './assistente.css',
+  './assistente.js',
   './estilo.css',
   './app-financas.css',
   './app-financas.js',
   './site.js',
   './firebase-config.js',
   './manifest.json',
+  './img/logo-marca.png',
+  './img/wesley.jpg',
   './icon-192.png',
   './icon-512.png'
 ];
