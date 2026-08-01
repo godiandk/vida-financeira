@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v3';
+const VERSAO = 'vida-financeira-v4';
 
 const FICHEIROS = [
   './',
@@ -78,12 +78,23 @@ self.addEventListener('fetch', ev => {
   }
 
   // Ficheiros do site: cache primeiro.
+  //
+  // `ignoreSearch` é o que faz isto funcionar mesmo. As páginas pedem os
+  // ficheiros com `?v=8` para obrigar o navegador a largar a versão antiga,
+  // mas a lista FICHEIROS guarda-os sem query. Sem ignorar a query, um
+  // pedido de `app-financas.js?v=8` não encontrava o `app-financas.js`
+  // guardado — e quem instalasse a app e ficasse sem rede antes da primeira
+  // ida à Internet ficava sem o ficheiro, ou seja, sem aplicação.
   ev.respondWith(
-    caches.match(req).then(guardado => {
+    caches.match(req, { ignoreSearch: true }).then(guardado => {
       const daRede = fetch(req)
         .then(res => {
           const copia = res.clone();
-          caches.open(VERSAO).then(c => c.put(req, copia));
+          // Guardar sem a query, para a próxima versão do `?v=` continuar a
+          // encontrar isto em vez de acumular uma entrada por versão.
+          const semQuery = new URL(req.url);
+          semQuery.search = '';
+          caches.open(VERSAO).then(c => c.put(semQuery.toString(), copia));
           return res;
         })
         .catch(() => guardado);

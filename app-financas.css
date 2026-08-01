@@ -291,6 +291,88 @@ ul.movs li:last-child{border-bottom:none}
 .sinal .res-nota:last-child{margin-bottom:0}
 .sinal a{color:var(--gold-soft)}
 
+/* ---------- 2 · agregado familiar ----------
+   Duas frases dentro do bloco da reserva. Não há aqui ecrã nenhum com
+   rendimentos por pessoa, e não pode vir a haver: num telemóvel
+   partilhado, listar o que o companheiro ganha é um perigo que este
+   produto não deve criar. */
+.pergunta.agregado{margin-top:18px}
+.agregado-dica{margin-top:14px}
+.agregado-dica .res-nota{margin-bottom:0}
+.agregado-dica .link-btn{padding-left:0}
+
+/* ---------- 3 · balanço do fim do mês ----------
+   Nada aqui é vermelho, nada aqui é uma nota. É um espelho, e um espelho
+   que avalia deixa de ser usado. */
+.balanco-linha{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:.86rem;color:var(--cream-dim);margin:0 0 18px;
+}
+.balanco-linha[hidden]{display:none}
+.bloco-balanco{margin-bottom:26px}
+.bloco-balanco[hidden]{display:none}
+.bal-grelha{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;align-items:start}
+@media(max-width:640px){.bal-grelha{grid-template-columns:1fr;gap:4px}}
+.bal-grelha .res-tabela{margin-top:0}
+/* Uma tabela larga rola dentro de si própria: a página nunca desliza. */
+.bal-tab-env{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bal-tab{border-collapse:collapse;width:100%;font-size:.86rem;min-width:220px}
+.bal-tab th,.bal-tab td{padding:6px 8px;text-align:right;white-space:nowrap}
+.bal-tab thead th{
+  font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--cream-dim);font-weight:700;
+  border-bottom:1px solid rgba(217,178,110,.22);
+}
+.bal-tab tbody th{text-align:left;color:var(--cream-dim);font-weight:400}
+.bal-tab tbody td{font-weight:700}
+.bal-tab tbody tr+tr th,.bal-tab tbody tr+tr td{border-top:1px solid rgba(217,178,110,.08)}
+.bal-tab th:first-child,.bal-tab td:first-child{padding-left:0}
+/* A única frase com opinião do balanço inteiro. Distingue-se pelo peso, e
+   nunca pela cor: um alerta a vermelho aqui transformava o balanço numa
+   acusação. */
+.bal-opiniao{font-size:.92rem;font-weight:700;color:var(--gold-soft);margin:14px 0 4px;line-height:1.55}
+.bloco-balanco .res-maiores{margin-bottom:6px}
+
+/* ---------- 5 · o meu plano ----------
+   Perguntas fechadas, alvos de toque grandes, e um documento que se lê
+   como um documento e não como um painel. Sem barra de progresso a
+   apressar ninguém: "3 de 6" chega. */
+.bloco-plano{margin-bottom:26px}
+.bloco-plano[hidden]{display:none}
+.plano-passo{
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--cream-dim);font-weight:700;margin-bottom:12px;
+}
+.plano-q{font-size:1rem;line-height:1.6;margin-bottom:16px;max-width:56ch}
+.plano-ops{display:grid;gap:8px;max-width:460px}
+.plano-op{
+  display:block;width:100%;text-align:left;min-height:48px;padding:13px 16px;
+  border-radius:12px;border:1px solid rgba(217,178,110,.22);background:#0a1210;
+  color:var(--cream-dim);font-family:inherit;font-size:.9rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+}
+.plano-op:hover{border-color:rgba(217,178,110,.45);color:var(--cream)}
+.plano-op[aria-pressed="true"]{border-color:var(--gold);background:rgba(217,178,110,.12);color:var(--gold-soft)}
+.plano-ess{list-style:none;margin:12px 0 4px}
+.plano-ess li{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:10px 0;border-bottom:1px solid rgba(217,178,110,.1);
+}
+.plano-ess li:last-child{border-bottom:none}
+.plano-ess b{font-size:.9rem;font-weight:700}
+.plano-ess .ess-sel{flex:1;min-width:220px;max-width:320px}
+.plano-ess .ess-sel button{min-height:42px;font-size:.78rem;padding:9px 6px}
+.plano-data{font-size:.8rem;color:var(--cream-dim);margin:-10px 0 18px}
+.plano-lead{font-size:.94rem;line-height:1.65;margin:14px 0 4px;max-width:60ch}
+.plano-passos{margin:4px 0 6px;padding-left:20px}
+.plano-passos li{font-size:.92rem;line-height:1.65;margin-bottom:12px;max-width:58ch}
+.plano-passos li:last-child{margin-bottom:0}
+/* Obrigatória em todas as versões do plano. Sem ela, o plano promete. */
+.plano-fecho{
+  margin-top:18px;padding-top:14px;border-top:1px solid rgba(217,178,110,.14);
+  font-size:.86rem;color:var(--cream-dim);line-height:1.6;
+}
+
 /* ---------- simulador "antes de parcelar" ---------- */
 .bloco-simulador[hidden]{display:none}
 .sim-res{

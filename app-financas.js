@@ -25,6 +25,9 @@ const MOEDA_CHAVE = 'vf:moeda';
 const RESERVA_CHAVE = 'vf:reserva';
 const ESSENCIAIS_CHAVE = 'vf:essenciais';
 const ETIQUETAS_CHAVE = 'vf:etiquetas';
+const AGREGADO_CHAVE = 'vf:agregado';
+const BALANCO_CHAVE = 'vf:balanco';
+const PLANO_CHAVE = 'vf:plano';
 
 const CATEGORIAS = {
   saida: [
@@ -132,6 +135,86 @@ const APOIO_ENDIVIDADO = {
   url: 'https://clientebancario.bportugal.pt/pt-pt/entidades-da-race'
 };
 
+/* ---------- agregado familiar ----------
+   A app já resolvia isto e ninguém tinha reparado: se os dois salários
+   forem lançados como entradas, o `R` que `calcular()` produz já é o
+   rendimento do agregado. Não falta modelo de dados nenhum — falta a
+   pessoa saber que deve lançar o segundo salário.
+
+   Por isso a funcionalidade inteira são duas frases e uma chave. E o que
+   NÃO existe aqui é tão importante como o que existe:
+
+     Não há membros do agregado, não há "cônjuge", não há um ecrã que
+     liste o que cada pessoa ganha.
+
+   A razão não é a simplicidade — é segurança. Esta app corre num
+   telemóvel que muitas vezes é partilhado, e um ecrã que lista o que o
+   companheiro ganha, num agregado onde exista controlo financeiro
+   coercivo, é um problema que o produto não tem como resolver e não deve
+   criar. Uma descrição livre que a pessoa escolhe escrever é reversível;
+   um campo estruturado não é. Quem vier a seguir: não acrescente esse
+   ecrã. */
+const AGREGADO_MESES = 2;      // nunca perguntar antes de 2 meses completos
+const AGREGADO_MUDANCA = 0.30; // R a mudar mais de 30% volta a perguntar
+const AGREGADO_ADIAR_DIAS = 30;
+
+/* ---------- balanço do fim do mês ----------
+   Factos comparados com a própria pessoa, mês contra mês. NUNCA com uma
+   norma externa: "o recomendado são 30%" é ficção para este público, e um
+   número sem referência ("40% em adiáveis") também não diz nada. A
+   referência é a própria pessoa no mês anterior. Comparativo, nunca
+   normativo.
+
+   E três regras que, se caírem, transformam isto em vigilância:
+     1. Só se menciona uma categoria se ela passar numa de duas portas, e
+        basta uma: variou ≥20% E ≥2% do R (grande em proporção), ou variou
+        ≥5% do R seja qual for a percentagem (pesa no orçamento mesmo sendo
+        pequena em proporção — 60 € numa renda de 550 € são 11%, nunca
+        chegavam aos 20%, e são dinheiro a sério). Uma porta só deixava de
+        fora ou as despesas grandes ou as pequenas.
+        Comentar uma oscilação de 3 € lê-se como estar a ser observado.
+     2. No máximo duas menções; se existir uma que desceu, ela entra; e
+        NUNCA um balanço só com más notícias. Não é negociável.
+     3. Sem adjectivos ("gastou mais", nunca "gastou demais"), sem notas,
+        sem estrelas, sem emojis de cara, sem vermelho em linha nenhuma.
+
+   A app tem direito a UMA opinião no balanço inteiro, e só nesta
+   condição: entrou dinheiro acima do normal e não ficou nada dele. Mais
+   nada aqui opina. */
+const BAL_MIN_SAIDAS = 5;      // menos do que isto não se compara
+const BAL_VAR_REL = 0.20;      // porta 1: variação mínima em proporção
+const BAL_VAR_R = 0.02;        // ... e mínimo em relação ao rendimento
+const BAL_VAR_R_SO = 0.05;     // porta 2: variação que pesa, seja qual for a %
+const BAL_DIAS_CONVITE = 10;   // a linha "o mês fechou" vive do dia 1 ao 10 —
+                               // cinco dias saltava quem abre a app uma vez
+                               // por semana, e essa pessoa nunca saberia que
+                               // o balanço existe
+const BAL_EXCESSO = 1.15;      // acima disto o mês teve dinheiro a mais
+const BAL_SOBROU = 0.05;       // ... e "não ficou nada" é menos de 5% dele
+
+/* ---------- 5 · o plano guiado ----------
+   Recusou-se o chat, e a razão mais forte não é técnica: uma caixa de
+   texto em branco obriga a pessoa a saber formular a pergunta, e quem
+   nunca fez um orçamento não sabe que a pergunta é "quanto devo guardar
+   por mês". Um assistente gastaria três turnos a extrair o que a app já
+   sabe dos movimentos lançados.
+
+   O que fica no lugar são seis perguntas fechadas, quase todas
+   pré-preenchidas com o que a app já calculou — a pessoa confirma em vez
+   de escrever — e um documento de forma fixa com os números dela.
+
+   REGRA QUE NÃO SE TOCA: nenhuma frase deste plano é gerada. Todas saem
+   deste ficheiro, escolhidas por regras. Um modelo de linguagem *pode*
+   ser levado a recomendar um produto financeiro por quem tentar;
+   "instruído a não fazer" não é "incapaz de fazer". Isto é incapaz por
+   construção — não há aqui nome de instituição, nome de produto, nem
+   verbo de investimento em lado nenhum, e não pode passar a haver.
+   Quem acrescentar uma frase acrescenta-a aqui, à mão, e fica auditável.
+
+   PLANO_PASSOS = 6 e o documento é o passo 6. */
+const PLANO_PASSOS = 6;
+const PLANO_DEGRAU = 5;        // "Menos"/"Mais" mexem de 5 em 5, sem teclado
+
 /* ---------- estado ---------- */
 let movimentos = [];
 let tipoActual = 'saida';
@@ -146,6 +229,27 @@ let utilizador = null;   // preenchido pelo Firebase, se houver conta
    recordar. Se o JSON estiver corrompido, trata-se como ausente. */
 let reservaPrefs = { mensal: null, degrau: 1, verificado: null, dispensados: [], ts: 0 };
 let essenciais = {};
+
+/* Agregado: uma confirmação, uma vez. `R` é o rendimento com que a
+   confirmação foi dada — é o que permite voltar a perguntar quando a vida
+   mudar, e mais nada. Não guarda quem ganha o quê, porque a app não
+   pergunta quem ganha o quê. */
+let agregado = { confirmado: false, ts: 0, R: null, adiado: null, dicaSalarios: false };
+
+/* Balanço: só os meses cujo convite já foi mostrado e respondido. O
+   balanço em si é sempre recalculado dos movimentos — nunca guardado, para
+   não envelhecer. */
+let balancoPrefs = { vistos: [] };
+let balancoAberto = null;   // chave do mês aberto no ecrã, ou null
+
+/* Plano: guardam-se as respostas, nunca o documento. O documento é
+   re-desenhado dos dados actuais sempre que se abre, para não envelhecer —
+   um plano com os números de há seis meses é pior do que nenhum. */
+let planoGuardado = null;   // { feito, respostas, versao }
+let planoAberto = false;
+let planoPasso = 0;         // 0..5 perguntas, 6 = o documento
+let planoResp = {};
+let planoEssAberto = false; // "há coisas mal marcadas" abriu os interruptores
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -229,6 +333,16 @@ function chaveMes(ano, mes) {
 
 function diasNoMes(ano, mes) {
   return new Date(ano, mes + 1, 0).getDate();
+}
+
+/* '2026-01' → '2025-12'. Sem `Date`: uma chave de mês é texto e não tem
+   fuso horário nenhum para se enganar. */
+function mesAnteriorK(k) {
+  let ano = parseInt(k.slice(0, 4), 10);
+  let mes = parseInt(k.slice(5, 7), 10) - 1;   // 0..11
+  mes--;
+  if (mes < 0) { mes = 11; ano--; }
+  return chaveMes(ano, mes);
 }
 
 function num(v) {
@@ -407,12 +521,18 @@ function guardarPrefs() {
   try {
     localStorage.setItem(RESERVA_CHAVE, JSON.stringify(reservaPrefs));
     localStorage.setItem(ESSENCIAIS_CHAVE, JSON.stringify(essenciais));
+    localStorage.setItem(AGREGADO_CHAVE, JSON.stringify(agregado));
+    localStorage.setItem(BALANCO_CHAVE, JSON.stringify(balancoPrefs));
+    if (planoGuardado) localStorage.setItem(PLANO_CHAVE, JSON.stringify(planoGuardado));
   } catch (e) { /* sem localStorage a app funciona na mesma, só não se lembra */ }
 
   if (utilizador && window.db) {
     db.collection('utilizadores').doc(utilizador.uid)
-      .set({ preferencias: { reserva: reservaPrefs, essenciais } }, { merge: true })
-      .catch(() => { /* silencioso: são duas preferências, não são dados */ });
+      .set({ preferencias: {
+        reserva: reservaPrefs, essenciais, agregado,
+        balanco: balancoPrefs, plano: planoGuardado || null
+      } }, { merge: true })
+      .catch(() => { /* silencioso: são preferências, não são dados */ });
   }
 }
 
@@ -496,6 +616,33 @@ function carregarLocal() {
       .map(x => ({ c: x.c, d: typeof x.d === 'string' ? x.d.trim().slice(0, 40) : '' }));
     if (limpas.length) etiquetasCache = { mes: et.mes, calculadas: limpas };
   }
+
+  const ag = lerJSON(AGREGADO_CHAVE, null);
+  if (ag) {
+    agregado = {
+      confirmado: ag.confirmado === true,
+      ts: typeof ag.ts === 'number' ? ag.ts : 0,
+      R: (typeof ag.R === 'number' && isFinite(ag.R) && ag.R > 0) ? ag.R : null,
+      adiado: typeof ag.adiado === 'string' ? ag.adiado : null,
+      dicaSalarios: ag.dicaSalarios === true
+    };
+  }
+
+  const bal = lerJSON(BALANCO_CHAVE, null);
+  if (bal && Array.isArray(bal.vistos)) {
+    balancoPrefs = {
+      vistos: bal.vistos.filter(x => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)).slice(-36)
+    };
+  }
+
+  const pl = lerJSON(PLANO_CHAVE, null);
+  if (pl && pl.respostas && typeof pl.respostas === 'object') {
+    planoGuardado = {
+      feito: typeof pl.feito === 'string' ? pl.feito : '',
+      respostas: pl.respostas,
+      versao: 1
+    };
+  }
 }
 
 function mostrarAviso(texto, tipo) {
@@ -527,11 +674,13 @@ function calcular() {
     const k = m.data.slice(0, 7);
     const a = meses[k] || (meses[k] = {
       rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0,
+      nSaidas: 0, nSalarios: 0,
       porCatEss: {}, porCat: {}, porCatDesc: {}
     });
     if (m.tipo === 'entrada') {
       if (m.categoria === 'reserva-tirei') a.guardado -= m.valor;
       else a.rendimento += m.valor;
+      if (m.categoria === 'salario') a.nSalarios++;
     } else {
       if (m.categoria === 'reserva') {
         a.guardado += m.valor;
@@ -540,7 +689,7 @@ function calcular() {
            a sério, mas não são registos de dias passados: se contassem
            aqui, uma compra em 24 vezes destrancava sozinha os portões de
            "dados suficientes" e a barra de etiquetas aprendida. */
-        if (m.data <= HOJE) totalSaidas++;
+        if (m.data <= HOJE) { totalSaidas++; a.nSaidas++; }
         a.porCat[m.categoria] = (a.porCat[m.categoria] || 0) + m.valor;
 
         /* Somar também por descrição: é o que permite ver a água separada
@@ -629,9 +778,11 @@ function calcular() {
 
   /* --- mês visível ------------------------------------------------ */
   const kVisto = chaveMes(mesVisto.ano, mesVisto.mes);
-  const a = meses[kVisto] || { rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0, porCat: {}, porCatEss: {}, porCatDesc: {} };
+  const a = meses[kVisto] || { rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0, nSaidas: 0, nSalarios: 0, porCat: {}, porCatEss: {}, porCatDesc: {} };
   r.mesVisivel = {
     chave: kVisto,
+    nSaidas: a.nSaidas || 0,
+    nSalarios: a.nSalarios || 0,
     entrou: a.rendimento,
     saiu: a.essenciais + a.naoEssenciais,
     essenciais: a.essenciais,
@@ -759,8 +910,13 @@ function calcular() {
 
   /* --- dia habitual do salário ------------------------------------ */
   r.lembreteSalario = null;
+  r.diaSalario = null;
   const salarios = movimentos.filter(m => m.tipo === 'entrada' && m.categoria === 'salario')
                              .sort((x, y) => x.data.localeCompare(y.data));
+  if (salarios.length >= 2) {
+    const d = Math.round(mediana(salarios.slice(-3).map(m => parseInt(m.data.slice(8, 10), 10))));
+    if (d >= 1 && d <= 31) r.diaSalario = d;
+  }
   if (r.ehMesCorrente && salarios.length >= 2) {
     const jaEsteMes = salarios.some(m => m.data.slice(0, 7) === chaveHoje);
     if (!jaEsteMes) {
@@ -778,7 +934,194 @@ function calcular() {
     if (!v || isNaN(v.getTime()) || (hoje - v) > dias90) r.pedirAcerto = true;
   }
 
+  /* --- escala das saídas já lançadas -------------------------------
+     A mediana de uma saída desta pessoa. Serve de referência quando `R`
+     ainda não existe — e é a única referência honesta, porque é feita dos
+     números dela e não de uma norma. Só saídas já vividas (uma prestação
+     futura não é um registo de um dia passado), sem a reserva (guardar não
+     é gastar) e só na moeda em uso (somar euros com kwanzas não escala
+     nada). */
+  const saidasVividas = movimentos.filter(m =>
+    m.tipo === 'saida' && m.categoria !== 'reserva' &&
+    m.data <= HOJE && (m.moeda || moeda) === moeda && m.valor > 0);
+  r.nSaidasVividas = saidasVividas.length;
+  r.medianaSaida = mediana(saidasVividas.map(m => m.valor));
+
+  /* --- agregado familiar -------------------------------------------
+     Uma confirmação, uma vez, e nunca no arranque: sem 2 meses completos
+     o número que estaria a confirmar não existe. */
+  r.agregadoPerguntar = false;
+  if (!r.moedaMista && completos.length >= AGREGADO_MESES && r.R !== null && r.R > 0) {
+    const adiadoHa = agregado.adiado
+      ? (hoje - new Date(agregado.adiado + 'T00:00:00')) / 864e5 : Infinity;
+    if (adiadoHa >= AGREGADO_ADIAR_DIAS) {
+      if (!agregado.confirmado) {
+        r.agregadoPerguntar = true;
+      } else if (agregado.R && agregado.R > 0) {
+        /* Volta a perguntar só se o rendimento mudar mais de 30% durante
+           dois meses seguidos — uma vida que mudou, não um mês estranho. */
+        const dois = completos.slice(-2).map(k => meses[k].rendimento);
+        if (dois.length === 2 &&
+            dois.every(x => Math.abs(x - agregado.R) > AGREGADO_MUDANCA * agregado.R)) {
+          r.agregadoPerguntar = true;
+        }
+      }
+    }
+  }
+  /* Dois salários no mês visível: uma linha dispensável para sempre. Não
+     abre ecrã nenhum, não guarda de quem é o quê. */
+  r.dicaDoisSalarios = !agregado.dicaSalarios && r.mesVisivel.nSalarios >= 2;
+
+  /* --- balanço do fim do mês ---------------------------------------- */
+  r.balancoAlvo = null;
+  r.balancoConvite = false;
+  if (r.ehFuturo) {
+    /* nada: um mês que ainda não aconteceu não fechou */
+  } else if (!r.ehMesCorrente) {
+    if (meses[kVisto]) r.balancoAlvo = kVisto;          // navegou para um mês fechado
+  } else if (hoje.getDate() <= BAL_DIAS_CONVITE) {
+    const ant = mesAnteriorK(chaveHoje);
+    /* Um mês com meia dúzia de movimentos lançados diria que se gastou
+       menos em tudo. Não se convida ninguém a ver isso. */
+    if (meses[ant] && meses[ant].nSaidas >= BAL_MIN_SAIDAS) {
+      r.balancoAlvo = ant;
+      r.balancoConvite = balancoPrefs.vistos.indexOf(ant) === -1;
+    }
+  }
+  r.balanco = (r.balancoAlvo && balancoAberto === r.balancoAlvo)
+    ? construirBalanco(r, r.balancoAlvo) : null;
+
   return r;
+}
+
+/* ============================================================
+   3 · O BALANÇO DO FIM DO MÊS
+
+   Tudo o que sai daqui é facto. A comparação é sempre com a própria
+   pessoa no mês anterior — nunca com uma norma, nunca com uma média de
+   ninguém, nunca com uma percentagem "recomendada".
+   ============================================================ */
+function construirBalanco(r, k) {
+  const a = r.meses[k];
+  if (!a) return null;
+
+  const b = { mes: k, nome: mesExtenso(k, true) };
+  if ((a.nSaidas || 0) < BAL_MIN_SAIDAS) {
+    b.poucos = true;
+    return b;
+  }
+
+  b.entrou = a.rendimento;
+  b.saiu = a.essenciais + a.naoEssenciais;
+  b.essenciais = a.essenciais;
+  b.guardou = a.guardado;
+  b.livre = a.rendimento - b.saiu - a.guardado;
+  b.pctEssEntrou = b.entrou > 0 ? Math.round(a.essenciais / b.entrou * 100) : null;
+
+  /* Em aperto o quadro muda de forma: cai a coluna "Guardou" e "Sobrou"
+     passa a "Faltou". Fingir uma linha de poupança a quem não teve nenhuma
+     é a maneira mais rápida de o balanço deixar de ser lido. */
+  b.apertado = b.livre < 0 || (b.entrou > 0 && a.essenciais >= b.entrou);
+
+  const kp = mesAnteriorK(k);
+  const ap = r.meses[kp] || null;
+  b.antMes = ap ? kp : null;
+  b.antNome = ap ? mesExtenso(kp, true) : null;
+
+  const pct = (x, base) => (base > 0 ? Math.round(x / base * 100) : null);
+  b.pctEss = pct(a.essenciais, b.saiu);
+  b.pctAdi = pct(a.naoEssenciais, b.saiu);
+  if (ap) {
+    const saiuP = ap.essenciais + ap.naoEssenciais;
+    b.antSaiu = saiuP;
+    b.antPctEss = pct(ap.essenciais, saiuP);
+    b.antPctAdi = pct(ap.naoEssenciais, saiuP);
+    b.antGuardou = ap.guardado;
+  }
+
+  /* As três maiores saídas do mês. Factos ordenados, sem cor nenhuma. */
+  b.maiores = Object.keys(a.porCat)
+    .map(id => ({ id: id, valor: a.porCat[id] }))
+    .sort((x, y) => y.valor - x.valor)
+    .slice(0, 3);
+
+  /* Guardou em N dos últimos meses. Só entra com N ≥ 1: "guardou em 0 dos
+     últimos 6" é uma má notícia sem utilidade nenhuma. */
+  const ate = Object.keys(r.meses).filter(x => x <= k).sort().slice(-6);
+  const comGuardado = ate.filter(x => r.meses[x].guardado > 0).length;
+  b.guardouEm = (comGuardado >= 1 && ate.length >= 2)
+    ? { n: comGuardado, de: ate.length } : null;
+
+  /* --- as menções, e a regra anti-vergonha ------------------------- */
+  b.mencoes = null;
+  const base = (r.R && r.R > 0) ? r.R : b.saiu;
+  if (ap && base > 0) {
+    const ids = {};
+    Object.keys(a.porCat).forEach(x => { ids[x] = true; });
+    Object.keys(ap.porCat).forEach(x => { ids[x] = true; });
+
+    const cands = Object.keys(ids).map(id => {
+      const mv = a.porCat[id] || 0;
+      const pv = ap.porCat[id] || 0;
+      return { id: id, mv: mv, pv: pv, d: mv - pv };
+    }).filter(c => {
+      const abs = Math.abs(c.d);
+      /* Porta 2: pesa no orçamento mesmo sendo pequena em proporção. Sem
+         ela, uma subida de 60 € numa renda de 550 € (11%) ficava calada —
+         e é dinheiro a sério. */
+      if (abs >= BAL_VAR_R_SO * base) return true;
+      /* Porta 1: grande em proporção, e acima do ruído. Comentar uma
+         oscilação de 3 € lê-se como estar a ser observado. */
+      if (abs < BAL_VAR_R * base) return false;
+      const rel = c.pv > 0 ? abs / c.pv : 1;
+      return rel >= BAL_VAR_REL;
+    });
+
+    const sobem = cands.filter(c => c.d > 0).sort((x, y) => y.d - x.d);
+    const descem = cands.filter(c => c.d < 0).sort((x, y) => x.d - y.d);
+
+    /* Existe alguma boa notícia neste balanço, fora as menções? É esta
+       pergunta que impede um balanço só com más notícias. */
+    const temBoa = !!b.guardouEm || b.guardou > 0 || b.livre > 0 ||
+      (b.antGuardou !== undefined && b.guardou > b.antGuardou) ||
+      (b.antSaiu !== undefined && b.saiu < b.antSaiu);
+
+    if (descem.length) {
+      /* Sempre que existir uma que desceu, ela entra. */
+      if (sobem.length) b.mencoes = { sobe: sobem[0], desce: descem[0] };
+      else b.mencoes = { desce: descem[0], desce2: descem[1] || null };
+    } else if (sobem.length && temBoa) {
+      b.mencoes = { sobe: sobem[0] };
+    }
+    /* Sem nenhuma que desceu e sem boa notícia nenhuma: não se menciona
+       categoria nenhuma. Um balanço só com más notícias não se publica. */
+  }
+
+  /* --- a única opinião a que a app tem direito ---------------------
+     Entrou dinheiro acima do normal e não ficou nada dele. É factual,
+     aponta para um mecanismo e não para um carácter, e a app assume
+     metade da falha. Mais nada no balanço opina. */
+  b.opiniao = null;
+  const antesDe = r.completos.filter(x => x < k).slice(-6).map(x => r.meses[x].rendimento);
+  const normal = mediana(antesDe);
+  if (normal && normal > 0 && b.entrou > BAL_EXCESSO * normal) {
+    const excesso = Math.round((b.entrou - normal) * 100) / 100;
+    const restou = Math.max(0, b.livre) + Math.max(0, b.guardou);
+    if (excesso > 0 && restou <= BAL_SOBROU * excesso) b.opiniao = excesso;
+  }
+
+  return b;
+}
+
+/* Sem `R` não há travão nenhum — e é a primeira utilização que mais
+   precisa dele. A referência alternativa é a mediana das saídas já
+   lançadas por esta pessoa: o erro de escrever o preço da montra inflaciona
+   a prestação em exactamente `n` vezes, por isso compara-se a prestação
+   com o que ela costuma gastar de uma vez, e o total com o mesmo padrão. */
+function totalSuspeito(valor, vezes, r) {
+  if (r.R && r.R > 0) return valor * vezes > 3 * r.R;
+  if (r.nSaidasVividas < 3 || !r.medianaSaida || r.medianaSaida <= 0) return false;
+  return valor > 5 * r.medianaSaida && valor * vezes > 12 * r.medianaSaida;
 }
 
 /* ============================================================
@@ -1260,6 +1603,9 @@ function desenharReserva(r) {
     }
   }
 
+  /* 2 · Agregado familiar. Duas frases e uma chave. */
+  desenharAgregado(r, c);
+
   /* Botões e nota permanente: em todos os modos, incluindo o aperto. */
   const acoes = document.createElement('div');
   acoes.className = 'res-acoes';
@@ -1267,6 +1613,9 @@ function desenharReserva(r) {
   if (r.reserva > 0) {
     acoes.appendChild(botao('Tirei da reserva', 'btn btn-line btn-peq', () => prepararTirar()));
   }
+  /* O plano reúne o que os outros blocos já produziram. Fica aqui porque é
+     aqui que a pergunta "e agora?" nasce. */
+  acoes.appendChild(botao('O meu plano', 'btn btn-line btn-peq', abrirPlano));
   c.appendChild(acoes);
 
   if (r.pedirAcerto) {
@@ -1287,6 +1636,62 @@ function desenharReserva(r) {
   }
 
   c.appendChild(p('A aplicação não mexe em dinheiro nenhum. Isto é o registo do que passou para onde guarda.', 'res-rodape'));
+}
+
+/* ============================================================
+   2 · AGREGADO FAMILIAR
+
+   A funcionalidade inteira: uma confirmação que, quando falha, abre o
+   lançamento em vez de um formulário. Um número escrito num ecrã de
+   definições envelhece e ninguém o volta a corrigir; um movimento é
+   corrigido pelo acto de viver.
+
+   E o que aqui não está é deliberado: não há ecrã de membros, não há
+   "quem ganha o quê", não há campo "cônjuge". Num telemóvel partilhado
+   esse ecrã é um perigo que o produto não deve criar. Se um dia alguém o
+   quiser acrescentar, esta é a razão para não o fazer.
+   ============================================================ */
+function desenharAgregado(r, c) {
+  if (r.agregadoPerguntar) {
+    const cx = caixaPergunta(
+      'Este quadro está a contar com ' + dinheiro(r.R) +
+      ' por mês. É tudo o que entra em casa?', [
+        ['É tudo', () => {
+          agregado.confirmado = true;
+          agregado.R = r.R;
+          agregado.ts = Date.now();
+          agregado.adiado = null;
+          guardarPrefs();
+          desenhar();
+          mostrarAviso('Fica assim. Só volta a perguntar se o que entra mudar muito.', 'ok');
+        }],
+        ['Falta contar outro rendimento', () => {
+          /* Não abre um formulário a perguntar quanto é. Abre o
+             lançamento, já em Entrada/Salário. */
+          agregado.confirmado = false;
+          agregado.adiado = isoLocal(new Date());
+          guardarPrefs();
+          desenhar();
+          prepararOutroRendimento();
+        }]
+      ]);
+    cx.classList.add('agregado');
+    c.appendChild(cx);
+  }
+
+  /* Distinguir de quem, sem campo novo nenhum: a descrição livre, que a
+     pessoa escolhe escrever e pode apagar. Dispensável para sempre. */
+  if (r.dicaDoisSalarios) {
+    const d = document.createElement('div');
+    d.className = 'agregado-dica';
+    d.appendChild(p('Há dois salários neste mês. Se quiser distinguir, escreva de quem na descrição — "meu", "do João". Não é preciso.', 'res-nota'));
+    d.appendChild(botao('Não mostrar mais', 'link-btn', () => {
+      agregado.dicaSalarios = true;
+      guardarPrefs();
+      desenhar();
+    }));
+    c.appendChild(d);
+  }
 }
 
 function desenharAperto(r, c) {
@@ -1474,6 +1879,653 @@ function desenharSinal(r, c) {
   }
 
   c.appendChild(cx);
+}
+
+/* ============================================================
+   3 · O BALANÇO — desenhar
+
+   Regra de desenho, e não é decorativa: nada aqui leva cor de alarme,
+   nota, estrela ou emoji de cara. Um balanço com um número a vermelho
+   deixa de ser um espelho e passa a ser uma avaliação — e quem é avaliado
+   deixa de lançar as despesas que ficam mal na fotografia, que é a app a
+   corromper os seus próprios dados.
+   ============================================================ */
+function marcarBalancoVisto(k) {
+  if (!k || balancoPrefs.vistos.indexOf(k) !== -1) return;
+  balancoPrefs.vistos.push(k);
+  if (balancoPrefs.vistos.length > 36) {
+    balancoPrefs.vistos = balancoPrefs.vistos.slice(-36);
+  }
+  guardarPrefs();
+}
+
+function abrirBalanco(k) {
+  balancoAberto = k;
+  marcarBalancoVisto(k);
+  desenhar();
+  const el = document.getElementById('bloco-balanco');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function fecharBalanco() {
+  balancoAberto = null;
+  desenhar();
+}
+
+/* A entrada é uma linha, nunca um popup no dia 1. Um toque, dispensável, e
+   depois o balanço continua acessível ao navegar para o mês. */
+function desenharBalancoLinha(r) {
+  const el = document.getElementById('balanco-linha');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const esconder = !r.balancoAlvo ||
+    balancoAberto === r.balancoAlvo ||
+    (r.ehMesCorrente && !r.balancoConvite);
+  if (esconder) { el.hidden = true; return; }
+
+  el.hidden = false;
+  const nome = mesExtenso(r.balancoAlvo, true);
+
+  if (r.ehMesCorrente) {
+    const sp = document.createElement('span');
+    sp.textContent = 'O mês de ' + nome + ' fechou.';
+    el.appendChild(sp);
+    el.appendChild(botao('Ver como correu', 'link-btn', () => abrirBalanco(r.balancoAlvo)));
+    el.appendChild(botao('Agora não', 'link-btn', () => {
+      marcarBalancoVisto(r.balancoAlvo);
+      desenhar();
+    }));
+  } else {
+    el.appendChild(botao('Ver como correu ' + nome, 'link-btn',
+      () => abrirBalanco(r.balancoAlvo)));
+  }
+}
+
+function balParte(c) {
+  return dinheiro(c.mv) + ' contra ' + dinheiro(c.pv);
+}
+
+/* Sem adjectivo nenhum: "gastou mais", nunca "gastou demais". */
+function balFraseMencoes(b) {
+  const m = b.mencoes;
+  if (!m) return null;
+  const nome = c => catInfo('saida', c.id).nome;
+
+  if (m.sobe && m.desce) {
+    return 'Gastou mais em ' + nome(m.sobe) + ' do que em ' + b.antNome +
+      ' (' + balParte(m.sobe) + ') e menos em ' + nome(m.desce) +
+      ' (' + balParte(m.desce) + ').';
+  }
+  if (m.sobe) {
+    return 'Gastou mais em ' + nome(m.sobe) + ' do que em ' + b.antNome +
+      ' (' + balParte(m.sobe) + ').';
+  }
+  let t = 'Gastou menos em ' + nome(m.desce) + ' do que em ' + b.antNome +
+    ' (' + balParte(m.desce) + ')';
+  if (m.desce2) t += ' e em ' + nome(m.desce2) + ' (' + balParte(m.desce2) + ')';
+  return t + '.';
+}
+
+function balTabelaLado(pares) {
+  const t = document.createElement('dl');
+  t.className = 'res-tabela';
+  pares.forEach(par => {
+    const dt = document.createElement('dt'); dt.textContent = par[0];
+    const dd = document.createElement('dd'); dd.textContent = par[1];
+    t.append(dt, dd);
+  });
+  return t;
+}
+
+function desenharBalanco(r) {
+  const bloco = document.getElementById('bloco-balanco');
+  const c = document.getElementById('balanco-corpo');
+  const tit = document.getElementById('balanco-titulo');
+  if (!bloco || !c) return;
+
+  c.innerHTML = '';
+  const b = r.balanco;
+  if (!b) { bloco.hidden = true; return; }
+  bloco.hidden = false;
+  if (tit) tit.textContent = 'Como correu ' + b.nome;
+
+  const fechar = () => {
+    const acoes = document.createElement('div');
+    acoes.className = 'res-acoes';
+    acoes.appendChild(botao('Fechar', 'mini-btn', fecharBalanco));
+    c.appendChild(acoes);
+  };
+
+  /* Meia dúzia de movimentos lançados diria que se gastou menos em tudo.
+     Dizer que não dá é mais honesto do que comparar na mesma. */
+  if (b.poucos) {
+    c.appendChild(p(comMaiuscula(b.nome) +
+      ' tem poucos movimentos lançados para se comparar.', 'res-nota'));
+    fechar();
+    return;
+  }
+
+  const grelha = document.createElement('div');
+  grelha.className = 'bal-grelha';
+
+  const esq = [
+    ['Entrou', dinheiro(b.entrou)],
+    ['Saiu', dinheiro(b.saiu)]
+  ];
+  if (!b.apertado) esq.push(['Guardou', dinheiro(b.guardou)]);
+  esq.push(b.livre < 0
+    ? ['Faltou', dinheiro(Math.abs(b.livre))]
+    : ['Sobrou', dinheiro(b.livre)]);
+  grelha.appendChild(balTabelaLado(esq));
+
+  const dir = document.createElement('div');
+  if (b.antMes) {
+    /* A referência é a própria pessoa no mês anterior. Não há aqui coluna
+       nenhuma com uma média, um recomendado ou um "as pessoas como você". */
+    const env = document.createElement('div');
+    env.className = 'bal-tab-env';
+    const tab = document.createElement('table');
+    tab.className = 'bal-tab';
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    ['', b.nome, b.antNome].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    tab.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const linhas = [
+      ['Essencial', b.pctEss === null ? '—' : b.pctEss + '%',
+                    b.antPctEss === null ? '—' : b.antPctEss + '%'],
+      ['Dá para adiar', b.pctAdi === null ? '—' : b.pctAdi + '%',
+                        b.antPctAdi === null ? '—' : b.antPctAdi + '%']
+    ];
+    if (!b.apertado) {
+      linhas.push(['Guardou', dinheiro(b.guardou), dinheiro(b.antGuardou)]);
+    }
+    linhas.forEach(l => {
+      const f = document.createElement('tr');
+      l.forEach((cel, i) => {
+        const td = document.createElement(i === 0 ? 'th' : 'td');
+        if (i === 0) td.scope = 'row';
+        td.textContent = cel;
+        f.appendChild(td);
+      });
+      tbody.appendChild(f);
+    });
+    tab.appendChild(tbody);
+    env.appendChild(tab);
+    dir.appendChild(env);
+  } else {
+    dir.appendChild(p('Ainda não há mês anterior para comparar.', 'res-nota'));
+  }
+  grelha.appendChild(dir);
+  c.appendChild(grelha);
+
+  if (b.maiores.length) {
+    c.appendChild(p('As maiores saídas de ' + b.nome, 'res-subtitulo'));
+    const ul = document.createElement('ul');
+    ul.className = 'res-maiores';
+    b.maiores.forEach(x => {
+      const info = catInfo('saida', x.id);
+      const li = document.createElement('li');
+      const nb = document.createElement('b');
+      nb.textContent = info.emoji + ' ' + info.nome;
+      const sp = document.createElement('span');
+      sp.textContent = dinheiro(x.valor);
+      li.append(nb, sp);
+      ul.appendChild(li);
+    });
+    c.appendChild(ul);
+  }
+
+  const frase = balFraseMencoes(b);
+  if (frase) c.appendChild(p(frase, 'res-nota'));
+
+  if (b.guardouEm) {
+    c.appendChild(p('Guardou em ' + b.guardouEm.n + ' dos últimos ' +
+      b.guardouEm.de + ' meses.', 'res-nota'));
+  }
+
+  /* A única frase a que a app tem direito a opinião — e vem sempre com a
+     segunda parte, que tira a culpa de cima da pessoa e põe metade dela na
+     própria app. Sem a segunda parte isto é uma acusação. */
+  if (b.opiniao) {
+    c.appendChild(p('Em ' + b.nome + ' entraram ' + dinheiro(b.opiniao) +
+      ' acima do normal e no fim do mês não ficou nada.', 'bal-opiniao'));
+    c.appendChild(p('É o padrão mais comum que há, e é exactamente o que a app tenta apanhar no momento em que o dinheiro entra.', 'res-nota'));
+  }
+
+  if (b.apertado) {
+    c.appendChild(p(b.pctEssEntrou !== null
+      ? ('Em ' + b.nome + ' o essencial levou ' + b.pctEssEntrou +
+         '% do que entrou. Não há aqui nada que tenha corrido mal por sua causa.')
+      : ('Em ' + b.nome + ' não há entradas lançadas, por isso o que saiu não tem com que ser comparado.'),
+      'res-nota'));
+  }
+
+  fechar();
+}
+
+/* ============================================================
+   5 · O MEU PLANO — um construtor guiado, não um assistente
+
+   Seis perguntas fechadas, quase todas já respondidas pelos movimentos
+   lançados: a pessoa confirma em vez de escrever. Todas têm uma resposta
+   que é "não sei" a sério — porque "não sei" é a resposta verdadeira de
+   muita gente e obrigá-la a escolher outra coisa é obrigá-la a mentir aos
+   próprios dados.
+
+   E o documento que sai daqui não é prosa gerada: é forma fixa, com os
+   números da própria pessoa, e cada frase escolhida de um catálogo por
+   regras. Nenhuma frase deste ficheiro nomeia uma instituição, um produto
+   ou um sítio onde pôr dinheiro. Isso não é uma instrução que se possa
+   contornar — é uma coisa que não está escrita em lado nenhum e por isso
+   não pode sair.
+   ============================================================ */
+function dataExtenso(d) {
+  return d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear();
+}
+
+function abrirPlano() {
+  planoAberto = true;
+  planoEssAberto = false;
+  if (planoGuardado && planoGuardado.respostas) {
+    planoResp = Object.assign({}, planoGuardado.respostas);
+    planoPasso = PLANO_PASSOS;      // já o fez: abre no documento, refeito de hoje
+  } else {
+    planoResp = {};
+    planoPasso = 0;
+  }
+  desenhar();
+  const el = document.getElementById('bloco-plano');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function fecharPlano() { planoAberto = false; desenhar(); }
+
+function refazerPlano() {
+  planoPasso = 0;
+  planoEssAberto = false;
+  desenhar();
+}
+
+function responderPlano(chave, valor) {
+  planoResp[chave] = valor;
+  planoEssAberto = false;
+  planoPasso++;
+  desenhar();
+}
+
+/* Uma pergunta: o número do passo, o que a app já sabe, e botões. Nunca
+   um campo de texto — o valor por mês mexe-se de cinco em cinco, para não
+   abrir teclado nenhum a quem só quer confirmar. */
+function planoPergunta(c, n, textos, opcoes, chave) {
+  c.appendChild(p(n + ' de ' + PLANO_PASSOS, 'plano-passo'));
+  textos.forEach(t => c.appendChild(p(t, 'plano-q')));
+
+  const grelha = document.createElement('div');
+  grelha.className = 'plano-ops';
+  opcoes.forEach(o => {
+    const b = botao(o[0], 'plano-op', o[1]);
+    if (o[2] !== undefined) b.setAttribute('aria-pressed', String(planoResp[chave] === o[2]));
+    grelha.appendChild(b);
+  });
+  c.appendChild(grelha);
+}
+
+function planoNav(c, n) {
+  const nav = document.createElement('div');
+  nav.className = 'res-acoes';
+  if (n > 1) nav.appendChild(botao('Voltar', 'mini-btn', () => {
+    planoPasso--; planoEssAberto = false; desenhar();
+  }));
+  nav.appendChild(botao('Fechar', 'mini-btn', fecharPlano));
+  c.appendChild(nav);
+}
+
+/* Passo 2, segunda resposta: os interruptores de essencial, na lista de
+   categorias. É a mesma preferência que o formulário já usa, por isso
+   corrigir aqui corrige o `E` de todos os meses de uma vez. */
+function planoInterruptores(c) {
+  const ul = document.createElement('ul');
+  ul.className = 'plano-ess';
+  CATEGORIAS.saida.filter(cat => cat.id !== 'reserva').forEach(cat => {
+    const li = document.createElement('li');
+    const b = document.createElement('b');
+    b.textContent = cat.emoji + ' ' + cat.nome;
+    const sel = document.createElement('div');
+    sel.className = 'ess-sel';
+    [['Essencial', true], ['Dá para adiar', false]].forEach(par => {
+      const bt = botao(par[0], '', () => {
+        essenciais[cat.id] = par[1];
+        guardarPrefs();
+        desenhar();
+      });
+      bt.setAttribute('aria-pressed', String(padraoCategoria(cat.id) === par[1]));
+      sel.appendChild(bt);
+    });
+    li.append(b, sel);
+    ul.appendChild(li);
+  });
+  c.appendChild(ul);
+}
+
+/* O degrau que este plano persegue. A resposta sobre "para que é" muda o
+   texto e o primeiro degrau — nunca a matemática. */
+function planoDegrau(r, para) {
+  if (!r.degraus || !r.degraus.length) return null;
+  const desde = (para === 'trabalho') ? 1 : 0;
+  return r.degraus.find((d, i) => i >= desde && d.valor > r.reserva) ||
+         r.degraus.find(d => d.valor > r.reserva) || null;
+}
+
+const PLANO_PARA = {
+  'avaria':    'O primeiro degrau é ter com que pagar uma avaria sem pedir emprestado.',
+  'trabalho':  'O primeiro degrau é ter um mês de despesas essenciais de lado, para o caso de ficar sem trabalho.',
+  'divida':    'O primeiro degrau é ter de onde tirar quando aparecer uma despesa, para não abrir outra dívida a pagar a que está a acabar.',
+  'nao-sei':   'Não faz falta saber para que é. Uma reserva serve para o que aparecer, e a resposta costuma chegar sozinha.'
+};
+
+function juntarFrase(lista) {
+  if (lista.length === 1) return lista[0];
+  return lista.slice(0, -1).join(', ') + ' e ' + lista[lista.length - 1];
+}
+
+function desenharPlano(r) {
+  const bloco = document.getElementById('bloco-plano');
+  const c = document.getElementById('plano-corpo');
+  if (!bloco || !c) return;
+  c.innerHTML = '';
+  bloco.hidden = !planoAberto;
+  if (!planoAberto) return;
+
+  /* Sem meses que cheguem não há plano nenhum para dar, e inventar um com
+     dois movimentos era a primeira promessa que a app não cumpria. */
+  if (r.modo === 'sem-dados' || r.R === null || r.E === null || r.moedaMista) {
+    c.appendChild(p(r.moedaMista
+      ? 'Há movimentos em mais do que uma moeda. Enquanto for assim não dá para fazer as contas deste plano.'
+      : 'Ainda não há registos que cheguem para fazer um plano. Lance as despesas de um mês inteiro e este botão passa a fazer sentido.',
+      'res-nota'));
+    planoNav(c, 0);
+    return;
+  }
+
+  const passo = Math.min(planoPasso, PLANO_PASSOS);
+
+  if (passo === 0) {
+    planoPergunta(c, 1, [
+      'Pelo que já lançou, entram por mês cerca de ' + dinheiro(r.R) + '.'
+    ], [
+      ['Está certo', () => responderPlano('rendimento', 'certo'), 'certo'],
+      ['Entra mais, falta lançar', () => responderPlano('rendimento', 'mais'), 'mais'],
+      ['Varia muito de mês para mês', () => responderPlano('rendimento', 'varia'), 'varia']
+    ], 'rendimento');
+    planoNav(c, 1);
+    return;
+  }
+
+  if (passo === 1) {
+    planoPergunta(c, 2, [
+      'Do que sai por mês, cerca de ' + dinheiro(r.E) + ' é essencial — o que não dá para adiar.'
+    ], [
+      ['Está certo', () => responderPlano('essenciais', 'certo'), 'certo'],
+      ['Há coisas mal marcadas', () => { planoEssAberto = true; desenhar(); }, 'corrigi'],
+      ['Não sei ao certo', () => responderPlano('essenciais', 'nao-sei'), 'nao-sei']
+    ], 'essenciais');
+    if (planoEssAberto) {
+      c.appendChild(p('Toque no que estiver trocado. Fica assim em todos os meses.', 'res-nota'));
+      planoInterruptores(c);
+      const ac = document.createElement('div');
+      ac.className = 'res-acoes';
+      ac.appendChild(botao('Já está', 'btn btn-gold btn-peq',
+        () => responderPlano('essenciais', 'corrigi')));
+      c.appendChild(ac);
+    }
+    planoNav(c, 2);
+    return;
+  }
+
+  if (passo === 2) {
+    const tem = r.comprometidoPorMes && r.ultimaPrestacao;
+    planoPergunta(c, 3, tem ? [
+      'A app vê ' + dinheiro(r.comprometidoPorMes) + ' por mês em prestações, até ' +
+      mesExtenso(r.ultimaPrestacao) + '.'
+    ] : [
+      'A app não vê nenhuma prestação nem crédito por pagar.'
+    ], [
+      [tem ? 'Está certo' : 'É isso mesmo', () => responderPlano('dividas', 'certo'), 'certo'],
+      ['Há mais que a app não sabe', () => responderPlano('dividas', 'mais'), 'mais'],
+      ['Não sei ao certo', () => responderPlano('dividas', 'nao-sei'), 'nao-sei']
+    ], 'dividas');
+    planoNav(c, 3);
+    return;
+  }
+
+  if (passo === 3) {
+    planoPergunta(c, 4, ['Para que é a reserva?'], [
+      ['Não faço ideia', () => responderPlano('para', 'nao-sei'), 'nao-sei'],
+      ['Uma avaria', () => responderPlano('para', 'avaria'), 'avaria'],
+      ['Ficar sem trabalho', () => responderPlano('para', 'trabalho'), 'trabalho'],
+      ['Acabar uma dívida', () => responderPlano('para', 'divida'), 'divida']
+    ], 'para');
+    planoNav(c, 4);
+    return;
+  }
+
+  if (passo === 4) {
+    /* Para um assalariado em Portugal é a pergunta que mais muda o plano
+       de todas — dois meses por ano com dinheiro a mais decidem se há
+       reserva ou não. */
+    planoPergunta(c, 5, ['Recebe subsídio de férias e de Natal?'], [
+      ['Sim', () => responderPlano('subsidios', 'sim'), 'sim'],
+      ['Não', () => responderPlano('subsidios', 'nao'), 'nao'],
+      ['Não sei', () => responderPlano('subsidios', 'nao-sei'), 'nao-sei']
+    ], 'subsidios');
+    planoNav(c, 5);
+    return;
+  }
+
+  /* Passo 6 — quanto por mês. Proposto de metade da folga, e mexe-se de
+     cinco em cinco: confirmar em vez de escrever. */
+  if (passo === 5) {
+    const proposto = planoResp.mensal !== undefined
+      ? planoResp.mensal
+      : (r.proposta || (r.folga > 0 ? Math.max(5, Math.floor(r.folga / 2)) : 0));
+    const mexer = d => {
+      planoResp.mensal = Math.max(0, Math.round((proposto + d) * 100) / 100);
+      desenhar();
+    };
+    const textos = proposto > 0
+      ? ['Pelas contas, dava para guardar cerca de ' + dinheiro(proposto) + ' por mês.']
+      : ['Com o que entra e o que é essencial, não sobra nada por mês.'];
+    const ops = proposto > 0
+      ? [
+          ['Está bem', () => responderPlano('mensal', proposto)],
+          ['Menos', () => mexer(-PLANO_DEGRAU)],
+          ['Mais', () => mexer(PLANO_DEGRAU)],
+          ['Não consigo nada', () => responderPlano('mensal', 0)]
+        ]
+      : [
+          ['Está certo', () => responderPlano('mensal', 0)],
+          ['Consigo guardar alguma coisa', () => mexer(PLANO_DEGRAU)]
+        ];
+    planoPergunta(c, 6, textos, ops, '_');
+    planoNav(c, 6);
+    return;
+  }
+
+  desenharPlanoDocumento(r, c);
+}
+
+/* ---------- o documento ----------
+   Forma fixa, números da pessoa, frases escolhidas de um catálogo. */
+function desenharPlanoDocumento(r, c) {
+  const resp = planoResp;
+  const mensal = (typeof resp.mensal === 'number') ? resp.mensal : (r.mensal || 0);
+  const aperto = r.modo === 'aperto' || r.folga === null || r.folga <= 0;
+  const temPrest = !!(r.comprometidoPorMes && r.ultimaPrestacao);
+
+  c.appendChild(p('feito a ' + dataExtenso(hoje), 'plano-data'));
+
+  /* --- o que se sabe --- */
+  c.appendChild(p('O que se sabe', 'res-subtitulo'));
+  const linhas = [
+    ['Entra por mês', dinheiro(r.R)],
+    ['Essencial por mês', dinheiro(r.E)]
+  ];
+  linhas.push(aperto ? ['Falta', dinheiro(r.folga)] : ['Sobra', dinheiro(r.folga)]);
+  if (temPrest) {
+    linhas.push(['Comprometido em prestações',
+      dinheiro(r.comprometidoPorMes) + '/mês até ' + mesExtenso(r.ultimaPrestacao, true)]);
+  }
+  const t = document.createElement('dl');
+  t.className = 'res-tabela';
+  linhas.forEach(par => {
+    const dt = document.createElement('dt'); dt.textContent = par[0];
+    const dd = document.createElement('dd'); dd.textContent = par[1];
+    t.append(dt, dd);
+  });
+  c.appendChild(t);
+
+  /* O que a pessoa disse que a app não vê fica escrito — senão o plano
+     está a fazer contas com um número que ela já disse estar errado. */
+  if (resp.rendimento === 'mais') {
+    c.appendChild(p('Disse que entra mais do que a app vê. Lance o que falta e este plano refaz-se sozinho.', 'res-nota'));
+  } else if (resp.rendimento === 'varia') {
+    /* "o mais seguro" ficava aqui a saber a produto financeiro, num sítio
+       onde a app não pode nomear nenhum. A palavra sai. */
+    c.appendChild(p('Disse que varia muito de mês para mês. A conta usa o valor do meio dos últimos meses, que é o que menos se engana quando o rendimento oscila.', 'res-nota'));
+  }
+  if (resp.dividas === 'mais') {
+    c.appendChild(p('Disse que há prestações ou créditos que a app não vê. Lance-os e os números acima mudam.', 'res-nota'));
+  } else if (resp.dividas === 'nao-sei') {
+    c.appendChild(p('Disse que não sabe ao certo o que tem em prestações. Não faz mal: o que aparecer lançado entra nas contas a partir daí.', 'res-nota'));
+  }
+  if (resp.essenciais === 'nao-sei') {
+    c.appendChild(p('Disse que não sabe ao certo o que é essencial. A app usa o que está marcado hoje, e muda quando mudar uma marca.', 'res-nota'));
+  }
+
+  const passos = [];
+
+  if (aperto) {
+    /* Em aperto o plano não desaparece — muda. Não há aqui um plano de
+       poupança para dar, e fingir que há é a mentira mais fácil deste
+       produto. */
+    c.appendChild(p('Não há aqui um plano de poupança para lhe dar, porque com estes números não sobra nada. Isto é o que a app consegue fazer consigo:', 'plano-lead'));
+
+    const pesos = r.maioresEssenciais.slice(0, 2)
+      .map(x => catInfo('saida', x.id).nome + ' (' + dinheiro(x.valor) + ')');
+    if (temPrest) pesos.push('as prestações (' + dinheiro(r.comprometidoPorMes) + ' por mês)');
+    if (pesos.length) {
+      passos.push(pesos.length === 1
+        ? ('A despesa fixa maior é ' + pesos[0] + '. É a única com tamanho para mudar alguma coisa.')
+        : ('As despesas fixas maiores são ' + juntarFrase(pesos) + '. São as que têm tamanho para mudar alguma coisa.'));
+    }
+    if (resp.subsidios === 'sim') {
+      passos.push('Em junho e em novembro entra dinheiro a mais. É a única altura do ano em que dá para guardar, e a app pergunta-lhe nesse dia.');
+    } else if (resp.subsidios === 'nao-sei') {
+      passos.push('Se receber subsídio de férias e de Natal, esses são os dois meses do ano em que dá para guardar. Vale a pena confirmar no recibo.');
+    }
+    passos.push(temPrest
+      ? 'Não parcelar mais nada. Cada prestação nova tira ao mês seguinte.'
+      : 'Não parcelar nada enquanto for assim. Cada prestação nova tira ao mês seguinte.');
+  } else {
+    if (mensal > 0) {
+      passos.push(r.diaSalario
+        ? ('Guardar ' + dinheiro(mensal) + ' no dia ' + r.diaSalario +
+           ', quando o salário entrar. A app pergunta-lhe nesse dia.')
+        : ('Guardar ' + dinheiro(mensal) + ' no dia em que o salário entrar. A app pergunta-lhe nesse dia.'));
+    } else {
+      passos.push('Este mês não guardar nada. Disse que não consegue, e a app não lhe pede nada enquanto for assim.');
+    }
+    if (temPrest) {
+      passos.push('Não parcelar nada até ' + mesExtenso(r.ultimaPrestacao, true) + '. Já tem ' +
+        dinheiro(r.comprometidoPorMes) + ' por mês com dono.');
+    }
+  }
+
+  if (passos.length) {
+    c.appendChild(p(aperto ? 'O que dá para fazer' : 'O que faz este mês', 'res-subtitulo'));
+    const ol = document.createElement('ol');
+    ol.className = 'plano-passos';
+    passos.forEach(x => {
+      const li = document.createElement('li');
+      li.textContent = x;
+      ol.appendChild(li);
+    });
+    c.appendChild(ol);
+  }
+
+  /* --- os meses do subsídio, fora do aperto --- */
+  if (!aperto && resp.subsidios !== 'nao') {
+    c.appendChild(p('O que faz nos meses do subsídio', 'res-subtitulo'));
+    const ol = document.createElement('ol');
+    ol.className = 'plano-passos';
+    ol.start = passos.length + 1;
+    const li = document.createElement('li');
+    li.textContent = resp.subsidios === 'sim'
+      ? 'Em junho e em novembro entra dinheiro a mais. Guardar metade é o que decide se chega a dezembro com reserva ou sem ela.'
+      : 'Se receber subsídio de férias e de Natal, junho e novembro são os dois meses em que dá para guardar mais. Vale a pena confirmar no recibo.';
+    ol.appendChild(li);
+    c.appendChild(ol);
+  }
+
+  /* --- onde isto chega --- */
+  c.appendChild(p('Onde isto chega', 'res-subtitulo'));
+  if (PLANO_PARA[resp.para]) c.appendChild(p(PLANO_PARA[resp.para], 'res-nota'));
+
+  const alvo = planoDegrau(r, resp.para);
+  /* Metade dos dois subsídios é, ao ano, cerca de um mês de rendimento —
+     espalhado por doze, dá isto. Conta simples e verificável; nada de
+     retorno projectado, que não existe. */
+  const extra = (resp.subsidios === 'sim' && r.R > 0) ? r.R / 12 : 0;
+  const ritmo = mensal + extra;
+
+  if (!alvo) {
+    c.appendChild(p('Já tem mais do que três meses de despesas essenciais guardados. A partir daqui a pergunta deixa de ser quanto guardar, e isso não se decide numa aplicação de contas.', 'res-nota'));
+  } else if (ritmo <= 0) {
+    c.appendChild(p('Sem nada por mês não há data para dar. O degrau seguinte é ' +
+      alvo.rotulo + ' (' + dinheiro(alvo.valor) + '), e a app volta a fazer esta conta assim que sobrar alguma coisa.', 'res-nota'));
+  } else {
+    const falta = alvo.valor - r.reserva;
+    const n = Math.ceil(falta / ritmo);
+    const comSub = extra > 0 ? ' mais metade dos dois subsídios' : '';
+    if (n > 60) {
+      c.appendChild(p('A ' + dinheiro(mensal) + ' por mês' + comSub +
+        ', chegar a ' + alvo.rotulo + ' (' + dinheiro(alvo.valor) +
+        ') leva mais de cinco anos. O número útil não é a data — é o degrau a seguir.', 'res-nota'));
+    } else {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + n, 1);
+      c.appendChild(p('A ' + dinheiro(mensal) + ' por mês' + comSub +
+        ', chega a ' + alvo.rotulo + ' (' + dinheiro(alvo.valor) + ') por volta de ' +
+        MESES[d.getMonth()] + ' de ' + d.getFullYear() + '.', 'res-nota'));
+    }
+  }
+
+  /* Obrigatória em todas as versões, e não se corta. Alguém vai cumprir
+     este plano e não chegar lá, porque a vida aconteceu. */
+  c.appendChild(p('É uma conta com o que sabe hoje. Muda quando a vida mudar.', 'plano-fecho'));
+
+  const acoes = document.createElement('div');
+  acoes.className = 'res-acoes';
+  acoes.appendChild(botao('Guardar este plano', 'btn btn-gold btn-peq', () => {
+    planoGuardado = {
+      feito: isoLocal(new Date()),
+      respostas: Object.assign({}, planoResp),
+      versao: 1
+    };
+    guardarPrefs();
+    desenhar();
+    mostrarAviso('Plano guardado. Volta a abrir sempre com os números de hoje.', 'ok');
+  }));
+  acoes.appendChild(botao('Refazer', 'mini-btn', refazerPlano));
+  acoes.appendChild(botao('Fechar', 'mini-btn', fecharPlano));
+  c.appendChild(acoes);
 }
 
 /* ============================================================
@@ -1772,6 +2824,9 @@ function desenhar() {
   desenharMes();
   desenharTopo(r);
   desenharLembrete(r);
+  desenharBalancoLinha(r);
+  desenharBalanco(r);
+  desenharPlano(r);
   desenharEtiquetas(r);
   desenharLista(r);
   desenharCategorias(r);
@@ -1869,6 +2924,22 @@ function prepararTirar() {
   irParaFormulario();
 }
 
+/* "Falta contar outro rendimento" leva a lançar, não a preencher uma
+   definição. É a diferença entre um número que envelhece e um que a vida
+   corrige sozinha. */
+function prepararOutroRendimento() {
+  trocarTipo('entrada');
+  document.getElementById('f-categoria').value = 'salario';
+  etiquetaActiva = '';
+  limparDescricaoAutomatica();
+  pintarEtiquetas();
+  sincronizarEss();
+  document.getElementById('f-valor').value = '';
+  document.getElementById('f-data').value = isoLocal(new Date());
+  notaForm('Lance-o como uma entrada, no dia em que entra. Fica a contar a partir daí.');
+  irParaFormulario();
+}
+
 function reservaActual() {
   return movimentos.reduce((s, m) => {
     if (m.tipo === 'saida' && m.categoria === 'reserva') return s + m.valor;
@@ -1938,6 +3009,19 @@ function limparPerguntaForm() {
   z.innerHTML = '';
 }
 
+/* Uma nota no formulário, sem botões e sem decisão nenhuma: aparece
+   porque a pessoa pediu, e desaparece no lançamento seguinte. */
+function notaForm(texto) {
+  const z = document.getElementById('form-pergunta');
+  if (!z) return;
+  z.innerHTML = '';
+  z.hidden = false;
+  const cx = document.createElement('div');
+  cx.className = 'pergunta';
+  cx.appendChild(p(texto));
+  z.appendChild(cx);
+}
+
 function perguntaForm(texto, botoes) {
   const z = document.getElementById('form-pergunta');
   if (!z) return;
@@ -1984,9 +3068,14 @@ function adicionar(ev) {
   /* --- os dois travões do §8, uma pergunta de cada vez ------------- */
   if (vezes) {
     /* O valor escrito era o total e a pessoa não tocou no "é o preço
-       total": criava 12 prestações de 550,80 €. */
+       total": criava 12 prestações de 550,80 €.
+
+       O limiar de `3 × R` só existe com meses completos — ou seja, estava
+       morto exactamente para quem lança a primeira compra parcelada, que é
+       quem mais precisa dele. `totalSuspeito()` cai para a mediana das
+       saídas já lançadas quando `R` não existe. */
     const r0 = calcular();
-    if (r0.R && r0.R > 0 && valor * vezes > 3 * r0.R) {
+    if (totalSuspeito(valor, vezes, r0)) {
       perguntaForm('São ' + vezes + ' prestações de ' + dinheiro(valor) + ', ou ' +
         dinheiro(valor) + ' no total?', [
           ['São ' + vezes + ' de ' + dinheiro(valor), () => {
@@ -2352,6 +3441,32 @@ function ligarNuvem() {
                 essenciais[k] = pref.essenciais[k];
               }
             });
+          }
+          /* Agregado: ganha a confirmação mais recente. É uma resposta a
+             uma pergunta, não um dado — se as duas pontas discordarem, a
+             pior consequência é a pergunta reaparecer uma vez. */
+          if (pref.agregado && typeof pref.agregado === 'object' &&
+              (pref.agregado.ts || 0) > (agregado.ts || 0)) {
+            agregado = Object.assign({}, agregado, pref.agregado);
+          }
+          /* Balanço: junta-se, nunca se apaga. Um mês já visto num
+             telemóvel não volta a convidar no outro. */
+          if (pref.balanco && Array.isArray(pref.balanco.vistos)) {
+            pref.balanco.vistos.forEach(x => {
+              if (typeof x === 'string' && balancoPrefs.vistos.indexOf(x) === -1) {
+                balancoPrefs.vistos.push(x);
+              }
+            });
+            balancoPrefs.vistos = balancoPrefs.vistos.slice(-36);
+          }
+          /* Plano: só as respostas viajam. O documento nunca é gravado,
+             logo nunca chega desactualizado de lado nenhum. */
+          if (pref.plano && pref.plano.respostas && typeof pref.plano.respostas === 'object' &&
+              (!planoGuardado || (pref.plano.feito || '') > (planoGuardado.feito || ''))) {
+            planoGuardado = {
+              feito: typeof pref.plano.feito === 'string' ? pref.plano.feito : '',
+              respostas: pref.plano.respostas, versao: 1
+            };
           }
         }
 

@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="estilo.css?v=6">
-<link rel="stylesheet" href="app-financas.css?v=6">
+<link rel="stylesheet" href="app-financas.css?v=8">
 </head>
 <body>
 
@@ -51,6 +51,10 @@
     <div class="proposta" id="proposta" hidden></div>
     <div class="lembrete" id="lembrete-salario" hidden></div>
 
+    <!-- O balanço entra por uma linha, nunca por um popup no dia 1. Um
+         toque, dispensável, e depois fica acessível ao navegar para o mês. -->
+    <div class="balanco-linha" id="balanco-linha" hidden></div>
+
     <div class="resumo">
       <div class="card saldo">
         <div class="rot">Livre até ao fim do mês</div>
@@ -71,6 +75,22 @@
       </div>
     </div>
     <p class="resumo-linha" id="resumo-linha"></p>
+
+    <!-- Factos comparados com a própria pessoa, mês contra mês. Nunca com
+         uma norma externa, e nunca só com más notícias. -->
+    <div class="bloco bloco-balanco" id="bloco-balanco" hidden>
+      <h3 id="balanco-titulo">Como correu</h3>
+      <div id="balanco-corpo"></div>
+    </div>
+
+    <!-- Seis perguntas fechadas e um documento de forma fixa. Nenhuma
+         frase é gerada: todas estão escritas no app-financas.js, o que
+         torna impossível — e não apenas improvável — recomendar aqui um
+         produto financeiro. -->
+    <div class="bloco bloco-plano" id="bloco-plano" hidden>
+      <h3 id="plano-titulo">O meu plano</h3>
+      <div id="plano-corpo"></div>
+    </div>
 
     <div class="painel">
 
@@ -219,6 +239,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=6"></script>
 <script src="site.js?v=6"></script>
-<script src="app-financas.js?v=6"></script>
+<script src="app-financas.js?v=8"></script>
 </body>
 </html>
