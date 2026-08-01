@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=4">
-<link rel="stylesheet" href="app-financas.css?v=4">
+<link rel="stylesheet" href="estilo.css?v=5">
+<link rel="stylesheet" href="app-financas.css?v=5">
 </head>
 <body>
 
@@ -82,12 +82,14 @@
           <button type="button" data-tipo="entrada" aria-pressed="false">+ Entrada</button>
         </div>
 
+        <div class="etiquetas" id="etiquetas" role="group" aria-label="Lançamento rápido"></div>
+
         <form id="form" novalidate>
           <div class="field">
             <label for="f-valor">Valor</label>
             <input id="f-valor" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" required>
           </div>
-          <div class="field">
+          <div class="field" id="campo-categoria">
             <label for="f-categoria">Categoria</label>
             <select id="f-categoria"></select>
           </div>
@@ -185,8 +187,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=4"></script>
-<script src="site.js?v=4"></script>
-<script src="app-financas.js?v=4"></script>
+<script src="firebase-config.js?v=5"></script>
+<script src="site.js?v=5"></script>
+<script src="app-financas.js?v=5"></script>
 </body>
 </html>

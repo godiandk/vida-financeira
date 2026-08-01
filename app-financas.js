@@ -24,6 +24,7 @@ const CHAVE = 'vf:movimentos';
 const MOEDA_CHAVE = 'vf:moeda';
 const RESERVA_CHAVE = 'vf:reserva';
 const ESSENCIAIS_CHAVE = 'vf:essenciais';
+const ETIQUETAS_CHAVE = 'vf:etiquetas';
 
 const CATEGORIAS = {
   saida: [
@@ -64,6 +65,34 @@ const PADRAO_ESS = {
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
                'julho','agosto','setembro','outubro','novembro','dezembro'];
 
+/* ---------- etiquetas de lançamento rápido ----------
+   Uma etiqueta é um par (categoria, descrição). Nunca tem valor: o valor
+   escreve-se sempre à mão, dígito a dígito, porque é aí que está o efeito
+   de registar. Uma etiqueta com quantia fixa ("Café 1,20 €") destruía o
+   produto e por isso não existe.
+
+   Estas oito são só a sementeira — escolhidas para uma casa de baixo
+   rendimento, não para um utilizador médio. A partir da 15.ª saída
+   lançada, a barra passa a ser feita do que a própria pessoa lança.
+
+   "Luz" e "Água" são as duas `contas`: nenhuma categoria nova é criada
+   por causa de uma etiqueta. Quem quiser ver a água separada da luz vê-o
+   em "Para onde foi o dinheiro", que abre por descrição. */
+const SEMENTES = [
+  { cat: 'mercado',    desc: '',            rotulo: 'Mercado' },
+  { cat: 'contas',     desc: 'Luz',         rotulo: 'Luz',         emoji: '💡' },
+  { cat: 'contas',     desc: 'Água',        rotulo: 'Água',        emoji: '🚿' },
+  { cat: 'casa',       desc: 'Renda',       rotulo: 'Renda' },
+  { cat: 'transporte', desc: 'Passe',       rotulo: 'Passe',       emoji: '🚌' },
+  { cat: 'contas',     desc: 'Telemóvel',   rotulo: 'Telemóvel',   emoji: '📱' },
+  { cat: 'saude',      desc: 'Farmácia',    rotulo: 'Farmácia' },
+  { cat: 'transporte', desc: 'Combustível', rotulo: 'Combustível', emoji: '⛽' }
+];
+
+const ETQ_MINIMO_APRENDER = 15;   // saídas lançadas antes de deixar de semear
+const ETQ_MINIMO_USOS = 3;        // usos antes de uma etiqueta nova entrar
+const ETQ_JANELA_DIAS = 60;       // 60 e não 30: uma semana atípica não manda
+
 /* ---------- estado ---------- */
 let movimentos = [];
 let tipoActual = 'saida';
@@ -78,6 +107,25 @@ let utilizador = null;   // preenchido pelo Firebase, se houver conta
    recordar. Se o JSON estiver corrompido, trata-se como ausente. */
 let reservaPrefs = { mensal: null, degrau: 1, verificado: null, dispensados: [], ts: 0 };
 let essenciais = {};
+
+/* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
+   as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
+   polegar aprende vale mais do que uma barra óptima. */
+let etiquetasCache = null;
+let categoriaRevelada = false;  // o "＋ Outra" revela o menu de sempre
+let catsAbertas = {};           // categorias abertas em "Para onde foi o dinheiro"
+
+/* Qual a etiqueta acesa. Três estados, e a diferença entre dois deles é
+   toda a correcção do lançamento às cegas:
+     null   — ainda ninguém escolheu: acende-se a primeira da grelha
+     ''     — a pessoa escolheu pelo menu: nenhuma acesa, e é de propósito
+     chave  — a etiqueta acesa
+   Nas saídas não pode existir "nenhuma acesa por acidente": com o menu
+   escondido, escrever o valor e carregar em Lançar sem ter tocado em nada
+   lançava para a primeira categoria da lista, que quase nunca é a certa. */
+let etiquetaActiva = null;
+let etiquetasNoEcra = [];       // a grelha tal como está desenhada
+let descAutomatica = false;     // a descrição veio da etiqueta, não da pessoa
 
 /* ---------- utilitários ---------- */
 function dinheiro(v) {
@@ -145,6 +193,94 @@ function padraoCategoria(cat) {
 function ehEssencial(m) {
   if (typeof m.ess === 'boolean') return m.ess;
   return padraoCategoria(m.categoria);
+}
+
+/* ---------- etiquetas ---------- */
+function chaveEtiqueta(cat, desc) {
+  return cat + '|' + (desc || '').trim().toLowerCase();
+}
+
+/* Rótulo e emoji são sempre derivados — nunca guardados. Assim uma
+   categoria que mude de nome ou de emoji muda em todo o lado. */
+function decorarEtiqueta(cat, desc) {
+  const k = chaveEtiqueta(cat, desc);
+  const s = SEMENTES.find(x => chaveEtiqueta(x.cat, x.desc) === k);
+  const info = catInfo('saida', cat);
+  return {
+    chave: k,
+    cat: cat,
+    desc: (desc || '').trim(),
+    emoji: (s && s.emoji) || info.emoji,
+    rotulo: (s && s.rotulo) || ((desc || '').trim() || info.nome)
+  };
+}
+
+/* Os 8 pares (categoria + descrição) mais usados nos últimos 60 dias.
+   `anteriores` é a barra do mês passado: uma etiqueta já lá instalada
+   sobrevive a um mês fraco, uma etiqueta nova precisa de 3 usos para
+   entrar. Sem isto, a barra mudava todos os dias. */
+function calcularEtiquetas(anteriores) {
+  const limite = new Date(hoje.getTime() - ETQ_JANELA_DIAS * 864e5)
+    .toISOString().slice(0, 10);
+
+  const antes = {};
+  (anteriores || []).forEach(e => { antes[chaveEtiqueta(e.c, e.d)] = true; });
+
+  const conta = {};
+  movimentos.forEach(m => {
+    if (m.tipo !== 'saida' || m.categoria === 'reserva') return;
+    if (m.data < limite) return;
+    const desc = (m.descricao || '').trim();
+    const k = chaveEtiqueta(m.categoria, desc);
+    const e = conta[k] || (conta[k] = { c: m.categoria, d: desc, n: 0, ultimo: '' });
+    e.n++;
+    if (m.data >= e.ultimo) { e.ultimo = m.data; e.d = desc; }
+  });
+
+  const lista = Object.keys(conta).map(k => conta[k])
+    .filter(e => e.n >= ETQ_MINIMO_USOS || antes[chaveEtiqueta(e.c, e.d)])
+    .sort((a, b) => (b.n - a.n) || b.ultimo.localeCompare(a.ultimo))
+    .slice(0, 8)
+    .map(e => ({ c: e.c, d: e.d.slice(0, 40) }));
+
+  /* Uma semente nunca usada cai — mas só quando há uma aprendida para lhe
+     ocupar o lugar. A barra tem sempre 8; um buraco não ajuda ninguém. */
+  const usadas = {};
+  lista.forEach(e => { usadas[chaveEtiqueta(e.c, e.d)] = true; });
+  SEMENTES.forEach(s => {
+    if (lista.length >= 8) return;
+    const k = chaveEtiqueta(s.cat, s.desc);
+    if (usadas[k]) return;
+    usadas[k] = true;
+    lista.push({ c: s.cat, d: s.desc });
+  });
+
+  return lista;
+}
+
+function guardarEtiquetas() {
+  try {
+    localStorage.setItem(ETIQUETAS_CHAVE, JSON.stringify(etiquetasCache));
+  } catch (e) { /* sem localStorage a barra é recalculada a cada abertura */ }
+}
+
+/* A barra que se mostra agora. Recalcula quando muda o mês — e na
+   primeira vez que há dados que cheguem, senão a pessoa esperava pelo
+   dia 1 para ver a app aprender fosse o que fosse. */
+function etiquetasActuais(totalSaidas) {
+  if (totalSaidas < ETQ_MINIMO_APRENDER) {
+    return SEMENTES.map(s => decorarEtiqueta(s.cat, s.desc));
+  }
+  const mesK = chaveMes(hoje.getFullYear(), hoje.getMonth());
+  if (!etiquetasCache || etiquetasCache.mes !== mesK ||
+      !Array.isArray(etiquetasCache.calculadas) || !etiquetasCache.calculadas.length) {
+    etiquetasCache = {
+      mes: mesK,
+      calculadas: calcularEtiquetas(etiquetasCache && etiquetasCache.calculadas)
+    };
+    guardarEtiquetas();
+  }
+  return etiquetasCache.calculadas.map(e => decorarEtiqueta(e.c, e.d));
 }
 
 /* ---------- gravar / carregar ---------- */
@@ -224,6 +360,18 @@ function carregarLocal() {
     essenciais = {};
     Object.keys(e).forEach(k => { if (typeof e[k] === 'boolean') essenciais[k] = e[k]; });
   }
+
+  /* A barra guardada é um atalho, não um dado: se vier estragada,
+     deita-se fora e recalcula-se. Nunca vale um ecrã em branco. */
+  const et = lerJSON(ETIQUETAS_CHAVE, null);
+  if (et && Array.isArray(et.calculadas) && typeof et.mes === 'string' &&
+      /^\d{4}-\d{2}$/.test(et.mes)) {
+    const limpas = et.calculadas
+      .filter(x => x && typeof x.c === 'string' && x.c)
+      .slice(0, 8)
+      .map(x => ({ c: x.c, d: typeof x.d === 'string' ? x.d.trim().slice(0, 40) : '' }));
+    if (limpas.length) etiquetasCache = { mes: et.mes, calculadas: limpas };
+  }
 }
 
 function mostrarAviso(texto, tipo) {
@@ -254,7 +402,8 @@ function calcular() {
   movimentos.forEach(m => {
     const k = m.data.slice(0, 7);
     const a = meses[k] || (meses[k] = {
-      rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0, porCatEss: {}, porCat: {}
+      rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0,
+      porCatEss: {}, porCat: {}, porCatDesc: {}
     });
     if (m.tipo === 'entrada') {
       if (m.categoria === 'reserva-tirei') a.guardado -= m.valor;
@@ -265,6 +414,17 @@ function calcular() {
       } else {
         totalSaidas++;
         a.porCat[m.categoria] = (a.porCat[m.categoria] || 0) + m.valor;
+
+        /* Somar também por descrição: é o que permite ver a água separada
+           da luz sem inventar uma categoria e sem tocar em nada do que já
+           está gravado. Funciona para trás, sobre movimentos antigos. */
+        const desc = (m.descricao || '').trim();
+        const dd = a.porCatDesc[m.categoria] || (a.porCatDesc[m.categoria] = {});
+        const kd = desc.toLowerCase();
+        const ed = dd[kd] || (dd[kd] = { rotulo: desc, valor: 0 });
+        ed.valor += m.valor;
+        if (desc) ed.rotulo = desc;
+
         if (ehEssencial(m)) {
           a.essenciais += m.valor;
           a.porCatEss[m.categoria] = (a.porCatEss[m.categoria] || 0) + m.valor;
@@ -276,6 +436,7 @@ function calcular() {
   });
   r.meses = meses;
   r.totalSaidas = totalSaidas;
+  r.etiquetas = etiquetasActuais(totalSaidas);
 
   const chaveHoje = chaveMes(hoje.getFullYear(), hoje.getMonth());
   const completos = Object.keys(meses).filter(k => k < chaveHoje).sort();
@@ -340,7 +501,7 @@ function calcular() {
 
   /* --- mês visível ------------------------------------------------ */
   const kVisto = chaveMes(mesVisto.ano, mesVisto.mes);
-  const a = meses[kVisto] || { rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0, porCat: {}, porCatEss: {} };
+  const a = meses[kVisto] || { rendimento: 0, essenciais: 0, naoEssenciais: 0, guardado: 0, porCat: {}, porCatEss: {}, porCatDesc: {} };
   r.mesVisivel = {
     chave: kVisto,
     entrou: a.rendimento,
@@ -349,6 +510,7 @@ function calcular() {
     naoEssenciais: a.naoEssenciais,
     guardado: a.guardado,
     porCat: a.porCat,
+    porCatDesc: a.porCatDesc,
     vazio: !meses[kVisto]
   };
   r.mesVisivel.livre = a.rendimento - (a.essenciais + a.naoEssenciais) - a.guardado;
@@ -480,6 +642,134 @@ function desenharLembrete(r) {
   el.append(sp, b);
 }
 
+/* ---------- etiquetas de lançamento rápido ---------- */
+
+/* A barra só existe nas saídas. Nas entradas, o menu de sempre volta a
+   estar à vista — são poucas e não têm padrão diário nenhum. */
+function actualizarZonaEtiquetas() {
+  const zona = document.getElementById('etiquetas');
+  const campo = document.getElementById('campo-categoria');
+  const saida = tipoActual === 'saida';
+  if (zona) zona.hidden = !saida;
+  if (campo) campo.hidden = saida && !categoriaRevelada;
+}
+
+function pintarEtiquetas() {
+  document.querySelectorAll('#etiquetas .etq').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.chave === etiquetaActiva));
+  });
+}
+
+function revelarCategoria(focar) {
+  categoriaRevelada = true;
+  actualizarZonaEtiquetas();
+  const sel = document.getElementById('f-categoria');
+  const b = document.querySelector('.etq-outra');
+  if (b) b.setAttribute('aria-expanded', 'true');
+  if (focar && sel) sel.focus();
+}
+
+/* A descrição escrita pela etiqueta é da app e pode ser substituída; a
+   escrita pela pessoa é dela e não se toca. */
+function limparDescricaoAutomatica() {
+  if (!descAutomatica) return;
+  const d = document.getElementById('f-descricao');
+  if (d) d.value = '';
+  descAutomatica = false;
+}
+
+/* O toque faz a classificação toda — e pára aí. Não escreve o valor, não
+   submete nada: deixa o cursor no campo do valor, que é o número que a
+   pessoa tem de confrontar.
+
+   `focar` é falso quando é a app a acender a etiqueta por omissão: aí o
+   estado tem de ficar certo sem abrir o teclado a ninguém. */
+function usarEtiqueta(e, focar) {
+  const sel = document.getElementById('f-categoria');
+  if (sel && CATEGORIAS.saida.some(c => c.id === e.cat)) sel.value = e.cat;
+  sincronizarEss();
+
+  const d = document.getElementById('f-descricao');
+  if (d && (descAutomatica || !d.value.trim())) {
+    d.value = e.desc;
+    descAutomatica = !!e.desc;
+  }
+
+  etiquetaActiva = e.chave;
+  pintarEtiquetas();
+
+  if (focar === false) return;
+  const v = document.getElementById('f-valor');
+  if (v) { v.focus(); v.select(); }
+}
+
+/* Nas saídas, a primeira da grelha fica acesa: ao abrir e depois de cada
+   lançamento. Deixa de haver estado invisível, e o palpite por omissão
+   passa a ser a categoria mais usada pela própria pessoa (quando a barra
+   já é aprendida, a primeira posição é a mais usada de todas) em vez da
+   primeira da lista. A posição é estável, por isso o polegar aprende-a. */
+function aplicarEtiquetaPorOmissao() {
+  if (tipoActual !== 'saida' || etiquetaActiva !== null || !etiquetasNoEcra.length) {
+    pintarEtiquetas();
+    return;
+  }
+  usarEtiqueta(etiquetasNoEcra[0], false);
+}
+
+function desenharEtiquetas(r) {
+  const zona = document.getElementById('etiquetas');
+  if (!zona) return;
+  zona.innerHTML = '';
+  etiquetasNoEcra = r.etiquetas;
+
+  r.etiquetas.forEach(e => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'etq';
+    b.dataset.chave = e.chave;
+    b.setAttribute('aria-pressed', String(e.chave === etiquetaActiva));
+    b.setAttribute('aria-label', e.rotulo + ' — ' + catInfo('saida', e.cat).nome);
+
+    const em = document.createElement('span');
+    em.className = 'etq-em';
+    em.setAttribute('aria-hidden', 'true');
+    em.textContent = e.emoji;
+
+    const t = document.createElement('span');
+    t.className = 'etq-txt';
+    t.textContent = e.rotulo;
+
+    b.append(em, t);
+    b.addEventListener('click', () => usarEtiqueta(e, true));
+    zona.appendChild(b);
+  });
+
+  const outra = document.createElement('button');
+  outra.type = 'button';
+  outra.className = 'etq etq-outra';
+  outra.setAttribute('aria-expanded', String(categoriaRevelada));
+  outra.setAttribute('aria-controls', 'campo-categoria');
+  const oe = document.createElement('span');
+  oe.className = 'etq-em';
+  oe.setAttribute('aria-hidden', 'true');
+  oe.textContent = '＋';
+  const ot = document.createElement('span');
+  ot.className = 'etq-txt';
+  ot.textContent = 'Outra';
+  outra.append(oe, ot);
+  outra.addEventListener('click', () => {
+    /* Ir pelo menu é uma escolha, não um esquecimento: aqui o estado
+       "nenhuma acesa" é legítimo e a omissão não volta a acender nada. */
+    etiquetaActiva = '';
+    pintarEtiquetas();
+    revelarCategoria(true);
+  });
+  zona.appendChild(outra);
+
+  actualizarZonaEtiquetas();
+  aplicarEtiquetaPorOmissao();
+}
+
 function desenharLista(r) {
   const ul = document.getElementById('lista');
   const vazio = document.getElementById('vazio');
@@ -571,14 +861,31 @@ function desenharCategorias(r) {
       const info = catInfo('saida', id);
       const pct = total ? Math.round(soma / total * 100) : 0;
 
+      /* Três ou mais descrições distintas: vale a pena poder abrir. Duas
+         não valem — é a lista outra vez, com mais um toque pelo meio. */
+      const det = (v.porCatDesc && v.porCatDesc[id]) || {};
+      const nomeadas = Object.keys(det).filter(k => k !== '');
+      const abrivel = nomeadas.length >= 3;
+      const aberta = abrivel && !!catsAbertas[id];
+
       const li = document.createElement('li');
-      const linha = document.createElement('div');
-      linha.className = 'cat-linha';
+      const linha = document.createElement(abrivel ? 'button' : 'div');
+      linha.className = 'cat-linha' + (abrivel ? ' cat-abre' : '');
       const b = document.createElement('b');
       b.textContent = info.emoji + ' ' + info.nome;
       const sp = document.createElement('span');
       sp.textContent = dinheiro(soma) + ' · ' + pct + '%';
       linha.append(b, sp);
+
+      if (abrivel) {
+        linha.type = 'button';
+        linha.setAttribute('aria-expanded', String(aberta));
+        const car = document.createElement('span');
+        car.className = 'cat-caret';
+        car.setAttribute('aria-hidden', 'true');
+        car.textContent = '▸';
+        sp.append(' ', car);
+      }
 
       const barra = document.createElement('div');
       barra.className = 'barra';
@@ -587,6 +894,30 @@ function desenharCategorias(r) {
       barra.appendChild(i);
 
       li.append(linha, barra);
+
+      if (abrivel) {
+        const sub = document.createElement('ul');
+        sub.className = 'cat-det';
+        sub.hidden = !aberta;
+        Object.keys(det)
+          .sort((x, y) => det[y].valor - det[x].valor)
+          .forEach(k => {
+            const it = document.createElement('li');
+            const nb = document.createElement('b');
+            nb.textContent = k === '' ? 'Sem descrição' : det[k].rotulo;
+            const nv = document.createElement('span');
+            nv.textContent = dinheiro(det[k].valor);
+            it.append(nb, nv);
+            sub.appendChild(it);
+          });
+        li.appendChild(sub);
+        linha.addEventListener('click', () => {
+          catsAbertas[id] = !catsAbertas[id];
+          sub.hidden = !catsAbertas[id];
+          linha.setAttribute('aria-expanded', String(!!catsAbertas[id]));
+        });
+      }
+
       ul.appendChild(li);
     });
 }
@@ -751,6 +1082,7 @@ function desenhar() {
   desenharMes();
   desenharTopo(r);
   desenharLembrete(r);
+  desenharEtiquetas(r);
   desenharLista(r);
   desenharCategorias(r);
   desenharReserva(r);
@@ -797,6 +1129,17 @@ function trocarTipo(tipo) {
     b.setAttribute('aria-pressed', String(b.dataset.tipo === tipo));
   });
   preencherCategorias();
+  if (tipo === 'entrada') {
+    /* Nas entradas não há etiquetas nenhumas e o menu está sempre à
+       vista — não há aqui nada de invisível para corrigir. */
+    etiquetaActiva = '';
+    limparDescricaoAutomatica();
+    pintarEtiquetas();
+  } else {
+    etiquetaActiva = null;
+    aplicarEtiquetaPorOmissao();
+  }
+  actualizarZonaEtiquetas();
 }
 
 function irParaFormulario() {
@@ -808,6 +1151,12 @@ function irParaFormulario() {
 function prepararGuardar(valor) {
   trocarTipo('saida');
   document.getElementById('f-categoria').value = 'reserva';
+  /* Aqui a categoria é escolhida pela app, não pela pessoa. Mostrá-la é o
+     mínimo — senão ela lança para a reserva sem ver onde está a lançar. */
+  etiquetaActiva = '';
+  limparDescricaoAutomatica();
+  pintarEtiquetas();
+  revelarCategoria(false);
   sincronizarEss();
   document.getElementById('f-valor').value = valor ? String(Math.round(valor * 100) / 100).replace('.', ',') : '';
   document.getElementById('f-data').value = new Date().toISOString().slice(0, 10);
@@ -817,6 +1166,9 @@ function prepararGuardar(valor) {
 function prepararTirar() {
   trocarTipo('entrada');
   document.getElementById('f-categoria').value = 'reserva-tirei';
+  etiquetaActiva = '';
+  limparDescricaoAutomatica();
+  pintarEtiquetas();
   sincronizarEss();
   document.getElementById('f-valor').value = '';
   document.getElementById('f-data').value = new Date().toISOString().slice(0, 10);
@@ -890,6 +1242,10 @@ function adicionar(ev) {
 
   document.getElementById('f-valor').value = '';
   document.getElementById('f-descricao').value = '';
+  descAutomatica = false;
+  /* O estado de partida é sempre o mesmo: a primeira da grelha acesa —
+     não a que acabou de ser usada. */
+  etiquetaActiva = null;
 
   const depois = reservaActual();
   desenhar();
@@ -907,7 +1263,13 @@ function adicionar(ev) {
     return;
   }
 
-  if (!proporMomento(m)) mostrarAviso('Movimento lançado.', 'ok');
+  /* A confirmação nomeia o que foi lançado. Com a barra de etiquetas, um
+     toque errado escolheria uma categoria em silêncio — o menu obrigava a
+     olhar, isto devolve o olhar ao sítio onde a pessoa já está. */
+  if (!proporMomento(m)) {
+    mostrarAviso('Lançado: ' + (m.descricao || catInfo(m.tipo, m.categoria).nome) +
+                 ' · ' + dinheiro(m.valor), 'ok');
+  }
 }
 
 function apagar(id) {
@@ -1152,7 +1514,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('#campo-ess button').forEach(b => {
     b.addEventListener('click', () => { essActual = b.dataset.ess === '1'; pintarEss(); });
   });
-  document.getElementById('f-categoria').addEventListener('change', sincronizarEss);
+  document.getElementById('f-categoria').addEventListener('change', () => {
+    /* Escolher pelo menu contraria a etiqueta acesa: apagá-la, senão o
+       ecrã diz uma coisa e o formulário lança outra. */
+    etiquetaActiva = '';
+    pintarEtiquetas();
+    sincronizarEss();
+  });
+  document.getElementById('f-descricao').addEventListener('input', () => {
+    descAutomatica = false;   // a partir daqui a descrição é da pessoa
+  });
   document.querySelectorAll('.filtro button').forEach(b => {
     b.addEventListener('click', () => {
       filtro = b.dataset.filtro;

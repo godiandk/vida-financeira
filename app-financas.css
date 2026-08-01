@@ -78,6 +78,29 @@
 .tipo-sel button[aria-pressed="true"][data-tipo="entrada"]{border-color:var(--up);background:rgba(62,207,142,.14);color:var(--up)}
 .tipo-sel button[aria-pressed="true"][data-tipo="saida"]{border-color:var(--down);background:rgba(224,113,92,.14);color:var(--down)}
 
+/* ---------- etiquetas de lançamento rápido ----------
+   O toque substitui a classificação. Nunca substitui o valor: não há aqui
+   nenhuma etiqueta com quantia fixa, e nunca pode haver. */
+#etiquetas[hidden],#campo-categoria[hidden]{display:none}
+.etiquetas{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;
+}
+.etq{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-height:58px;padding:9px 5px;border-radius:12px;
+  border:1px solid rgba(217,178,110,.22);background:#0a1210;color:var(--cream-dim);
+  font-family:inherit;font-size:.72rem;font-weight:700;line-height:1.15;
+  text-align:center;cursor:pointer;transition:all .2s;overflow:hidden;
+}
+.etq .etq-em{font-size:1.05rem;line-height:1}
+.etq .etq-txt{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;max-width:100%;overflow-wrap:anywhere;
+}
+.etq:hover{border-color:rgba(217,178,110,.45);color:var(--cream)}
+.etq[aria-pressed="true"]{border-color:var(--gold);background:rgba(217,178,110,.14);color:var(--gold-soft)}
+.etq.etq-outra{border-style:dashed}
+
 /* selector essencial / dá para adiar */
 #campo-ess[hidden]{display:none}
 .ess-sel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -133,6 +156,21 @@ ul.movs li:last-child{border-bottom:none}
 .cat-linha{display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:6px;gap:10px}
 .cat-linha b{font-weight:700}
 .cat-linha span{color:var(--cream-dim);white-space:nowrap}
+/* uma categoria com três ou mais descrições distintas abre ao toque —
+   é assim que "água" se vê separada da "luz" sem uma categoria nova */
+.cat-abre{
+  width:100%;background:none;border:none;color:inherit;font-family:inherit;
+  cursor:pointer;padding:9px 0;min-height:40px;text-align:left;align-items:center;
+}
+.cat-caret{color:var(--gold-soft);font-size:.7rem;display:inline-block;transition:transform .2s}
+.cat-abre[aria-expanded="true"] .cat-caret{transform:rotate(90deg)}
+.cat-det{list-style:none;margin:8px 0 4px;padding-left:12px;border-left:1px solid rgba(217,178,110,.18)}
+.cat-det[hidden]{display:none}
+.cat-det li{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:.8rem;color:var(--cream-dim)}
+.cat-det li:last-child{margin-bottom:0}
+.cat-det b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-det span{white-space:nowrap}
+
 .barra{height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
 .barra i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold-soft));transition:width .5s ease}
 
