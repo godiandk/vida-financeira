@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserva de emergência com salário baixo — Vida Financeira</title>
+<meta name="description" content="A descrição de um mecanismo, com as contas e as fontes à vista: como se junta uma reserva de emergência quando o salário é baixo. Portugal e Brasil, 2026.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1512">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css?v=4">
+<style>
+/* ---------- corpo de texto longo ---------- */
+.txt{max-width:760px}
+.txt h2{margin-top:0}
+.txt h3{font-size:1.35rem;color:var(--gold-soft);margin:34px 0 12px}
+.txt p{color:var(--cream-dim);margin-bottom:15px}
+.txt ul,.txt ol{color:var(--cream-dim);margin:0 0 18px 22px}
+.txt li{margin-bottom:10px}
+.txt li:last-child{margin-bottom:0}
+.txt b{color:var(--cream)}
+.txt i{color:var(--cream-dim)}
+.txt a{color:var(--gold-soft);word-break:break-word}
+
+/* Abertura: os parágrafos antes da primeira secção, um pouco maiores. */
+.abertura p{font-size:1.05rem}
+
+/* Separador entre secções — faz o mesmo que a linha horizontal do original. */
+.sep{
+  border:none;height:1px;background:rgba(217,178,110,.14);
+  margin:56px 0 46px;
+}
+.sep + h2{margin-top:0}
+
+/* ---------- tabelas ----------
+   Sem o contentor com deslize próprio, uma tabela de três colunas com valores
+   em euros ultrapassa a largura de um telemóvel e arrasta a página inteira. */
+.tab-wrap{
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid rgba(217,178,110,.2);border-radius:14px;
+  background:var(--ink-2);margin:22px 0;
+  /* No telemóvel a última coluna fica para lá da margem. Sem sinal nenhum,
+     quem lê julga que a tabela acaba ali. Este esbatido na aresta direita
+     encolhe à medida que se desliza e desaparece no fim, por isso indica
+     que há mais sem mentir quando já não há. */
+  background-image:linear-gradient(to left,var(--ink-2),rgba(19,30,25,0) 26px),
+                   linear-gradient(to left,rgba(217,178,110,.28),rgba(217,178,110,0) 26px);
+  background-position:right center,right center;
+  background-repeat:no-repeat;
+  background-size:26px 100%,26px 100%;
+  background-attachment:local,scroll;
+}
+.tab-wrap table{border-collapse:collapse;width:100%;min-width:430px;font-size:.92rem}
+.tab-wrap th,.tab-wrap td{
+  padding:12px 16px;text-align:right;white-space:nowrap;
+  border-bottom:1px solid rgba(217,178,110,.12);
+}
+.tab-wrap th:first-child,.tab-wrap td:first-child{text-align:left}
+.tab-wrap thead th{
+  color:var(--gold-soft);font-weight:700;font-size:.76rem;
+  letter-spacing:.06em;text-transform:uppercase;white-space:normal;
+  background:var(--ink-3);
+}
+.tab-wrap tbody td{color:var(--cream)}
+.tab-wrap tbody tr:last-child td{border-bottom:none}
+.nota-tabela{font-size:.86rem;color:var(--cream-dim);margin:-6px 0 18px}
+
+/* ---------- "Na aplicação, hoje" ----------
+   É o que liga o texto à aplicação: tem de se distinguir do corpo à primeira
+   vista, sem parecer um aviso de erro. */
+.na-app{
+  background:linear-gradient(140deg,rgba(217,178,110,.12),rgba(217,178,110,.02));
+  border:1px solid rgba(217,178,110,.3);
+  border-left:3px solid var(--gold);
+  border-radius:var(--radius);
+  padding:22px 26px;margin:30px 0 0;
+}
+.na-app h4{
+  font-family:'Manrope',sans-serif;
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);font-weight:800;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;
+}
+.na-app h4 .ic{font-size:1.05rem;line-height:1;letter-spacing:0}
+.na-app p{color:var(--cream);margin-bottom:0}
+.na-app b{color:var(--gold-soft)}
+
+/* ---------- fontes ---------- */
+.fontes{margin-top:10px}
+.fontes h3{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;
+  font-family:'Manrope',sans-serif;color:var(--gold);font-weight:800;margin:32px 0 6px}
+.fontes ul{list-style:none;margin:0}
+.fontes li{
+  color:var(--cream-dim);font-size:.92rem;line-height:1.6;
+  padding:13px 0;margin:0;border-bottom:1px solid rgba(217,178,110,.1);
+}
+.fontes li:last-child{border-bottom:none}
+/* Alvo de toque: uma ligação de uma linha no telemóvel é fácil de falhar. */
+.fontes a{display:inline-block;padding:3px 0;min-height:24px}
+.consulta{font-size:.86rem;color:var(--cream-dim);margin-top:18px}
+
+/* ---------- nota legal do fim ---------- */
+.legal{
+  border:1px solid rgba(217,178,110,.18);border-radius:var(--radius);
+  background:var(--ink-2);padding:20px 24px;margin-top:34px;
+}
+.legal p{font-size:.9rem;margin-bottom:0}
+
+@media(max-width:640px){
+  .na-app{padding:20px 18px}
+  .legal{padding:18px 18px}
+  .txt ul,.txt ol{margin-left:20px}
+  .abertura p{font-size:1rem}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">
+      <img class="logo-mark" src="img/logo-marca.png" alt="">
+      <div class="logo-name">VIDA<small>FINANCEIRA</small></div>
+    </a>
+    <nav class="links" id="menu">
+      <a href="index.html">Início</a>
+      <a href="app.html">O meu mês</a>
+      <a href="metodo.html" class="on">Método</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="conta.html" id="nav-conta">Entrar / Criar conta</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn btn-gold" href="app.html">Começar</a>
+      <button class="burger" id="burger" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <div class="eyebrow">Método</div>
+      <h1>Como funciona uma <i>reserva de emergência</i> quando o salário é baixo</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap txt">
+
+      <div class="abertura">
+        <p>
+          Isto não é um texto para o motivar. É a descrição de um mecanismo,
+          com as contas e as fontes à vista, para quem vive de um salário e não
+          tem margem para experiências. Dá para dar o primeiro passo na
+          segunda-feira, com a aplicação que já está neste site. O que vem
+          depois depende do que as contas mostrarem.
+        </p>
+        <p>
+          O mecanismo tem quatro peças, e nenhuma delas exige que você seja uma
+          pessoa diferente da que é: saber o que gasta, separar um valor fixo no
+          dia em que recebe, deixá-lo quieto, e não desistir no mês em que corre
+          mal.
+        </p>
+        <p>
+          Convém dizer já uma coisa. Ensinar finanças em geral quase não muda
+          comportamentos: a revisão de 168 trabalhos feita por Fernandes, Lynch
+          e Netemeyer em 2014, na <i>Management Science</i>, encontrou que as
+          intervenções educativas explicam cerca de <b>0,1%</b> da variação
+          naquilo que as pessoas fazem com o dinheiro, e que o pouco efeito que
+          existe se dissipa em meses. Os próprios autores apontam a excepção: a
+          educação dada <b>no momento da decisão</b> sai-se melhor do que a
+          educação dada em abstracto. Por isso este texto acaba, secção a
+          secção, no que você faz na aplicação — não em conselhos.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>Porque é que a reserva vem antes de tudo, incluindo antes das dívidas caras</h2>
+
+      <p>
+        Do ponto de vista da matemática pura, isto está errado. Se tem um
+        crédito a 18% ao ano e o dinheiro parado a render 2%, cada euro guardado
+        em vez de abatido à dívida custa-lhe 16% ao ano. Não há discussão sobre
+        a aritmética.
+      </p>
+      <p>A discussão é sobre o que acontece a seguir.</p>
+      <p>
+        Sem nenhum dinheiro de lado, o primeiro imprevisto — o carro que não
+        pega, o dente, a máquina de lavar, o mês em que o trabalho falha — volta
+        a ser pago com a mesma dívida cara que você acabou de abater. O ciclo é
+        este: paga-se o cartão durante quatro meses, chega o imprevisto ao
+        quinto, e o cartão volta ao sítio onde estava. A pessoa conclui que "não
+        consegue", quando o que falhou foi a ausência de um amortecedor, não a
+        disciplina.
+      </p>
+      <p>
+        Duas peças de investigação ajudam a perceber a dimensão do problema.
+        Lusardi, Schneider e Tufano perguntaram, num inquérito feito em
+        <b>2009</b> a famílias americanas, se conseguiriam juntar
+        <b>2 000 dólares de 2009</b> em 30 dias para uma emergência; perto de
+        metade respondeu que não conseguiria, ou que só o faria empenhando bens
+        ou recorrendo a crédito de recurso. E o inquérito anual da Reserva
+        Federal americana às finanças das famílias pergunta se a pessoa pagaria
+        uma despesa inesperada de 400 dólares com dinheiro à mão: no relatório
+        de 2025, publicado em Maio de 2026, <b>63% disseram que sim — ou seja,
+        37% disseram que não</b>, um valor que não se move há três anos. São
+        dados dos Estados Unidos, e não de Portugal ou do Brasil, mas dizem uma
+        coisa que se transporta: isto não é um problema de gente descuidada.
+      </p>
+
+      <p>Daí a ordem que este método descreve:</p>
+      <ol>
+        <li><b>Uma reserva mínima primeiro.</b> Não a reserva completa. O
+          suficiente para absorver o imprevisto mais comum.</li>
+        <li><b>Depois, a dívida cara</b>, com tudo o que sobrar, sem tocar na
+          reserva.</li>
+        <li><b>Só depois, a reserva completa</b>, medida em meses.</li>
+      </ol>
+
+      <p>
+        Sobre a ordem por que se pagam várias dívidas: começar pela taxa de juro
+        mais alta é o que a matemática recomenda. Mas Gal e McShane (2012,
+        <i>Journal of Marketing Research</i>) e mais tarde Kettle, Trudel,
+        Blanchard e Häubl (2016, <i>Journal of Consumer Research</i>) mostram
+        que concentrar o pagamento e fechar primeiro a dívida mais pequena
+        aumenta a probabilidade de a pessoa não abandonar o processo a meio. Uma
+        estratégia óptima que se abandona rende zero. Sabendo as duas coisas, a
+        escolha é sua: se costuma ir até ao fim do que começa, a taxa mais alta
+        poupa-lhe mais dinheiro; se já desistiu de outras tentativas, a dívida
+        mais pequena dá-lhe uma conta fechada de que se lembra no mês seguinte.
+      </p>
+
+      <h3>Quando esta ordem se inverte</h3>
+
+      <p>
+        Há dois casos em que a reserva não vem primeiro, e é honesto dizê-los.
+      </p>
+      <p>
+        <b>Quando a dívida é o próprio imprevisto.</b> Renda em atraso com risco
+        de despejo, água ou electricidade em corte, prestação de um carro de que
+        depende para trabalhar, processo judicial em curso. Nestes casos, pagar
+        é constituir a reserva: o que a reserva serve para evitar já está a
+        acontecer.
+      </p>
+      <p>
+        <b>Quando o juro é violento ao ponto de comer o amortecedor.</b> No
+        Brasil, o juro médio do rotativo do cartão de crédito estava em
+        <b>428,3% ao ano em Março de 2026</b>, segundo o Banco Central. A essa
+        taxa, uma dívida de R$ 1 000 duplica em cerca de cinco meses. Existe
+        desde Janeiro de 2024 um tecto legal — a Lei n.º 14.690/2023 limita os
+        encargos do rotativo e do parcelado do cartão a 100% do valor original
+        da dívida, ou seja, R$ 1 000 em dívida não podem gerar mais de R$ 1 000
+        de encargos —, mas chega-se ao tecto depressa. Qualquer rendimento
+        acessível a dinheiro guardado com liquidez, no Brasil em 2026, é uma
+        fracção do que custa o rotativo: a caderneta de poupança rendia cerca de
+        <b>8,35% ao ano</b> em meados de 2026, contra 428,3% da dívida. Aqui a
+        aritmética é esmagadora, e a pergunta muda de forma: qual é o valor
+        mínimo abaixo do qual o próximo imprevisto me obriga a voltar ao
+        rotativo? Esse valor é o chão. O que fazer com o que está acima dele é
+        uma decisão sua, e agora com os dois números à frente.
+      </p>
+      <p>
+        Em Portugal, a situação é diferente em escala: o Banco de Portugal fixou
+        em <b>18,5%</b> a TAEG máxima para cartões de crédito, linhas de crédito
+        e facilidades de descoberto no 3.º trimestre de 2026. É caro, mas não é
+        uma emergência de dias — a ordem reserva-primeiro aguenta-se.
+      </p>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          Abra "O meu mês" e lance tudo o que saiu desde o dia 1, incluindo o
+          que pagou de dívidas, na categoria <b>Dívidas</b>. Ao lançar cada
+          saída, marque-a como <b>Essencial</b> ou <b>Dá para adiar</b> — é essa
+          marcação que faz o resto do quadro funcionar. Antes de decidir o que
+          quer que seja sobre ordem de pagamentos, precisa de ver quanto é que
+          as dívidas já lhe estão a levar por mês: o bloco "Para onde foi o
+          dinheiro" mostra-lhe isso em valor e em percentagem.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>O tamanho mede-se em meses, não em euros</h2>
+
+      <p>
+        Uma reserva de 1 000 € não quer dizer nada. Para quem gasta 500 € por
+        mês no essencial, são dois meses de vida. Para quem gasta 1 100 €, são
+        menos de quatro semanas. O mesmo número, duas realidades sem relação.
+      </p>
+      <p>
+        Por isso a unidade é <b>meses de despesas essenciais</b>. Três razões:
+      </p>
+      <ul>
+        <li>É a unidade da coisa que a reserva compra, que é <b>tempo</b>. Tempo
+          para arranjar outro trabalho, para esperar por um subsídio, para
+          resolver sem aceitar a primeira solução má que aparecer.</li>
+        <li><b>Ajusta-se sozinha.</b> Se a renda subir ou se a inflação empurrar
+          o mercado, o alvo sobe com ela, sem você ter de refazer contas.</li>
+        <li><b>Obriga-o a separar o essencial do resto</b>, que é o exercício
+          mais útil de todo este método, e o que a maior parte das pessoas nunca
+          fez em papel.</li>
+      </ul>
+      <p>
+        Essencial é o que continua a ser pago no mês em que tudo corre mal:
+        casa, comida, água, luz, gás, transporte para trabalhar, medicação, o
+        mínimo dos filhos. Não é o que você gostaria de continuar a pagar — é o
+        que não pode deixar de pagar.
+      </p>
+      <p>
+        Quanto ao alvo, os números que circulam (três a seis meses) são um
+        destino, não um ponto de partida. Para quem ganha perto do salário
+        mínimo, seis meses são anos de esforço, e um objectivo a anos de
+        distância não move ninguém. Por isso a escada tem degraus curtos:
+      </p>
+      <ul>
+        <li><b>Degrau zero:</b> um valor fixo que cubra o imprevisto doméstico
+          comum. Em Portugal, uma ordem de grandeza para arrancar são 300 € a
+          500 €; no Brasil, R$ 800 a R$ 1 500. Não é uma regra nem é um dado —
+          é um ponto de partida. Se souber quanto lhe custou a última avaria,
+          use esse número em vez deste.</li>
+        <li><b>Primeiro degrau:</b> um mês de essencial.</li>
+        <li><b>Depois:</b> três meses. E se chegar aos três, já sabe fazer o
+          resto sem este texto.</li>
+      </ul>
+      <p>
+        Uma nota de honestidade: um mês de essencial não o protege de um
+        desemprego longo, nem de uma doença. Protege-o de ter de recorrer a
+        crédito caro por causa de 200 €. É isso que faz, e já é muito.
+      </p>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          Lance três meses de saídas, não um. Um mês mente — esconde as contas
+          anuais, os seguros, o material escolar. Com a marcação
+          essencial/adiável feita, o bloco <b>"A minha reserva"</b> calcula
+          sozinho o seu mês de despesas essenciais e mostra-lhe os degraus já
+          convertidos em valor: uma semana, um mês, três meses. E o cartão
+          <b>"Reserva"</b>, no topo do ecrã, deixa de lhe dizer um total em
+          euros e passa a dizer quantos meses de vida é que ele compra — que é a
+          única forma do número que significa alguma coisa.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>Pagar-se a si primeiro: no dia do salário, não no fim do mês</h2>
+
+      <p>
+        Quase toda a gente tenta poupar o que sobra. O que sobra é um resto, e
+        restos tendem para zero, porque a despesa ocupa o espaço que houver.
+      </p>
+      <p>
+        O mecanismo é o inverso: <b>no dia em que o salário entra, sai um valor
+        fixo para outro sítio</b>, antes de qualquer outra coisa. O que faz o
+        mecanismo funcionar é a separação acontecer sem decisão: sair
+        automaticamente, no dia certo, para um sítio que não é o da despesa
+        corrente. As perguntas a fazer a si próprio são: o meu banco deixa
+        agendar a transferência para o dia seguinte ao do salário? O sítio para
+        onde o dinheiro vai tem cartão associado — ou seja, gasta-se sem pensar?
+        Quantos dias demora a levantá-lo, se precisar? A partir daí, o mês corre
+        com o que ficou, e as pessoas adaptam-se a esse número como se
+        adaptariam a um aumento da renda.
+      </p>
+      <p>
+        Há duas peças de investigação que sustentam o princípio, e vale a pena
+        dizer exactamente o que elas testaram, porque não foi este gesto. Thaler
+        e Benartzi, no programa <i>Save More Tomorrow</i> publicado em 2004 no
+        <i>Journal of Political Economy</i>, acompanharam trabalhadores
+        americanos num plano de poupança de empresa — pessoas que tinham
+        <b>recusado</b> aumentar a poupança de imediato e que aceitaram
+        amarrá-la a subidas salariais futuras. Nesse subgrupo, a taxa de
+        poupança subiu de cerca de 3,5% para 13,6% em pouco mais de três anos;
+        no conjunto da empresa, subiu de 4,4% para 10,6%. E Madrian e Shea, em
+        2001, no <i>Quarterly Journal of Economics</i>, mostraram que mudar
+        apenas a opção por omissão num plano de uma empresa americana fez a
+        adesão saltar de cerca de 37% para 86% — as mesmas pessoas, a mesma
+        informação, só o automatismo trocado.
+      </p>
+      <p>
+        Nenhum destes estudos testou uma pessoa a montar uma transferência no
+        seu banco. O que eles sustentam é o princípio geral, e esse é robusto:
+        <b>o que acontece por omissão domina o que depende de memória.</b> A
+        leitura prática é desconfortável e útil: o problema não é a sua força de
+        vontade, e a solução também não é.
+      </p>
+      <p>Três observações práticas, e as perguntas que trazem consigo:</p>
+      <ul>
+        <li><b>Um valor fixo e pequeno sobrevive a um mês mau; um valor
+          ambicioso só sobrevive a meses bons.</b> Qual é o valor que teria
+          aguentado nos três piores meses do ano passado?</li>
+        <li><b>A facilidade de acesso trabalha nos dois sentidos.</b> Quanto
+          mais depressa se levanta, mais depressa se gasta; mas uma reserva que
+          demora duas semanas a chegar não serve para uma emergência. Onde fica,
+          para si, o ponto entre as duas coisas?</li>
+        <li><b>Logo a seguir a um aumento de rendimento é a única altura em que
+          subir o valor não custa.</b> Depois de o dinheiro ganhar dono,
+          custa.</li>
+      </ul>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          A aplicação já assume esta ordem. O bloco "A minha reserva" propõe-lhe
+          um valor mensal calculado a partir do que entra e do que você marcou
+          como essencial, e o botão <b>"Guardar agora"</b> lança essa
+          transferência como saída, no próprio dia. Não é uma despesa, mas
+          tratá-la como despesa é exactamente o ponto: sai do número <b>"Livre
+          até ao fim do mês"</b>, e o mês passa a correr com o que fica. Se
+          costuma receber sempre por volta do mesmo dia, a aplicação avisa-o
+          quando esse dia passa sem o salário lançado.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>As contas, com os pressupostos à vista</h2>
+
+      <p>
+        Números sem país, sem ano e sem moeda não significam nada. Aqui vão os
+        dois casos, com os pressupostos escritos.
+      </p>
+
+      <h3>Portugal, 2026, em euros</h3>
+
+      <p>
+        O salário mínimo nacional no Continente é de <b>920 € brutos por
+        mês</b> desde 1 de Janeiro de 2026 (Decreto-Lei n.º 139/2025). Para um
+        trabalhador por conta de outrem, com o desconto de 11% para a Segurança
+        Social, sem outros descontos e sem retenção de IRS a este nível de
+        rendimento, ficam cerca de <b>818,80 € líquidos por mês</b> — sem contar
+        subsídios de férias e de Natal, que mudam o total do ano mas não o mês.
+      </p>
+      <p>Guardar todos os meses, durante 12 meses:</p>
+
+      <div class="tab-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Por mês</th>
+              <th scope="col">Ao fim de 1 ano, sem render nada</th>
+              <th scope="col">Com 2% ao ano</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>25 €</td><td>300,00 €</td><td>302,74 €</td></tr>
+            <tr><td>40 €</td><td>480,00 €</td><td>484,38 €</td></tr>
+            <tr><td>50 €</td><td>600,00 €</td><td>605,48 €</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="nota-tabela">
+        <i>Os 2% ao ano são um pressuposto de cálculo. Não são uma taxa
+        disponível, não são uma oferta e não são uma previsão.</i>
+      </p>
+
+      <p>
+        Repare no que estas contas dizem. No caso dos 50 € por mês, <b>você pôs
+        600 € e o juro pôs 5,48 €.</b> Todo o resultado do primeiro ano veio do
+        depósito. Não há taxa de juro acessível que compense não fazer o
+        depósito.
+      </p>
+      <p>
+        Alarga-se o prazo e o desequilíbrio mantém-se durante muito tempo. Com
+        40 € por mês a 2% ao ano, ao fim de cinco anos tem 2 520,76 €, dos quais
+        2 400 € são seus e 120 € são juro — 5% do total. É por isso que quase
+        todo o conteúdo financeiro fala de rendibilidade e quase nenhum fala da
+        taxa de poupança: a rendibilidade dá conversa, mas é a parte que você
+        não controla.
+      </p>
+      <p>
+        Uma honestidade que falta em quase todo o lado: a inflação em Portugal
+        estava nos <b>3,2%</b> em Junho de 2026 (variação homóloga do IPC).
+        Dinheiro parado a render 2% <b>perde poder de compra</b>. A reserva não
+        existe para render — existe para estar lá. O dinheiro que o protege e o
+        dinheiro que cresce têm funções diferentes: um mede-se pela rapidez com
+        que está disponível, o outro pelo que rende ao fim de muitos anos. Vale
+        a pena perguntar-se se o sítio onde tem cada um serve a função que lhe
+        pediu.
+      </p>
+
+      <h3>Brasil, 2026, em reais</h3>
+
+      <p>
+        O salário mínimo é de <b>R$ 1.621,00</b> desde 1 de Janeiro de 2026
+        (Decreto n.º 12.797/2025). Para um trabalhador com carteira assinada,
+        com 7,5% de INSS na primeira faixa e sem outros descontos, ficam cerca
+        de <b>R$ 1.499,43</b>.
+      </p>
+      <p>
+        Para as contas usamos a <b>caderneta de poupança</b> — não por a
+        recomendarmos, mas porque é um produto identificável, com regra pública,
+        acessível a quem tem pouco dinheiro, e portanto uma taxa que existe
+        mesmo em vez de um número inventado. Com a Selic acima de 8,5% ao ano, a
+        poupança rende, por regra legal, <b>0,5% ao mês mais a Taxa
+        Referencial</b>. Em Junho de 2026, com a Selic em 14,25% e a TR em
+        0,1720%, isso deu <b>0,6708% ao mês</b>, o equivalente a <b>8,35% ao
+        ano</b>. Se vir por aí o número 6,17%, é a parte dos 0,5% ao mês
+        sozinha, sem a TR: com a Selic alta, a TR não é desprezável e a
+        diferença entre as duas contas passa dos dois pontos percentuais.
+      </p>
+
+      <div class="tab-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Por mês</th>
+              <th scope="col">Ao fim de 1 ano, sem render nada</th>
+              <th scope="col">Com 0,6708% ao mês (8,35%/ano)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>R$ 50</td><td>R$ 600,00</td><td>R$ 622,64</td></tr>
+            <tr><td>R$ 80</td><td>R$ 960,00</td><td>R$ 996,22</td></tr>
+            <tr><td>R$ 100</td><td>R$ 1.200,00</td><td>R$ 1.245,28</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Mesmo com um rendimento quatro vezes superior ao pressuposto europeu, a
+        conclusão é a mesma: <b>R$ 1.200 vieram de si e R$ 45,28 vieram do
+        juro.</b>
+      </p>
+      <p>
+        A diferença aparece no prazo longo. Com R$ 80 por mês à mesma taxa, ao
+        fim de cinco anos tem R$ 5.885,75, dos quais R$ 4.800 são seus e
+        R$ 1.085,75 são juro — 18,4% do total. É bastante mais do que em
+        Portugal, e continua a ser menos de um quinto ao fim de cinco anos.
+      </p>
+      <p>
+        E o número que importa de facto: o IPCA acumulado nos 12 meses <b>até
+        Junho de 2026</b> estava em <b>4,64%</b> (IBGE, divulgado a 10 de Julho
+        de 2026). Contra 8,35% de rendimento nominal, o ganho real é de <b>cerca
+        de 3,5% ao ano</b> — a conta certa é dividir 1,0835 por 1,0464, não
+        subtrair, porque a subtracção dá 3,72% e sobrestima o resultado. Este
+        caso tem uma particularidade: os rendimentos da caderneta de poupança de
+        pessoa física residente no Brasil são isentos de imposto de renda, por
+        isso aqui o nominal e o real são directamente comparáveis. Em aplicações
+        ligadas ao CDI, que em meados de 2026 rendia perto de 14% ao ano bruto,
+        há imposto de renda entre 22,5% e 15% consoante o prazo, e o ganho real
+        depois de imposto é menor do que a taxa anunciada sugere. É sempre o
+        número real, depois de imposto, que conta — e quase nunca é o que
+        aparece anunciado.
+      </p>
+
+      <h3>Os pressupostos, ditos por extenso</h3>
+
+      <ul>
+        <li>Depósitos no fim de cada mês, valor constante, sem falhas.</li>
+        <li>Capitalização mensal. Em Portugal usámos a taxa mensal equivalente a
+          2% ao ano; no Brasil usámos directamente a taxa mensal observada de
+          0,6708%, porque é assim que a poupança credita. Daí a diferença de
+          cêntimos face a contas feitas de outra maneira.</li>
+        <li>Taxas fixas ao longo de todo o período. <b>Não é o que acontece na
+          realidade:</b> a TR e a Selic mudam, e ninguém sabe para onde. Nenhuma
+          aplicação garante manter uma taxa durante cinco anos.</li>
+        <li><b>Não estamos a dizer onde pôr o dinheiro.</b> Este site explica
+          mecanismos e não recomenda produtos. As perguntas a fazer a si próprio
+          são: em quantos dias consigo levantar isto? Posso perder capital? Que
+          garantia existe, e até que valor? Quanto custa manter? Que imposto
+          paga?</li>
+      </ul>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          Fixe o seu valor. Não o maior que consegue imaginar — o maior que
+          sobreviveu aos três meses que lançou na secção anterior. A aplicação
+          propõe-lhe um, calculado sobre a folga real, e deixa-o alterá-lo.
+          Depois de o lançar, olhe para o número <b>"Livre até ao fim do
+          mês"</b> e para o valor <b>por dia</b> que aparece por baixo: é esse
+          que decide uma ida ao supermercado, e não o total. Se o valor por dia
+          continuar a dar, o valor que guardou está certo.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>O mês em que falha</h2>
+
+      <p>
+        Vai falhar. Não é uma possibilidade, é o funcionamento normal de
+        qualquer coisa que se faz durante anos.
+      </p>
+      <p>
+        O que interessa é o que custa falhar. <b>Uma reserva é uma contagem de
+        depósitos, não uma sequência.</b> Se falhar um mês, perdeu um depósito —
+        40 €, ou R$ 80. Não perdeu o ano. Não voltou ao princípio. Não há nada
+        para recomeçar.
+      </p>
+      <p>
+        Isto tem de ser dito porque a psicologia do autocontrolo descreve há
+        décadas aquilo a que se chamou o <b>efeito "já que falhei"</b> — o
+        <i>what-the-hell effect</i>, a partir do trabalho de Polivy e Herman e,
+        com este nome, de Heatherton, Herman e Polivy: depois de um desvio
+        pequeno, a pessoa tende a abandonar o objectivo inteiro. Convém dizer
+        que a base de evidência vem sobretudo de estudos sobre dieta e não sobre
+        poupança, e que aplicá-la aqui é uma transposição. Mas a forma é
+        reconhecível: quem come um bolo em dieta come o resto do pacote. Quem
+        falha um depósito de 40 € arrisca-se a não fazer os onze seguintes — não
+        por causa dos 40 €, mas por causa do que conclui sobre si a partir
+        deles.
+      </p>
+      <p>Três situações, três respostas:</p>
+      <p>
+        <b>Usou a reserva num imprevisto.</b> Isto não é falhar. Isto é a
+        reserva a fazer aquilo para que existe. Se lhe custou usá-la, óptimo —
+        foi por isso que a pôs onde custa. Volte a encher com o mesmo valor
+        mensal, sem pressa, e sem se penalizar.
+      </p>
+      <p>
+        <b>Não separou o dinheiro porque o mês não deu.</b> Registe o mês como
+        ele foi. Não tente compensar com dobro no mês seguinte: quase sempre
+        isso parte também o mês seguinte, e aí sim há dois meses perdidos em vez
+        de um. Volte ao mesmo valor.
+      </p>
+      <p>
+        <b>Falhou três meses seguidos no mesmo valor.</b> Então o valor está
+        errado, não você. Baixe-o para aquele que sobreviveu aos meses maus,
+        mesmo que pareça ridiculamente pequeno. Um mecanismo pequeno que
+        continua a andar produz mais do que um mecanismo ambicioso que parou em
+        Março.
+      </p>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          Não apague o mês em que falhou nem deixe de lançar as despesas por
+          vergonha. No mês em que não guardou nada, a aplicação diz-lho sem
+          drama e mostra que a reserva continua onde estava — porque continua.
+          Se teve de usar dinheiro da reserva, registe-o no botão <b>"Tirei da
+          reserva"</b>, para o número em meses continuar verdadeiro. Depois abra
+          o mês que correu mal, com a seta do mês, e olhe para a repartição por
+          categoria e para a barra do essencial: quase sempre o mês mau
+          explica-se numa categoria só, e ver qual é vale mais do que qualquer
+          promessa que faça a si próprio.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>E se, feitas as contas, não sobrar nada</h2>
+
+      <p>
+        Esta é a secção que quase nenhum site escreve, e é a mais importante.
+      </p>
+      <p>
+        Faça a subtracção: rendimento menos essencial. Se der zero, ou der
+        negativo, <b>não há método de orçamento que resolva isso</b>, e quem lhe
+        estiver a vender disciplina está a diagnosticar a doença errada. Não há
+        aplicação, folha de cálculo ou hábito que crie dinheiro que não existe.
+        Cortar no supérfluo não funciona quando não há supérfluo.
+      </p>
+      <p>
+        Convém também dizer-lhe isto, porque é raro alguém dizer: a dificuldade
+        em gerir dinheiro quando ele falta não é um defeito seu. Num estudo
+        publicado na <i>Science</i> em 2013, Mani, Mullainathan, Shafir e Zhao
+        testaram agricultores de cana-de-açúcar em Tamil Nadu, na Índia, antes e
+        depois da colheita — as mesmas pessoas, sem dinheiro e com dinheiro. Sem
+        dinheiro, tiveram desempenhos claramente piores em testes cognitivos,
+        com uma perda que os autores comparam a cerca de treze pontos de QI, ou
+        a uma noite sem dormir. É um contexto muito distante do de quem lê isto
+        em Lisboa ou no Recife, e a transposição não é automática; mas o achado
+        foi replicado noutros contextos e diz o essencial: a escassez ocupa a
+        cabeça. Você não está a decidir mal porque é descuidado; está a decidir
+        sob uma carga que quem tem folga não tem.
+      </p>
+      <p>Posto isto, ainda há coisas verdadeiras e úteis a fazer.</p>
+      <p>
+        <b>Transforme a queixa num número.</b> "Não chego ao fim do mês" não se
+        resolve. "Faltam-me 90 € por mês, e o buraco está na renda e na
+        electricidade" resolve-se, ou pelo menos negoceia-se. Um mês de
+        lançamentos reais é um documento — leva-se a uma técnica de serviço
+        social, a um credor, a uma conversa em casa, a um pedido de apoio. É a
+        diferença entre pedir ajuda e mostrar uma conta.
+      </p>
+      <p>
+        <b>Quando não há folga, os únicos três travões são estes</b>, e nenhum é
+        orçamento:
+      </p>
+      <ul>
+        <li><b>Rendimento.</b> Horas, formação paga por programas públicos,
+          mudar de entidade, entradas adicionais. É o travão mais lento e o
+          único que resolve de vez.</li>
+        <li><b>Custos fixos, sobretudo a habitação.</b> Uma renda 80 € mais
+          barata vale mais do que dois anos a apertar no mercado. E dívidas
+          renegociadas contam aqui: em Portugal, os bancos são obrigados por lei
+          a ter procedimentos para risco de incumprimento (PARI) e para
+          incumprimento efectivo (PERSI). Não é um botão que você carrega — se
+          falhar uma prestação, é o banco que tem de o integrar no PERSI, num
+          prazo fixado por lei a contar da falha; e se ainda não falhou mas
+          prevê que vai falhar, comunicá-lo ao banco faz correr o PARI. Enquanto
+          o PERSI corre, o banco não pode executar a dívida, e é isso que ele
+          lhe compra. No Brasil, confirme junto do credor e do Procon da sua
+          cidade que campanhas de renegociação estão abertas no momento em que
+          ler isto, porque mudam de ano para ano.</li>
+        <li><b>Apoios a que tem direito e não está a receber.</b> É
+          espantosamente comum. Em Portugal, verifique na Segurança Social
+          Direta ou no atendimento presencial o que se aplica ao seu caso, e
+          confirme a tarifa social da energia e da água, que não é automática
+          para toda a gente. No Brasil, o ponto de entrada é o CRAS e o Cadastro
+          Único, e é lá que se confirma a elegibilidade para os programas em
+          vigor. Não conte com nenhum destes apoios antes de os ter confirmado
+          na fonte oficial — e não deixe de perguntar por achar que não tem
+          direito.</li>
+      </ul>
+      <p>
+        <b>E o objectivo honesto, enquanto não houver folga, não é uma
+        reserva.</b> É não se afundar mais este mês. Terminar o mês sem dívida
+        nova é um resultado, e é o resultado certo. Não é um consolo — é a única
+        coisa que impede que o problema de hoje se torne no problema muito maior
+        de daqui a um ano.
+      </p>
+      <p>
+        Guardar 5 € ou R$ 10 por mês não constrói reserva nenhuma que valha a
+        pena mencionar, e seria desonesto dizer-lhe o contrário. O que faz é
+        manter o mecanismo montado e a conta aberta, para o mês em que o
+        rendimento mudar. Se lhe custar, não guarde. Volte quando houver por
+        onde.
+      </p>
+
+      <div class="na-app">
+        <h4><span class="ic">📱</span> Na aplicação, hoje</h4>
+        <p>
+          Lance um mês completo, com tudo, mesmo o que custa escrever, e marque
+          cada saída como essencial ou adiável. Se o essencial levar tudo o que
+          entra, a aplicação diz-lho por palavras e <b>deixa de lhe pedir para
+          guardar</b> — mostra-lhe em vez disso o que entra, o que é essencial e
+          qual é a diferença entre os dois. Essa folha, exportada para CSV, já
+          traz a coluna do essencial e é a coisa mais útil que pode levar
+          consigo a quem lhe possa dar apoio.
+        </p>
+      </div>
+
+      <hr class="sep">
+
+      <h2>Por onde começar esta semana</h2>
+
+      <ol>
+        <li><b>Hoje:</b> abrir "O meu mês" e lançar as saídas dos últimos três
+          meses, de memória e de recibos, marcando cada uma como essencial ou
+          adiável. Leva menos tempo do que parece e é o único passo
+          difícil.</li>
+        <li><b>A seguir:</b> deixar a aplicação converter isso num mês de
+          despesas essenciais e olhar para os degraus — uma semana, um mês, três
+          meses.</li>
+        <li><b>No próximo salário:</b> carregar em "Guardar agora" no próprio
+          dia, com o valor que aguenta um mês mau.</li>
+        <li><b>Daqui a três meses:</b> olhar para trás e contar quantos
+          depósitos fez. É o único indicador que interessa.</li>
+      </ol>
+      <p>
+        Não lhe prometemos um resultado. Não sabemos qual vai ser o seu ano, nem
+        o que os preços ou as taxas vão fazer — ninguém sabe, e quem disser que
+        sabe está a vender-lhe alguma coisa. O que se sabe é o mecanismo:
+        dinheiro que sai no dia do salário para um sítio de onde custa tirar
+        tende a ficar lá; dinheiro que depende de sobrar no fim do mês tende a
+        não existir.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-gold" href="app.html">Abrir o meu mês</a>
+      </p>
+
+      <hr class="sep">
+
+      <h2>Fontes</h2>
+
+      <div class="fontes">
+
+        <h3>Valores oficiais</h3>
+        <ul>
+          <li>
+            Salário mínimo em Portugal, 920 € desde 1 de Janeiro de 2026
+            (Decreto-Lei n.º 139/2025) —
+            <a href="https://www.dgert.gov.pt/retribuicao-minima-mensal-garantida-para-2026" target="_blank" rel="noopener">DGERT, retribuição mínima mensal garantida para 2026</a>
+          </li>
+          <li>
+            Salário mínimo no Brasil, R$ 1.621,00 desde 1 de Janeiro de 2026 —
+            <a href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/decreto/d12797.htm" target="_blank" rel="noopener">Decreto n.º 12.797, de 23 de Dezembro de 2025 (Planalto)</a>
+          </li>
+          <li>
+            TAEG máxima de 18,5% em cartões de crédito, linhas de crédito e
+            facilidades de descoberto, 3.º trimestre de 2026 —
+            <a href="https://clientebancario.bportugal.pt/pt-pt/noticias/taxas-maximas-aplicaveis-aos-contratos-de-credito-aos-consumidores-no-3o-trimestre-de-2026" target="_blank" rel="noopener">Banco de Portugal, Portal do Cliente Bancário</a>
+          </li>
+          <li>
+            Inflação em Portugal, 3,2% de variação homóloga do IPC em Junho de
+            2026 —
+            <a href="https://bpstat.bportugal.pt/conteudos/noticias/1299" target="_blank" rel="noopener">Banco de Portugal, BPstat</a>
+          </li>
+          <li>
+            IPCA de Junho de 2026: 0,16% no mês e 4,64% em 12 meses, divulgado a
+            10 de Julho de 2026 —
+            <a href="https://agenciadenoticias.ibge.gov.br/agencia-sala-de-imprensa/2013-agencia-de-noticias/releases/47534-ipca-fica-em-0-16-em-junho" target="_blank" rel="noopener">IBGE, Agência de Notícias</a>
+          </li>
+          <li>
+            Juro médio do rotativo do cartão de crédito, 428,3% ao ano em Março
+            de 2026, do Relatório de Estatísticas Monetárias e de Crédito do
+            Banco Central do Brasil —
+            <a href="https://www.cnnbrasil.com.br/economia/macroeconomia/juros-do-rotativo-do-cartao-cai-a-4283-em-marco-uso-da-modalidade-sobe/" target="_blank" rel="noopener">noticiado pela CNN Brasil</a>
+          </li>
+          <li>
+            Limite de 100% dos encargos no rotativo e no parcelado do cartão, em
+            vigor desde 3 de Janeiro de 2024 (Lei n.º 14.690/2023) —
+            <a href="https://www.procon.sc.gov.br/procon-sc-explica-limite-de-juros-ao-rotativo-do-cartao-de-credito-e-de-100/" target="_blank" rel="noopener">explicação do Procon-SC</a>
+          </li>
+          <li>
+            Selic em 14,25% ao ano após a reunião do Copom de 17 de Junho de
+            2026, e rendimento da poupança de 0,6708% ao mês (0,5% + TR de
+            0,1720%) —
+            <a href="https://www.remessaonline.com.br/blog/rendimento-da-poupanca-saiba-quanto-rende-de-juros-hoje/" target="_blank" rel="noopener">Remessa Online, rendimento da poupança</a>
+          </li>
+        </ul>
+
+        <h3>Investigação citada</h3>
+        <ul>
+          <li>
+            Fernandes, D., Lynch, J. G., &amp; Netemeyer, R. G. (2014).
+            <i>Financial Literacy, Financial Education, and Downstream Financial
+            Behaviors.</i> Management Science, 60(8), 1861–1883.
+            <a href="https://doi.org/10.1287/mnsc.2013.1849" target="_blank" rel="noopener">doi:10.1287/mnsc.2013.1849</a>
+            ·
+            <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2333898" target="_blank" rel="noopener">texto integral no SSRN</a>
+          </li>
+          <li>
+            Lusardi, A., Schneider, D., &amp; Tufano, P. (2011).
+            <i>Financially Fragile Households: Evidence and Implications.</i>
+            NBER Working Paper 17072; dados do inquérito TNS Global Economic
+            Crisis de 2009.
+            <a href="https://www.nber.org/papers/w17072" target="_blank" rel="noopener">nber.org/papers/w17072</a>
+          </li>
+          <li>
+            Board of Governors of the Federal Reserve System (2026).
+            <i>Report on the Economic Well-Being of U.S. Households in 2025.</i>
+            <a href="https://www.federalreserve.gov/publications/2026-economic-well-being-of-us-households-in-2025-savings-investments.htm" target="_blank" rel="noopener">federalreserve.gov</a>
+          </li>
+          <li>
+            Gal, D., &amp; McShane, B. B. (2012). <i>Can Small Victories Help
+            Win the War? Evidence from Consumer Debt Management.</i> Journal of
+            Marketing Research, 49(4), 487–501.
+            <a href="https://doi.org/10.1509/jmr.11.0272" target="_blank" rel="noopener">doi:10.1509/jmr.11.0272</a>
+          </li>
+          <li>
+            Kettle, K. L., Trudel, R., Blanchard, S. J., &amp; Häubl, G. (2016).
+            <i>Repayment Concentration and Consumer Motivation to Get Out of
+            Debt.</i> Journal of Consumer Research, 43(3), 460–477.
+            <a href="https://doi.org/10.1093/jcr/ucw037" target="_blank" rel="noopener">doi:10.1093/jcr/ucw037</a>
+          </li>
+          <li>
+            Thaler, R. H., &amp; Benartzi, S. (2004). <i>Save More Tomorrow:
+            Using Behavioral Economics to Increase Employee Saving.</i> Journal
+            of Political Economy, 112(S1), 164–187.
+            <a href="https://doi.org/10.1086/380085" target="_blank" rel="noopener">doi:10.1086/380085</a>
+          </li>
+          <li>
+            Madrian, B. C., &amp; Shea, D. F. (2001). <i>The Power of
+            Suggestion: Inertia in 401(k) Participation and Savings
+            Behavior.</i> Quarterly Journal of Economics, 116(4), 1149–1187.
+            <a href="https://doi.org/10.1162/003355301753265543" target="_blank" rel="noopener">doi:10.1162/003355301753265543</a>
+          </li>
+          <li>
+            Polivy, J., &amp; Herman, C. P. (1985). <i>Dieting and Binging: A
+            Causal Analysis.</i> American Psychologist, 40(2), 193–201.
+            <a href="https://pubmed.ncbi.nlm.nih.gov/3857016/" target="_blank" rel="noopener">pubmed.ncbi.nlm.nih.gov/3857016</a>
+            — a designação <i>what-the-hell effect</i> aparece em Heatherton,
+            Herman &amp; Polivy (1991) e no trabalho posterior do mesmo grupo.
+          </li>
+          <li>
+            Mani, A., Mullainathan, S., Shafir, E., &amp; Zhao, J. (2013).
+            <i>Poverty Impedes Cognitive Function.</i> Science, 341(6149),
+            976–980.
+            <a href="https://doi.org/10.1126/science.1238041" target="_blank" rel="noopener">doi:10.1126/science.1238041</a>
+          </li>
+        </ul>
+
+        <p class="consulta"><i>Valores oficiais consultados a 1 de Agosto de 2026.</i></p>
+      </div>
+
+      <div class="legal">
+        <p>
+          <i>Este texto é educativo. A Vida Financeira não é uma entidade
+          autorizada, não presta consultoria de investimento e não recomenda
+          produtos financeiros. Explicamos mecanismos; as decisões, e a
+          responsabilidade por elas, são suas.</i>
+        </p>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-bottom">
+      © <span id="ano"></span> Vida Financeira · <a href="index.html">Início</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=4"></script>
+<script src="site.js?v=4"></script>
+</body>
+</html>
