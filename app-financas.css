@@ -64,6 +64,9 @@
 /* ---------- colunas: formulário + lista ---------- */
 .painel{display:grid;grid-template-columns:360px 1fr;gap:22px;align-items:start}
 @media(max-width:900px){.painel{grid-template-columns:1fr}}
+/* O simulador vive por baixo do formulário, na mesma coluna: é onde a
+   pergunta "quanto fica isto ao todo" nasce. */
+.coluna-form{display:grid;gap:22px;align-content:start;min-width:0}
 
 .bloco{background:var(--ink-2);border:1px solid rgba(217,178,110,.18);border-radius:var(--radius);padding:24px}
 .bloco h3{font-size:1.15rem;margin-bottom:16px;color:var(--gold-soft)}
@@ -112,6 +115,55 @@
 .ess-sel button[aria-pressed="true"]{
   border-color:var(--gold);background:rgba(217,178,110,.12);color:var(--gold-soft);
 }
+
+/* ---------- paguei a prestações ----------
+   Nada aqui é vermelho e nada aqui é um aviso. É um caminho à parte,
+   desligado por omissão: quem não lhe toca lança como sempre lançou. */
+.parc{margin-top:10px}
+.parc[hidden]{display:none}
+.parc-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px dashed rgba(217,178,110,.35);background:transparent;color:var(--cream-dim);
+  border-radius:999px;padding:9px 14px;min-height:40px;
+  font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;
+}
+.parc-chip:hover{border-color:var(--gold);color:var(--gold-soft)}
+.parc-chip[aria-expanded="true"]{
+  border-style:solid;border-color:var(--gold);background:rgba(217,178,110,.12);color:var(--gold-soft);
+}
+.parc-caixa{
+  margin-top:12px;padding:14px;border-radius:14px;
+  border:1px solid rgba(217,178,110,.22);background:#0a1210;
+}
+.parc-caixa[hidden]{display:none}
+.parc-rot{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim);font-weight:700;margin-bottom:9px}
+.parc-vezes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.parc-n{
+  min-height:44px;border-radius:10px;border:1px solid rgba(217,178,110,.22);
+  background:var(--ink-2);color:var(--cream-dim);font-family:inherit;
+  font-size:.86rem;font-weight:700;cursor:pointer;transition:all .2s;padding:6px 4px;
+}
+.parc-n:hover{border-color:rgba(217,178,110,.45);color:var(--cream)}
+.parc-n[aria-pressed="true"]{border-color:var(--gold);background:rgba(217,178,110,.14);color:var(--gold-soft)}
+.parc-outro{font-size:.74rem}
+.parc-conta{margin-top:12px}
+.parc-total{font-size:.98rem;font-weight:700;color:var(--gold-soft);margin-bottom:6px;overflow-wrap:anywhere}
+.parc-nota{font-size:.82rem;color:var(--cream-dim);line-height:1.55;margin-bottom:4px}
+.parc-conta .link-btn{display:inline-block;text-align:left;font-size:.82rem}
+.parc-oferta{
+  margin-top:12px;padding-top:12px;border-top:1px solid rgba(217,178,110,.14);
+  font-size:.84rem;color:var(--cream-dim);
+}
+.parc-oferta .res-acoes{margin-top:10px}
+
+/* ---------- uma pergunta, no sítio onde a pessoa está a olhar ---------- */
+.pergunta{
+  margin-top:12px;padding:14px;border-radius:14px;
+  border:1px solid rgba(217,178,110,.3);background:rgba(217,178,110,.06);
+  font-size:.86rem;line-height:1.55;
+}
+.pergunta .res-acoes{margin-top:12px}
+.pergunta-zona[hidden]{display:none}
 
 .bloco .btn{width:100%;justify-content:center;margin-top:6px}
 
@@ -203,6 +255,50 @@ ul.movs li:last-child{border-bottom:none}
 .bloco .btn.btn-peq{width:auto;padding:12px 20px;font-size:.85rem;margin-top:0;min-height:44px}
 .res-acerto{margin-top:18px;padding-top:16px;border-top:1px solid rgba(217,178,110,.14);font-size:.88rem}
 .res-rodape{margin-top:16px;font-size:.78rem;color:var(--cream-dim);line-height:1.6}
+
+/* ---------- bloco "Já comprometido" ----------
+   Factos sobre o passado e o que já tem dono. Sem vermelho, sem ícone de
+   alarme, sem ponto de exclamação: uma prestação nunca é comentada. */
+.bloco-comprometido[hidden]{display:none}
+.comp-rot{font-size:.86rem;color:var(--cream-dim);margin-bottom:10px}
+.comp-meses{list-style:none}
+.comp-meses li{
+  display:flex;justify-content:space-between;gap:12px;font-size:.88rem;
+  padding:7px 0;border-bottom:1px solid rgba(217,178,110,.1);
+}
+.comp-meses li:last-child{border-bottom:none}
+/* Nada de `text-transform:capitalize` aqui: punha maiúscula em "De" no
+   meio de "Fevereiro de 2027". A primeira letra é posta no JS. */
+.comp-meses b{font-weight:600}
+.comp-meses span{color:var(--cream-dim);white-space:nowrap;font-weight:700}
+.comp-mais{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  font-size:.82rem;color:var(--cream-dim);margin-top:4px;
+}
+.comp-grupos{list-style:none}
+.comp-grupos li{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:10px 0;border-bottom:1px solid rgba(217,178,110,.1);
+}
+.comp-grupos li:last-child{border-bottom:none}
+.comp-g-txt{flex:1;min-width:150px}
+.comp-g-txt b{display:block;font-size:.9rem;font-weight:700;overflow-wrap:anywhere}
+.comp-g-txt span{font-size:.78rem;color:var(--cream-dim)}
+.comp-grupos .pergunta{width:100%}
+.sinal{
+  margin-top:16px;padding-top:14px;border-top:1px solid rgba(217,178,110,.14);
+}
+.sinal .res-nota:last-child{margin-bottom:0}
+.sinal a{color:var(--gold-soft)}
+
+/* ---------- simulador "antes de parcelar" ---------- */
+.bloco-simulador[hidden]{display:none}
+.sim-res{
+  margin-top:18px;padding-top:16px;border-top:1px solid rgba(217,178,110,.18);
+}
+.sim-res .res-tabela{margin-top:0}
+.sim-res .res-tabela dd{color:var(--gold-soft)}
+.sim-fecho{font-size:.86rem;color:var(--cream-dim);line-height:1.6;margin-top:4px}
 
 /* ---------- rodapé do painel ---------- */
 .painel-nota{margin-top:26px;font-size:.82rem;color:var(--cream-dim);text-align:center}

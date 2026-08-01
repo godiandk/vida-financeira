@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=5">
-<link rel="stylesheet" href="app-financas.css?v=5">
+<link rel="stylesheet" href="estilo.css?v=6">
+<link rel="stylesheet" href="app-financas.css?v=6">
 </head>
 <body>
 
@@ -56,6 +56,7 @@
         <div class="rot">Livre até ao fim do mês</div>
         <div class="val" id="v-livre">—</div>
         <div class="sub" id="v-livre-sub"></div>
+        <div class="sub" id="v-livre-comp" hidden></div>
       </div>
       <div class="resumo-dois">
         <div class="card">
@@ -73,6 +74,8 @@
 
     <div class="painel">
 
+      <div class="coluna-form">
+
       <!-- ---------- lançar movimento ---------- -->
       <div class="bloco">
         <h3>Lançar movimento</h3>
@@ -88,6 +91,17 @@
           <div class="field">
             <label for="f-valor">Valor</label>
             <input id="f-valor" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" required>
+
+            <!-- Parcelar é um caminho à parte, não um campo novo para toda a
+                 gente: desligado por omissão, e quem não lhe toca lança como
+                 sempre lançou. -->
+            <div class="parc" id="parc" hidden>
+              <button type="button" class="parc-chip" id="parc-abre"
+                      aria-expanded="false" aria-controls="parc-caixa">
+                💳 Paguei a prestações
+              </button>
+              <div class="parc-caixa" id="parc-caixa" hidden></div>
+            </div>
           </div>
           <div class="field" id="campo-categoria">
             <label for="f-categoria">Categoria</label>
@@ -108,6 +122,7 @@
             <label for="f-data">Data</label>
             <input id="f-data" type="date" required>
           </div>
+          <div class="pergunta-zona" id="form-pergunta" hidden></div>
           <button class="btn btn-gold" type="submit">Lançar</button>
         </form>
 
@@ -124,11 +139,26 @@
         </div>
       </div>
 
+      <!-- ---------- antes de parcelar (a conta toda, antes da compra) ---------- -->
+      <div class="bloco bloco-simulador" id="bloco-simulador" hidden>
+        <h3>Vou comprar uma coisa a prestações</h3>
+        <div id="simulador-corpo"></div>
+      </div>
+
+      </div><!-- /coluna-form -->
+
       <!-- ---------- movimentos + categorias ---------- -->
       <div>
         <div class="bloco bloco-reserva" style="margin-bottom:22px">
           <h3>A minha reserva</h3>
           <div id="reserva-corpo"></div>
+        </div>
+
+        <!-- Só existe se houver prestações por pagar. Quem não tem dívidas
+             não vê aqui nada. -->
+        <div class="bloco bloco-comprometido" id="bloco-comprometido" hidden style="margin-bottom:22px">
+          <h3>Já comprometido</h3>
+          <div id="comprometido-corpo"></div>
         </div>
 
         <div class="bloco" style="margin-bottom:22px">
@@ -187,8 +217,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=5"></script>
-<script src="site.js?v=5"></script>
-<script src="app-financas.js?v=5"></script>
+<script src="firebase-config.js?v=6"></script>
+<script src="site.js?v=6"></script>
+<script src="app-financas.js?v=6"></script>
 </body>
 </html>

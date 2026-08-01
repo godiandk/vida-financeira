@@ -93,6 +93,45 @@ const ETQ_MINIMO_APRENDER = 15;   // saídas lançadas antes de deixar de semear
 const ETQ_MINIMO_USOS = 3;        // usos antes de uma etiqueta nova entrar
 const ETQ_JANELA_DIAS = 60;       // 60 e não 30: uma semana atípica não manda
 
+/* ---------- prestações ----------
+   A regra que manda em tudo o que se segue:
+
+     A aplicação NUNCA comenta uma compra parcelada já feita.
+
+   Nunca escreve "podia ter poupado", nunca calcula quanto se pagou a mais
+   numa compra passada, nunca marca uma prestação a vermelho. Sobre o
+   passado só há factos sem adjectivo: quanto falta, até quando, quanto por
+   mês. A mesma aritmética entregue ANTES da compra seguinte é uma decisão
+   que muda; entregue depois é uma acusação, e a pessoa fecha a app.
+
+   Por isso a funcionalidade está partida em duas, com a mesma matemática
+   nas duas pontas do tempo: `lancarParcelado()` (registar, sem opinião) e
+   o simulador (antecipar, com a conta toda).
+
+   E nunca se pergunta a taxa de juro: o que se paga a mais é
+   `n × prestação − preço a pronto`. Aritmética exacta, sem pressupostos. */
+const PARC_VEZES = [2, 3, 6, 10, 12, 24];
+const PARC_MAX = 60;
+
+/* Categorias cujo consumo se esgota dentro do mês. Parcelar um frigorífico
+   é normal; parcelar a compra do mês ou a factura da luz é o sinal de que
+   o mês não está a fechar. */
+const CATS_CONSUMO = ['mercado', 'contas', 'saude'];
+
+/* Encaminhamento para apoio gratuito a quem está com dívidas a mais.
+   Verificado antes de publicar, que era a condição do desenho: a RACE tem
+   entidades reconhecidas pela Direcção-Geral do Consumidor com parecer do
+   Banco de Portugal, o apoio é gratuito e confidencial, e o directório é
+   pesquisável por distrito no Portal do Cliente Bancário.
+
+   A frase é deliberadamente seca. Quem chega aqui não precisa de ser
+   encorajado — precisa de saber que existe sítio onde ir e que não paga. */
+const APOIO_ENDIVIDADO = {
+  texto: 'Há apoio gratuito e confidencial para tratar de dívidas, por distrito.',
+  rotulo: 'Ver as entidades da RACE',
+  url: 'https://clientebancario.bportugal.pt/pt-pt/entidades-da-race'
+};
+
 /* ---------- estado ---------- */
 let movimentos = [];
 let tipoActual = 'saida';
@@ -126,6 +165,19 @@ let catsAbertas = {};           // categorias abertas em "Para onde foi o dinhei
 let etiquetaActiva = null;
 let etiquetasNoEcra = [];       // a grelha tal como está desenhada
 let descAutomatica = false;     // a descrição veio da etiqueta, não da pessoa
+
+/* Estado do caminho "paguei a prestações". Tudo isto é do lançamento que
+   está a ser escrito e morre com ele. */
+let parcAberto = false;         // a etiqueta foi tocada
+let parcVezes = null;           // quantas vezes
+let parcDividido = false;       // já usou "o valor que escrevi é o preço total"
+let parcOfertaVista = false;    // a oferta "ver a conta?" não volta a aparecer
+
+/* Simulador "antes de parcelar". Vive fora do formulário porque também se
+   abre a partir do bloco "Já comprometido". */
+let simAberto = false;
+let simVals = { pronto: '', prestacao: '', vezes: '' };
+let compVerTodos = false;       // "ver todos" os meses comprometidos
 
 /* ---------- utilitários ---------- */
 function dinheiro(v) {
@@ -183,6 +235,54 @@ function num(v) {
   return v.toFixed(1).replace('.', ',');
 }
 
+/* Data local em ISO. `toISOString()` converte para UTC e, em Portugal no
+   Verão, à meia-noite e meia devolve o dia anterior — o que punha uma
+   prestação no mês errado. */
+function isoLocal(d) {
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+const HOJE = isoLocal(hoje);
+
+/* '2027-03' → 'março de 2027'. Com `curto`, o ano só aparece quando não é
+   o corrente — numa lista de meses seguidos o ano repetido é ruído. */
+function mesExtenso(chave, curto) {
+  const ano = parseInt(chave.slice(0, 4), 10);
+  const mes = parseInt(chave.slice(5, 7), 10) - 1;
+  if (curto && ano === hoje.getFullYear()) return MESES[mes];
+  return MESES[mes] + ' de ' + ano;
+}
+
+function comMaiuscula(t) {
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
+/* As N datas de uma compra parcelada: mesmo dia do mês, mês + k, com o dia
+   limitado ao último dia do mês de destino. Dia 31 em Fevereiro é o erro
+   que se comete aqui. */
+function datasPrestacoes(dataISO, de) {
+  const base = new Date(dataISO + 'T00:00:00');
+  const dia = base.getDate();
+  const datas = [];
+  for (let k = 0; k < de; k++) {
+    const alvo = new Date(base.getFullYear(), base.getMonth() + k, 1);
+    const d = Math.min(dia, diasNoMes(alvo.getFullYear(), alvo.getMonth()));
+    datas.push(isoLocal(new Date(alvo.getFullYear(), alvo.getMonth(), d)));
+  }
+  return datas;
+}
+
+function lerValor(texto) {
+  const v = parseFloat(String(texto || '').replace(',', '.').trim());
+  return (isFinite(v) && v > 0) ? v : null;
+}
+
+function escreverValor(el, v) {
+  el.value = String(Math.round(v * 100) / 100).replace('.', ',');
+}
+
 /* ---------- essencial / adiável ---------- */
 function padraoCategoria(cat) {
   if (Object.prototype.hasOwnProperty.call(essenciais, cat)) return !!essenciais[cat];
@@ -229,7 +329,10 @@ function calcularEtiquetas(anteriores) {
   const conta = {};
   movimentos.forEach(m => {
     if (m.tipo !== 'saida' || m.categoria === 'reserva') return;
-    if (m.data < limite) return;
+    /* As prestações estão gravadas com a data real de cada uma, logo há
+       saídas com data futura. Nenhuma delas foi lançada por alguém a
+       viver o dia — e 24 prestações iguais tomavam a barra toda. */
+    if (m.data < limite || m.data > HOJE) return;
     const desc = (m.descricao || '').trim();
     const k = chaveEtiqueta(m.categoria, desc);
     const e = conta[k] || (conta[k] = { c: m.categoria, d: desc, n: 0, ultimo: '' });
@@ -332,6 +435,27 @@ function normalizar(m) {
     o.data = o.data.slice(0, 10);
   }
   if (typeof o.ess !== 'boolean') delete o.ess;   // nunca inventamos `ess`
+
+  /* `parc` segue a regra do `ess`: ou está bem formado, ou desaparece.
+     Nunca se inventa. Um movimento sem `parc` é uma compra normal — que é
+     o que todos os movimentos gravados antes desta versão são. */
+  if (o.parc !== undefined) {
+    const q = o.parc;
+    const ok = q && typeof q === 'object' &&
+      typeof q.g === 'string' && q.g &&
+      typeof q.n === 'number' && typeof q.de === 'number' &&
+      q.n === Math.floor(q.n) && q.de === Math.floor(q.de) &&
+      q.n >= 1 && q.de >= 1 && q.n <= q.de;
+    if (ok) {
+      const tot = Number(q.tot);
+      o.parc = {
+        g: q.g, n: q.n, de: q.de,
+        tot: isFinite(tot) && tot > 0 ? tot : Math.round(o.valor * q.de * 100) / 100
+      };
+    } else {
+      delete o.parc;
+    }
+  }
   return o;
 }
 
@@ -412,7 +536,11 @@ function calcular() {
       if (m.categoria === 'reserva') {
         a.guardado += m.valor;
       } else {
-        totalSaidas++;
+        /* Só conta o que já foi vivido. As prestações futuras são saídas
+           a sério, mas não são registos de dias passados: se contassem
+           aqui, uma compra em 24 vezes destrancava sozinha os portões de
+           "dados suficientes" e a barra de etiquetas aprendida. */
+        if (m.data <= HOJE) totalSaidas++;
         a.porCat[m.categoria] = (a.porCat[m.categoria] || 0) + m.valor;
 
         /* Somar também por descrição: é o que permite ver a água separada
@@ -525,6 +653,53 @@ function calcular() {
 
   r.movimentosDoMes = movimentos.filter(m => m.data.slice(0, 7) === kVisto);
 
+  /* --- prestações -------------------------------------------------
+     Cada prestação é uma saída normal com a sua data real. Nada disto
+     precisa de um modelo de dados novo: os meses futuros mostram o
+     compromisso sem uma linha nova em lado nenhum, e `completos` (que só
+     olha para meses anteriores ao corrente) mantém as medianas limpas. */
+  const futuras = movimentos.filter(m => m.tipo === 'saida' && m.parc && m.data >= HOJE);
+  r.parcelasFuturas = futuras;
+  r.comprometidoTotal = Math.round(futuras.reduce((s, m) => s + m.valor, 0) * 100) / 100;
+
+  const porMesComp = {};
+  futuras.forEach(m => {
+    const k = m.data.slice(0, 7);
+    porMesComp[k] = (porMesComp[k] || 0) + m.valor;
+  });
+  r.comprometidoMeses = Object.keys(porMesComp).sort()
+    .map(k => ({ mes: k, valor: Math.round(porMesComp[k] * 100) / 100 }));
+  r.ultimaPrestacao = r.comprometidoMeses.length
+    ? r.comprometidoMeses[r.comprometidoMeses.length - 1].mes : null;
+
+  /* "Por mês" refere-se aos meses que ainda vêm a caminho, não a este —
+     este já está meio vivido e a sua parcela pode já ter sido paga. */
+  const seguintes = r.comprometidoMeses.filter(x => x.mes > chaveHoje);
+  r.comprometidoPorMes = seguintes.length ? mediana(seguintes.map(x => x.valor)) : null;
+  r.comprometidoUniforme = seguintes.length > 0 &&
+    seguintes.every(x => Math.abs(x.valor - seguintes[0].valor) < 0.005);
+  r.comprometidoSeguintes = Math.round(
+    seguintes.reduce((s, x) => s + x.valor, 0) * 100) / 100;
+
+  const grupos = {};
+  movimentos.forEach(m => {
+    if (m.tipo !== 'saida' || !m.parc) return;
+    const g = grupos[m.parc.g] || (grupos[m.parc.g] = {
+      g: m.parc.g, de: m.parc.de, categoria: m.categoria,
+      descricao: m.descricao || '', valor: m.valor,
+      inicio: m.data, porPagar: 0, quantasFaltam: 0, proxima: null
+    });
+    if (m.data < g.inicio) { g.inicio = m.data; g.valor = m.valor; }
+    if (m.data >= HOJE) {
+      g.porPagar += m.valor;
+      g.quantasFaltam++;
+      if (!g.proxima || m.data < g.proxima.data) g.proxima = m;
+    }
+  });
+  r.grupos = Object.keys(grupos).map(k => grupos[k])
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  r.gruposActivos = r.grupos.filter(g => g.porPagar > 0);
+
   /* --- modo aperto: maiores essenciais e dívidas a crescer -------- */
   r.maioresEssenciais = [];
   r.dividasASubir = null;
@@ -542,6 +717,43 @@ function calcular() {
     if (janela.length === 3) {
       const d = janela.map(k => meses[k].porCat['dividas'] || 0);
       if (d[0] > 0 && d[1] > d[0] && d[2] > d[1]) r.dividasASubir = d;
+    }
+  }
+
+  /* --- sinal de aflição -------------------------------------------
+     A informação mais importante que estes dados contêm, e a mais fácil
+     de estragar. Três níveis, sem popup, sem vermelho, sem ponto de
+     exclamação — e cada nível termina a tirar a culpa de cima da pessoa,
+     que é o que decide se ela lê a linha seguinte ou fecha a app.
+
+     O mesmo portão da fase 1: nada de sinal com menos de 2 meses
+     completos e 8 saídas. */
+  r.sinalAflicao = null;
+  if (r.completos.length >= 2 && totalSaidas >= 8 && r.gruposActivos.length) {
+    const ha3meses = isoLocal(new Date(hoje.getFullYear(), hoje.getMonth() - 3, hoje.getDate()));
+    const cats = [];
+    r.grupos.forEach(g => {
+      if (CATS_CONSUMO.indexOf(g.categoria) === -1) return;
+      if (g.inicio < ha3meses) return;
+      const nome = catInfo('saida', g.categoria).nome;
+      if (cats.indexOf(nome) === -1) cats.push(nome);
+    });
+
+    const peso = (r.R && r.R > 0 && r.comprometidoPorMes)
+      ? r.comprometidoPorMes / r.R : null;
+    const nivel1 = cats.length > 0;
+    const nivel2 = peso !== null && peso >= 0.20;
+
+    if (nivel1 || nivel2) {
+      const ambos = nivel1 && nivel2;
+      r.sinalAflicao = {
+        nivel: (ambos || r.dividasASubir) ? 3 : (nivel2 ? 2 : 1),
+        consumo: nivel1,
+        cats: cats,
+        peso: nivel2,
+        porMes: r.comprometidoPorMes,
+        pct: peso !== null ? Math.round(peso * 100) : null
+      };
     }
   }
 
@@ -581,8 +793,18 @@ function desenharTopo(r) {
   const v = r.mesVisivel;
   const elLivre = document.getElementById('v-livre');
   const elSub = document.getElementById('v-livre-sub');
+  const elComp = document.getElementById('v-livre-comp');
 
-  if (v.vazio) {
+  if (r.ehFuturo) {
+    /* Um mês futuro não tem rendimento lançado. Mostrar "Livre" negativo
+       era dizer uma coisa falsa com um número grande. Só se mostra o que
+       já tem dono — sem por-dia, sem vermelho, sem o resumo do mês. */
+    elLivre.textContent = '—';
+    elLivre.classList.remove('neg');
+    elSub.textContent = v.saiu > 0
+      ? 'Mês futuro. Só se vê o que já está comprometido: ' + dinheiro(v.saiu) + '.'
+      : 'Mês futuro. Ainda não há nada lançado para este mês.';
+  } else if (v.vazio) {
     elLivre.textContent = '—';
     elLivre.classList.remove('neg');
     elSub.textContent = 'Ainda não lançou nada neste mês.';
@@ -597,6 +819,22 @@ function desenharTopo(r) {
       ? ('faltam ' + r.porDia.dias + (r.porDia.dias === 1 ? ' dia' : ' dias') +
          ' · ' + dinheiro(r.porDia.valor) + ' por dia')
       : '';
+  }
+
+  /* Uma linha, só no mês corrente e só quando há meses à frente com
+     prestações. É facto, não é aviso. */
+  if (elComp) {
+    if (r.ehMesCorrente && r.comprometidoPorMes) {
+      elComp.hidden = false;
+      elComp.textContent = r.comprometidoUniforme
+        ? ('Nos próximos meses há ' + dinheiro(r.comprometidoPorMes) +
+           ' por mês já comprometidos.')
+        : ('Nos próximos meses há ' + dinheiro(r.comprometidoSeguintes) +
+           ' já comprometidos — cerca de ' + dinheiro(r.comprometidoPorMes) + ' por mês.');
+    } else {
+      elComp.hidden = true;
+      elComp.textContent = '';
+    }
   }
 
   document.getElementById('v-guardado').textContent = dinheiro(v.guardado);
@@ -617,9 +855,9 @@ function desenharTopo(r) {
     elEuros.textContent = 'ainda não dá para converter em meses';
   }
 
-  document.getElementById('resumo-linha').textContent =
-    'Entrou ' + dinheiro(v.entrou) + '  ·  Saiu ' + dinheiro(v.saiu) +
-    '  ·  Guardou ' + dinheiro(v.guardado);
+  document.getElementById('resumo-linha').textContent = r.ehFuturo ? ''
+    : ('Entrou ' + dinheiro(v.entrou) + '  ·  Saiu ' + dinheiro(v.saiu) +
+       '  ·  Guardou ' + dinheiro(v.guardado));
 }
 
 function desenharLembrete(r) {
@@ -795,7 +1033,11 @@ function desenharLista(r) {
     b.textContent = m.descricao || info.nome;
     const sp = document.createElement('span');
     const d = new Date(m.data + 'T00:00:00');
-    let legenda = info.nome + ' · ' + d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+    let legenda = info.nome;
+    /* `3/12` e mais nada. É informação, não é comentário: sem cor, sem
+       ícone, sem "faltam nove". */
+    if (m.parc) legenda += ' · ' + m.parc.n + '/' + m.parc.de;
+    legenda += ' · ' + d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
     if (m.tipo === 'saida' && m.categoria !== 'reserva' && !ehEssencial(m)) legenda += ' · dá para adiar';
     sp.textContent = legenda;
     txt.append(b, sp);
@@ -809,7 +1051,7 @@ function desenharLista(r) {
     del.type = 'button';
     del.textContent = '×';
     del.setAttribute('aria-label', 'Apagar ' + (m.descricao || info.nome));
-    del.addEventListener('click', () => apagar(m.id));
+    del.addEventListener('click', () => apagar(m.id, li));
 
     li.append(ic, txt, val, del);
     ul.appendChild(li);
@@ -937,6 +1179,20 @@ function botao(texto, cls, aoClicar) {
   b.textContent = texto;
   b.addEventListener('click', aoClicar);
   return b;
+}
+
+/* Uma pergunta com respostas, no sítio onde a pessoa já está a olhar.
+   Nunca um popup: no telemóvel um popup aparece longe do que o provocou e
+   fecha-se por engano. */
+function caixaPergunta(texto, botoes) {
+  const cx = document.createElement('div');
+  cx.className = 'pergunta';
+  cx.appendChild(p(texto));
+  const acoes = document.createElement('div');
+  acoes.className = 'res-acoes';
+  botoes.forEach(b => acoes.appendChild(botao(b[0], 'mini-btn', b[1])));
+  cx.appendChild(acoes);
+  return cx;
 }
 
 function desenharReserva(r) {
@@ -1076,6 +1332,440 @@ function desenharAperto(r, c) {
   }
 }
 
+/* ============================================================
+   1a · O BLOCO "JÁ COMPROMETIDO" — registar, sem opinião nenhuma
+
+   Factos e mais nada: quanto falta, até quando, quanto por mês. Aqui não
+   se calcula o que se pagou a mais numa compra já feita — para o fazer a
+   app teria de perguntar o preço a pronto de uma coisa já comprada, que é
+   literalmente perguntar "quanto é que desperdiçou".
+   ============================================================ */
+function desenharComprometido(r) {
+  const bloco = document.getElementById('bloco-comprometido');
+  const c = document.getElementById('comprometido-corpo');
+  if (!bloco || !c) return;
+
+  c.innerHTML = '';
+  if (!r.parcelasFuturas.length) {
+    bloco.hidden = true;
+    compVerTodos = false;
+    return;
+  }
+  bloco.hidden = false;
+
+  c.appendChild(p('Prestações que já estão a caminho:', 'comp-rot'));
+
+  const meses = r.comprometidoMeses;
+  const mostrar = compVerTodos ? meses : meses.slice(0, 4);
+  const ul = document.createElement('ul');
+  ul.className = 'comp-meses';
+  mostrar.forEach(x => {
+    const li = document.createElement('li');
+    const b = document.createElement('b');
+    b.textContent = comMaiuscula(mesExtenso(x.mes, true));
+    const sp = document.createElement('span');
+    sp.textContent = dinheiro(x.valor);
+    li.append(b, sp);
+    ul.appendChild(li);
+  });
+  c.appendChild(ul);
+
+  if (meses.length > mostrar.length) {
+    const restantes = meses.length - mostrar.length;
+    const linha = document.createElement('div');
+    linha.className = 'comp-mais';
+    const sp = document.createElement('span');
+    sp.textContent = '… mais ' + restantes + (restantes === 1 ? ' mês' : ' meses');
+    linha.append(sp, botao('ver todos', 'link-btn', () => {
+      compVerTodos = true;
+      desenhar();
+    }));
+    c.appendChild(linha);
+  }
+
+  const t = document.createElement('dl');
+  t.className = 'res-tabela';
+  [
+    ['Falta pagar no total', dinheiro(r.comprometidoTotal)],
+    ['Última prestação', mesExtenso(r.ultimaPrestacao)]
+  ].forEach(par => {
+    const dt = document.createElement('dt'); dt.textContent = par[0];
+    const dd = document.createElement('dd'); dd.textContent = par[1];
+    t.append(dt, dd);
+  });
+  c.appendChild(t);
+
+  c.appendChild(p('Isto é dinheiro dos próximos meses que já tem dono. O "Livre até ao fim do mês" de cada um destes meses já conta com ele.', 'res-nota'));
+
+  /* Uma compra liquidada mais cedo deixa cá dentro movimentos futuros que
+     já não existem. Cada grupo tem por onde sair. */
+  if (r.gruposActivos.length) {
+    c.appendChild(p('Compras a prestações', 'res-subtitulo'));
+    const gu = document.createElement('ul');
+    gu.className = 'comp-grupos';
+    r.gruposActivos.forEach(g => {
+      const info = catInfo('saida', g.categoria);
+      const li = document.createElement('li');
+
+      const txt = document.createElement('div');
+      txt.className = 'comp-g-txt';
+      const b = document.createElement('b');
+      b.textContent = info.emoji + ' ' + (g.descricao || info.nome);
+      const sp = document.createElement('span');
+      const nn = g.proxima ? g.proxima.parc.n : g.de;
+      sp.textContent = nn + '/' + g.de + ' · ' + dinheiro(g.valor) + ' por mês · faltam ' +
+        dinheiro(Math.round(g.porPagar * 100) / 100);
+      txt.append(b, sp);
+
+      li.append(txt, botao('Já paguei tudo', 'mini-btn', () => {
+        const antiga = li.querySelector('.pergunta');
+        if (antiga) antiga.remove();
+        const cx = caixaPergunta(
+          'Apagar as ' + g.quantasFaltam + (g.quantasFaltam === 1 ? ' prestação que falta' : ' prestações que faltam') + '?', [
+            ['Apagar', () => apagarRestoDoGrupo(g.g)],
+            ['Cancelar', () => cx.remove()]
+          ]);
+        li.appendChild(cx);
+      }));
+      gu.appendChild(li);
+    });
+    c.appendChild(gu);
+  }
+
+  desenharSinal(r, c);
+
+  const acoes = document.createElement('div');
+  acoes.className = 'res-acoes';
+  acoes.appendChild(botao('Vou comprar uma coisa a prestações', 'btn btn-line btn-peq',
+    () => abrirSimulador(null)));
+  c.appendChild(acoes);
+}
+
+/* 1b · O sinal de aflição. Dentro do bloco, nunca em popup, nunca a
+   vermelho, nunca com ponto de exclamação. Cada nível termina a tirar a
+   culpa de cima da pessoa. */
+function desenharSinal(r, c) {
+  const s = r.sinalAflicao;
+  if (!s) return;
+
+  const cx = document.createElement('div');
+  cx.className = 'sinal';
+
+  if (s.consumo) {
+    cx.appendChild(p('Há compras parceladas em ' + s.cats.join(' e ') +
+      '. Parcelar coisas que se gastam dentro do mês costuma ser sinal de que o mês não está a fechar — não de má gestão.', 'res-nota'));
+  }
+  if (s.peso) {
+    cx.appendChild(p('Das suas entradas de um mês normal (' + dinheiro(r.R) + '), ' +
+      dinheiro(s.porMes) + ' já estão comprometidos em prestações — ' + s.pct + '%.', 'res-nota'));
+  }
+  if (s.nivel === 3) {
+    cx.appendChild(p('Quando o mês não fecha, a prestação seguinte tapa o buraco da anterior. Isso não se resolve com orçamento nenhum. Resolve-se com uma despesa fixa a menos ou com rendimento a mais.', 'res-nota'));
+    if (APOIO_ENDIVIDADO && APOIO_ENDIVIDADO.texto && APOIO_ENDIVIDADO.url) {
+      const linha = p(APOIO_ENDIVIDADO.texto + ' ', 'res-nota');
+      const a = document.createElement('a');
+      a.href = APOIO_ENDIVIDADO.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = APOIO_ENDIVIDADO.rotulo || 'Ver';
+      linha.appendChild(a);
+      cx.appendChild(linha);
+    }
+  }
+
+  c.appendChild(cx);
+}
+
+/* ============================================================
+   1b · "ANTES DE PARCELAR" — a mesma aritmética, antes da compra
+
+   Nunca se pergunta a taxa de juro. Ninguém a sabe e não é precisa: o que
+   se paga a mais é `n × prestação − preço a pronto`. Exacto, verificável,
+   sem pressupostos.
+   ============================================================ */
+function abrirSimulador(pre) {
+  simAberto = true;
+  if (pre) {
+    simVals = {
+      pronto: '',
+      prestacao: pre.prestacao != null ? String(pre.prestacao).replace('.', ',') : '',
+      vezes: pre.vezes != null ? String(pre.vezes) : ''
+    };
+  }
+  desenharSimulador();
+  const b = document.getElementById('bloco-simulador');
+  if (b) {
+    b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const primeiro = document.getElementById('sim-pronto');
+    if (primeiro) setTimeout(() => primeiro.focus(), 250);
+  }
+}
+
+function fecharSimulador() {
+  simAberto = false;
+  desenharSimulador();
+}
+
+function desenharSimulador() {
+  const bloco = document.getElementById('bloco-simulador');
+  const c = document.getElementById('simulador-corpo');
+  if (!bloco || !c) return;
+  bloco.hidden = !simAberto;
+  /* Ao fechar apaga-se a marca de "já construído": sem isto, reabrir
+     encontrava o contentor vazio e não desenhava nada. */
+  if (!simAberto) { c.innerHTML = ''; delete c.dataset.pronto; return; }
+  if (c.dataset.pronto === '1') { actualizarSimulador(); return; }
+
+  c.innerHTML = '';
+  c.dataset.pronto = '1';
+
+  [
+    ['sim-pronto', 'Quanto custa a pronto?', 'se souber', 'pronto', 'decimal'],
+    ['sim-prestacao', 'Quanto é cada prestação?', '', 'prestacao', 'decimal'],
+    ['sim-vezes', 'Quantas vezes?', '', 'vezes', 'numeric']
+  ].forEach(campo => {
+    const d = document.createElement('div');
+    d.className = 'field';
+    const lb = document.createElement('label');
+    lb.setAttribute('for', campo[0]);
+    lb.textContent = campo[1];
+    if (campo[2]) {
+      const s = document.createElement('span');
+      s.style.textTransform = 'none';
+      s.style.letterSpacing = '0';
+      s.textContent = ' (' + campo[2] + ')';
+      lb.appendChild(s);
+    }
+    const inp = document.createElement('input');
+    inp.id = campo[0];
+    inp.type = 'text';
+    inp.inputMode = campo[4];
+    inp.autocomplete = 'off';
+    inp.placeholder = campo[4] === 'numeric' ? '12' : '0,00';
+    inp.value = simVals[campo[3]] || '';
+    inp.addEventListener('input', () => {
+      simVals[campo[3]] = inp.value;
+      actualizarSimulador();
+    });
+    d.append(lb, inp);
+    c.appendChild(d);
+  });
+
+  const res = document.createElement('div');
+  res.className = 'sim-res';
+  res.id = 'sim-res';
+  c.appendChild(res);
+
+  const acoes = document.createElement('div');
+  acoes.className = 'res-acoes';
+  acoes.appendChild(botao('Fechar', 'mini-btn', fecharSimulador));
+  c.appendChild(acoes);
+
+  actualizarSimulador();
+}
+
+function actualizarSimulador() {
+  const el = document.getElementById('sim-res');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const prest = lerValor(simVals.prestacao);
+  const vezes = parseInt(String(simVals.vezes || '').replace(/\D/g, ''), 10);
+  const pronto = lerValor(simVals.pronto);
+
+  if (!prest || !isFinite(vezes) || vezes < 1) {
+    el.appendChild(p('Escreva quanto é cada prestação e quantas vezes. O preço a pronto é o único opcional.', 'res-nota'));
+    return;
+  }
+
+  const total = Math.round(prest * vezes * 100) / 100;
+  const aMais = pronto ? Math.round((total - pronto) * 100) / 100 : null;
+
+  const t = document.createElement('dl');
+  t.className = 'res-tabela';
+  const linhas = [['Paga no total', dinheiro(total)]];
+  if (aMais !== null) linhas.push(['Paga a mais', dinheiro(Math.max(0, aMais))]);
+  linhas.push(['Por mês', dinheiro(prest)]);
+  linhas.forEach(par => {
+    const dt = document.createElement('dt'); dt.textContent = par[0];
+    const dd = document.createElement('dd'); dd.textContent = par[1];
+    t.append(dt, dd);
+  });
+  el.appendChild(t);
+
+  let mesesPoupanca = null;
+  if (aMais === null) {
+    el.appendChild(p('Sem o preço a pronto não dá para saber quanto está a pagar a mais.', 'res-nota'));
+  } else if (aMais <= 0) {
+    el.appendChild(p('Com estes números não paga nada a mais do que o preço a pronto.', 'res-nota'));
+  } else {
+    mesesPoupanca = Math.ceil(pronto / prest);
+    el.appendChild(p('Se guardasse ' + dinheiro(prest) + ' por mês, ao fim de ' + mesesPoupanca +
+      (mesesPoupanca === 1 ? ' mês' : ' meses') + ' tinha os ' + dinheiro(pronto) +
+      ' e comprava sem pagar os ' + dinheiro(aMais) + ' a mais.', 'res-nota'));
+  }
+
+  /* Esta frase é obrigatória e não se corta. Sem ela isto é um sermão; com
+     ela é uma conta. Parcelar uma máquina de lavar avariada é a decisão
+     certa, e a app tem de o dizer — senão perde a credibilidade toda no
+     primeiro caso em que a pessoa sabe mais do que ela. */
+  el.appendChild(p('Isto é só a conta. A decisão é sua — há coisas que não esperam ' +
+    (mesesPoupanca ? mesesPoupanca + (mesesPoupanca === 1 ? ' mês' : ' meses') : 'meses') +
+    ', e uma máquina de lavar avariada é uma delas.', 'sim-fecho'));
+}
+
+/* ============================================================
+   1a · O CAMINHO "PAGUEI A PRESTAÇÕES", NO FORMULÁRIO
+   ============================================================ */
+function fecharParc() {
+  parcAberto = false;
+  parcVezes = null;
+  parcDividido = false;
+  parcOfertaVista = false;
+  const caixa = document.getElementById('parc-caixa');
+  const chip = document.getElementById('parc-abre');
+  if (caixa) { caixa.hidden = true; caixa.innerHTML = ''; }
+  if (chip) chip.setAttribute('aria-expanded', 'false');
+}
+
+/* A etiqueta só existe nas saídas, e não existe na categoria da reserva —
+   guardar dinheiro não se parcela. */
+function desenharParc() {
+  const zona = document.getElementById('parc');
+  if (!zona) return;
+  const sel = document.getElementById('f-categoria');
+  const mostrar = tipoActual === 'saida' && (!sel || sel.value !== 'reserva');
+  zona.hidden = !mostrar;
+  if (!mostrar && parcAberto) fecharParc();
+}
+
+function alternarParc() {
+  if (parcAberto) { fecharParc(); return; }
+  parcAberto = true;
+  const chip = document.getElementById('parc-abre');
+  if (chip) chip.setAttribute('aria-expanded', 'true');
+  construirCaixaParc();
+}
+
+function construirCaixaParc() {
+  const caixa = document.getElementById('parc-caixa');
+  if (!caixa) return;
+  caixa.hidden = false;
+  caixa.innerHTML = '';
+
+  caixa.appendChild(p('Quantas vezes', 'parc-rot'));
+
+  const grelha = document.createElement('div');
+  grelha.className = 'parc-vezes';
+  grelha.setAttribute('role', 'group');
+  grelha.setAttribute('aria-label', 'Quantas prestações');
+  PARC_VEZES.forEach(n => {
+    const b = botao(String(n), 'parc-n', () => escolherVezes(n));
+    b.dataset.n = String(n);
+    b.setAttribute('aria-pressed', String(parcVezes === n));
+    grelha.appendChild(b);
+  });
+  const outro = botao('outro', 'parc-n parc-outro', () => {
+    const resp = prompt('Quantas vezes?', parcVezes ? String(parcVezes) : '');
+    if (resp === null) return;
+    const n = parseInt(String(resp).replace(/\D/g, ''), 10);
+    if (!isFinite(n) || n < 2 || n > PARC_MAX) {
+      mostrarAviso('Escreva um número de vezes entre 2 e ' + PARC_MAX + '.', 'erro');
+      return;
+    }
+    escolherVezes(n);
+  });
+  grelha.appendChild(outro);
+  caixa.appendChild(grelha);
+
+  const conta = document.createElement('div');
+  conta.className = 'parc-conta';
+  conta.id = 'parc-conta';
+  caixa.appendChild(conta);
+
+  actualizarParc();
+}
+
+function escolherVezes(n) {
+  parcVezes = n;
+  document.querySelectorAll('#parc-caixa .parc-n').forEach(b => {
+    b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n));
+  });
+  actualizarParc();
+}
+
+/* "550,80 € ÷ 12 = 45,90 € por mês". Metade das pessoas escreve o preço da
+   montra; esta ligação resolve isso sem acrescentar uma decisão a quem não
+   precisa dela. */
+function usarComoTotal() {
+  const campo = document.getElementById('f-valor');
+  const v = lerValor(campo.value);
+  if (!v || !parcVezes) return;
+  const cada = Math.round((v / parcVezes) * 100) / 100;
+  escreverValor(campo, cada);
+  parcDividido = true;
+  actualizarParc(dinheiro(v) + ' ÷ ' + parcVezes + ' = ' + dinheiro(cada) + ' por mês.');
+}
+
+function actualizarParc(notaDivisao) {
+  const conta = document.getElementById('parc-conta');
+  if (!conta) return;
+  conta.innerHTML = '';
+
+  const campo = document.getElementById('f-valor');
+  const valor = lerValor(campo ? campo.value : '');
+
+  if (!parcVezes) {
+    conta.appendChild(p('Escolha quantas vezes. O valor acima passa a ser o de cada prestação — é o número que está no talão.', 'parc-nota'));
+    return;
+  }
+  if (!valor) {
+    conta.appendChild(p('Escreva o valor de cada prestação no campo acima.', 'parc-nota'));
+    return;
+  }
+
+  const total = Math.round(valor * parcVezes * 100) / 100;
+
+  /* Ver "550,80 €" quando se tinha "45,90 €" na cabeça é a carga útil
+     inteira desta funcionalidade, e custa zero toques. É o único sítio
+     onde a app revela alguma coisa sem opinar. */
+  conta.appendChild(p(parcVezes + ' × ' + dinheiro(valor) + '  =  ' + dinheiro(total) +
+    ' no total', 'parc-total'));
+
+  const dataBase = (document.getElementById('f-data').value || HOJE);
+  const datas = datasPrestacoes(dataBase, parcVezes);
+  conta.appendChild(p('Última prestação em ' + mesExtenso(datas[datas.length - 1].slice(0, 7)),
+    'parc-nota'));
+
+  if (notaDivisao) {
+    conta.appendChild(p(notaDivisao, 'parc-nota'));
+  } else if (!parcDividido) {
+    const b = botao('O valor que escrevi é o preço total →', 'link-btn', usarComoTotal);
+    conta.appendChild(b);
+  }
+
+  /* Oferecida, nunca imposta: não bloqueia, e não volta a aparecer para o
+     mesmo lançamento. */
+  if (!parcOfertaVista) {
+    const of = document.createElement('div');
+    of.className = 'parc-oferta';
+    of.appendChild(p('Isto fica em ' + parcVezes + ' vezes de ' + dinheiro(valor) + '. Ver a conta?'));
+    const acoes = document.createElement('div');
+    acoes.className = 'res-acoes';
+    acoes.appendChild(botao('Ver', 'mini-btn', () => {
+      parcOfertaVista = true;
+      actualizarParc();
+      abrirSimulador({ prestacao: valor, vezes: parcVezes });
+    }));
+    acoes.appendChild(botao('Não', 'mini-btn', () => {
+      parcOfertaVista = true;
+      actualizarParc();
+    }));
+    of.appendChild(acoes);
+    conta.appendChild(of);
+  }
+}
+
 /* ---------- render ---------- */
 function desenhar() {
   const r = calcular();
@@ -1086,6 +1776,9 @@ function desenhar() {
   desenharLista(r);
   desenharCategorias(r);
   desenharReserva(r);
+  desenharComprometido(r);
+  desenharParc();
+  desenharSimulador();
 }
 
 /* ============================================================
@@ -1112,6 +1805,7 @@ function sincronizarEss() {
   const cat = document.getElementById('f-categoria').value;
   const mostrar = tipoActual === 'saida' && cat !== 'reserva';
   campo.hidden = !mostrar;
+  desenharParc();
   if (!mostrar) return;
   essActual = padraoCategoria(cat);
   pintarEss();
@@ -1199,9 +1893,63 @@ function lancar(dados) {
   return m;
 }
 
+/* Criam-se as N saídas todas, já — não um movimento com metadados a
+   expandir na leitura. Cada uma é um movimento normal, com a sua data
+   real: os meses futuros mostram o compromisso sem uma linha nova em
+   `calcular()`, na lista, no CSV ou na nuvem, e uma versão antiga deste
+   ficheiro ainda em cache lê-as como saídas normais e ignora o `parc`. */
+function lancarParcelado(dados, de) {
+  const g = 'g-' + idNovo();
+  const valor = Math.round(dados.valor * 100) / 100;
+  const tot = Math.round(valor * de * 100) / 100;
+  const criados = datasPrestacoes(dados.data, de).map((data, i) => {
+    const m = {
+      id: idNovo(),
+      tipo: 'saida',
+      valor: valor,
+      categoria: dados.categoria,
+      descricao: (dados.descricao || '').slice(0, 120),
+      data: data,
+      moeda: moeda,
+      parc: { g: g, n: i + 1, de: de, tot: tot }
+    };
+    if (typeof dados.ess === 'boolean') m.ess = dados.ess;
+    movimentos.push(m);
+    return m;
+  });
+  guardar();
+  return criados;
+}
+
+/* §8 · A pessoa lança as 12 prestações e depois lança também o pagamento
+   mensal à mão. Conta a dobrar, e ninguém dá por ela. */
+function prestacaoSemelhante(valor, categoria, data) {
+  const k = data.slice(0, 7);
+  return movimentos.find(m =>
+    m.tipo === 'saida' && m.parc && m.categoria === categoria &&
+    m.data.slice(0, 7) === k &&
+    Math.abs(m.valor - valor) <= 0.02 * valor) || null;
+}
+
+function limparPerguntaForm() {
+  const z = document.getElementById('form-pergunta');
+  if (!z) return;
+  z.hidden = true;
+  z.innerHTML = '';
+}
+
+function perguntaForm(texto, botoes) {
+  const z = document.getElementById('form-pergunta');
+  if (!z) return;
+  z.innerHTML = '';
+  z.hidden = false;
+  z.appendChild(caixaPergunta(texto, botoes));
+}
+
 function adicionar(ev) {
   ev.preventDefault();
   esconderProposta();
+  limparPerguntaForm();
 
   const valorBruto = document.getElementById('f-valor').value.replace(',', '.');
   const valor = parseFloat(valorBruto);
@@ -1212,8 +1960,7 @@ function adicionar(ev) {
   }
 
   const categoria = document.getElementById('f-categoria').value;
-  const data = document.getElementById('f-data').value || new Date().toISOString().slice(0, 10);
-  const antes = reservaActual();
+  const data = document.getElementById('f-data').value || HOJE;
 
   const dados = {
     tipo: tipoActual,
@@ -1228,16 +1975,69 @@ function adicionar(ev) {
   if (tipoActual === 'saida' && categoria !== 'reserva') {
     if (essActual !== padraoCategoria(categoria)) {
       dados.ess = essActual;
-      essenciais[categoria] = essActual;
-      guardarPrefs();
     }
   }
 
-  const m = lancar(dados);
+  const vezes = (tipoActual === 'saida' && categoria !== 'reserva' &&
+                 parcAberto && parcVezes >= 2) ? parcVezes : 0;
+
+  /* --- os dois travões do §8, uma pergunta de cada vez ------------- */
+  if (vezes) {
+    /* O valor escrito era o total e a pessoa não tocou no "é o preço
+       total": criava 12 prestações de 550,80 €. */
+    const r0 = calcular();
+    if (r0.R && r0.R > 0 && valor * vezes > 3 * r0.R) {
+      perguntaForm('São ' + vezes + ' prestações de ' + dinheiro(valor) + ', ou ' +
+        dinheiro(valor) + ' no total?', [
+          ['São ' + vezes + ' de ' + dinheiro(valor), () => {
+            limparPerguntaForm();
+            executarLancamento(dados, vezes);
+          }],
+          ['É ' + dinheiro(valor) + ' no total', () => {
+            limparPerguntaForm();
+            usarComoTotal();
+            mostrarAviso('Passa a ' + vezes + ' prestações de ' +
+              dinheiro(Math.round((valor / vezes) * 100) / 100) + '. Confirme e toque em Lançar.', 'info');
+          }]
+        ]);
+      return;
+    }
+  } else if (tipoActual === 'saida' && categoria !== 'reserva') {
+    const igual = prestacaoSemelhante(valor, categoria, data);
+    if (igual) {
+      perguntaForm('Já há uma prestação de ' + dinheiro(igual.valor) + ' em ' +
+        catInfo('saida', igual.categoria).nome + ' este mês. É a mesma?', [
+          ['É a mesma, não lançar', () => {
+            limparPerguntaForm();
+            document.getElementById('f-valor').value = '';
+            mostrarAviso('Não foi lançada. A prestação já estava na lista.', 'info');
+          }],
+          ['É outra coisa', () => {
+            limparPerguntaForm();
+            executarLancamento(dados, 0);
+          }]
+        ]);
+      return;
+    }
+  }
+
+  executarLancamento(dados, vezes);
+}
+
+function executarLancamento(dados, vezes) {
+  const antes = reservaActual();
+
+  if (typeof dados.ess === 'boolean') {
+    essenciais[dados.categoria] = dados.ess;
+    guardarPrefs();
+  }
+
+  const criados = vezes ? lancarParcelado(dados, vezes) : [lancar(dados)];
+  const m = criados[0];
 
   // Saltar para o mês do movimento que acabou de ser lançado, senão ele
   // é gravado mas não aparece — e parece que se perdeu.
-  const d = new Date(data + 'T00:00:00');
+  const d = new Date(dados.data + 'T00:00:00');
   mesVisto = { ano: d.getFullYear(), mes: d.getMonth() };
 
   document.getElementById('f-valor').value = '';
@@ -1246,9 +2046,19 @@ function adicionar(ev) {
   /* O estado de partida é sempre o mesmo: a primeira da grelha acesa —
      não a que acabou de ser usada. */
   etiquetaActiva = null;
+  fecharParc();
 
   const depois = reservaActual();
   desenhar();
+
+  /* Uma compra parcelada é registada e mais nada: quantas, de quanto, até
+     quando. Nenhum juízo — nem aqui nem em lado nenhum sobre o passado. */
+  if (vezes) {
+    const ultima = criados[criados.length - 1].data.slice(0, 7);
+    mostrarAviso('Lançadas ' + vezes + ' prestações de ' + dinheiro(m.valor) + ' · ' +
+      dinheiro(m.parc.tot) + ' no total. A última em ' + mesExtenso(ultima) + '.', 'ok');
+    return;
+  }
 
   /* Tirou tudo da reserva. Uma frase e mais nada. */
   if (m.categoria === 'reserva-tirei' && antes > 0 && depois <= 0) {
@@ -1272,13 +2082,43 @@ function adicionar(ev) {
   }
 }
 
-function apagar(id) {
-  const m = movimentos.find(x => x.id === id);
-  if (!m) return;
-  if (!confirm('Apagar "' + (m.descricao || catInfo(m.tipo, m.categoria).nome) + '"?')) return;
-  movimentos = movimentos.filter(x => x.id !== id);
+function apagarIds(ids) {
+  if (!ids.length) return;
+  const fora = {};
+  ids.forEach(i => { fora[i] = true; });
+  movimentos = movimentos.filter(x => !fora[x.id]);
   guardar();
   desenhar();
+}
+
+/* As que faltam são as de data ≥ hoje do mesmo grupo. As já pagas nunca se
+   apagam por este caminho: são história, e história não se reescreve. */
+function apagarRestoDoGrupo(g) {
+  apagarIds(movimentos.filter(m => m.parc && m.parc.g === g && m.data >= HOJE).map(m => m.id));
+  mostrarAviso('Prestações apagadas. O que já pagou fica no histórico.', 'ok');
+}
+
+function apagar(id, li) {
+  const m = movimentos.find(x => x.id === id);
+  if (!m) return;
+
+  /* Numa prestação, "apagar" tem três significados diferentes e um
+     `confirm()` só cabe um. */
+  if (m.parc && li) {
+    const antiga = li.querySelector('.pergunta');
+    if (antiga) antiga.remove();
+    const cx = caixaPergunta(
+      'Esta é a prestação ' + m.parc.n + ' de ' + m.parc.de + '.', [
+        ['Apagar só esta', () => apagarIds([m.id])],
+        ['Apagar as que faltam', () => apagarRestoDoGrupo(m.parc.g)],
+        ['Cancelar', () => cx.remove()]
+      ]);
+    li.appendChild(cx);
+    return;
+  }
+
+  if (!confirm('Apagar "' + (m.descricao || catInfo(m.tipo, m.categoria).nome) + '"?')) return;
+  apagarIds([id]);
 }
 
 function mudarMes(passo) {
@@ -1408,7 +2248,21 @@ function proporMomento(m) {
    DADOS
    ============================================================ */
 function exportarCSV() {
-  const linhas = [['data', 'tipo', 'categoria', 'descricao', 'valor', 'essencial', 'moeda']];
+  const csv = linhasCSV().map(l => l.map(c => '"' + c + '"').join(';')).join('\r\n');
+  // O BOM faz o Excel abrir os acentos correctamente.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vida-financeira.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function linhasCSV() {
+  /* As duas colunas novas vão no fim: um ficheiro exportado antes desta
+     versão continua a abrir, e uma folha já feita não muda de colunas. */
+  const linhas = [['data', 'tipo', 'categoria', 'descricao', 'valor', 'essencial', 'moeda',
+                   'prestacao', 'grupo']];
   movimentos.slice()
     .sort((a, b) => a.data.localeCompare(b.data))
     .forEach(m => {
@@ -1421,18 +2275,12 @@ function exportarCSV() {
         (m.descricao || '').replace(/"/g, '""'),
         String(m.valor).replace('.', ','),
         ess,
-        m.moeda || moeda
+        m.moeda || moeda,
+        m.parc ? (m.parc.n + '/' + m.parc.de) : '',
+        m.parc ? m.parc.g : ''
       ]);
     });
-
-  const csv = linhas.map(l => l.map(c => '"' + c + '"').join(';')).join('\r\n');
-  // O BOM faz o Excel abrir os acentos correctamente.
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'vida-financeira.csv';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  return linhas;
 }
 
 function apagarTudo() {
@@ -1442,6 +2290,35 @@ function apagarTudo() {
   guardar();
   desenhar();
   mostrarAviso('Todos os movimentos foram apagados.', 'info');
+}
+
+/* Duas prestações do mesmo grupo criadas em dois dispositivos offline: a
+   fusão por `id` mantém as duas séries, e o mês passa a mostrar o dobro.
+   Se dois grupos tiverem a mesma categoria, valor, número de vezes e mês
+   inicial, fica o de `id` menor. É a única regra de desduplicação que este
+   desenho precisa — e só se aplica a grupos, nunca a movimentos soltos:
+   entre perder um movimento e ter um repetido, fica-se com o repetido. */
+function desduplicarGrupos(lista) {
+  const grupos = {};
+  lista.forEach(m => {
+    if (m.tipo !== 'saida' || !m.parc) return;
+    const g = grupos[m.parc.g] || (grupos[m.parc.g] = {
+      categoria: m.categoria, valor: m.valor, de: m.parc.de, inicio: m.data
+    });
+    if (m.data < g.inicio) { g.inicio = m.data; g.valor = m.valor; }
+  });
+
+  const vistos = {};
+  const fora = {};
+  Object.keys(grupos).sort().forEach(id => {
+    const g = grupos[id];
+    const ch = g.categoria + '|' + g.valor.toFixed(2) + '|' + g.de + '|' + g.inicio.slice(0, 7);
+    if (vistos[ch]) fora[id] = true;
+    else vistos[ch] = id;
+  });
+
+  if (!Object.keys(fora).length) return lista;
+  return lista.filter(m => !(m.parc && fora[m.parc.g]));
 }
 
 /* ---------- nuvem (opcional) ---------- */
@@ -1491,7 +2368,7 @@ function ligarNuvem() {
           const n = normalizar(m);
           if (n) porId[n.id] = n;
         });
-        movimentos = Object.values(porId);
+        movimentos = desduplicarGrupos(Object.values(porId));
         guardar();
         desenhar();
       })
@@ -1524,6 +2401,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-descricao').addEventListener('input', () => {
     descAutomatica = false;   // a partir daqui a descrição é da pessoa
   });
+
+  /* O valor manda na conta das prestações: enquanto a caixa estiver
+     aberta, a conta acompanha cada dígito. */
+  document.getElementById('f-valor').addEventListener('input', () => {
+    if (!parcAberto) return;
+    parcDividido = false;
+    actualizarParc();
+  });
+  document.getElementById('f-data').addEventListener('change', () => {
+    if (parcAberto) actualizarParc();
+  });
+  document.getElementById('parc-abre').addEventListener('click', alternarParc);
   document.querySelectorAll('.filtro button').forEach(b => {
     b.addEventListener('click', () => {
       filtro = b.dataset.filtro;
