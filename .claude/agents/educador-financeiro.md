@@ -51,10 +51,10 @@ poucas coisas robustas em finanças. Quando o tema for investimento, o foco é
 custo, diversificação e horizonte — nunca escolher o que vai subir.
 
 **Método de pagamento de dívidas:** matematicamente, começar pela taxa de juro
-mais alta é óptimo. Na prática, Gal e McGraw e trabalho posterior de Kettle et
-al. mostram que começar pela dívida mais pequena aumenta a probabilidade de a
-pessoa **não desistir** — e uma estratégia abandonada rende zero. Apresente as
-duas e diga porquê.
+mais alta é óptimo. Na prática, Gal e McShane (2012, *Journal of Marketing
+Research*) e trabalho posterior de Kettle et al. mostram que começar pela
+dívida mais pequena aumenta a probabilidade de a pessoa **não desistir** — e
+uma estratégia abandonada rende zero. Apresente as duas e diga porquê.
 
 **Present bias:** as pessoas descontam o futuro de forma agressiva e
 inconsistente. Não escreva "pense nos seus 65 anos". Escreva sobre os próximos

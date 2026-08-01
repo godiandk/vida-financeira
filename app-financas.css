@@ -20,22 +20,46 @@
 }
 
 /* ---------- cartões de resumo ---------- */
-.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.resumo{display:grid;gap:14px}
+.resumo-dois{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .card{
   background:var(--ink-2);border:1px solid rgba(217,178,110,.18);
-  border-radius:var(--radius);padding:20px 22px;
+  border-radius:var(--radius);padding:20px 22px;min-width:0;
 }
 .card .rot{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--cream-dim);font-weight:700}
-.card .val{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,3.4vw,2rem);font-weight:700;margin-top:6px;line-height:1.2}
+.card .val{font-family:'Playfair Display',serif;font-size:clamp(1.4rem,3.4vw,2rem);font-weight:700;margin-top:6px;line-height:1.2;overflow-wrap:anywhere}
+.card .val.pequeno{font-size:clamp(1.1rem,2.4vw,1.4rem)}
+.card .sub{font-size:.82rem;color:var(--cream-dim);margin-top:6px;line-height:1.45}
 .card.saldo{border-color:rgba(217,178,110,.4);background:linear-gradient(140deg,rgba(217,178,110,.12),rgba(217,178,110,.02))}
-.card.saldo .val{color:var(--gold-soft)}
+.card.saldo .val{color:var(--gold-soft);font-size:clamp(1.9rem,5vw,2.6rem)}
 .card.saldo .val.neg{color:var(--down)}
-.card.entrada .val{color:var(--up)}
-.card.saida .val{color:var(--down)}
-@media(max-width:760px){
-  .resumo{grid-template-columns:1fr 1fr}
-  .card.saldo{grid-column:1 / -1}
+.resumo-linha{
+  margin:14px 0 28px;text-align:center;font-size:.84rem;color:var(--cream-dim);
 }
+@media(max-width:520px){
+  .resumo-dois{grid-template-columns:1fr}
+}
+
+/* ---------- linha do salário em falta ---------- */
+.lembrete{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:.86rem;color:var(--cream-dim);margin:0 0 18px;
+}
+.link-btn{
+  background:none;border:none;color:var(--gold-soft);font-family:inherit;
+  font-size:.86rem;font-weight:700;cursor:pointer;text-decoration:underline;
+  padding:9px 4px;min-height:40px;
+}
+
+/* ---------- proposta em linha (mês bom / dia do salário) ---------- */
+.proposta{
+  border:1px solid rgba(217,178,110,.35);background:rgba(217,178,110,.07);
+  border-radius:var(--radius);padding:18px 20px;margin:12px 0 18px;
+}
+.proposta[hidden]{display:none}
+.proposta p{font-size:.94rem;margin-bottom:4px}
+.proposta p:first-child{color:var(--gold-soft);font-weight:700}
+.proposta .res-acoes{margin-top:14px}
 
 /* ---------- colunas: formulário + lista ---------- */
 .painel{display:grid;grid-template-columns:360px 1fr;gap:22px;align-items:start}
@@ -53,6 +77,18 @@
 }
 .tipo-sel button[aria-pressed="true"][data-tipo="entrada"]{border-color:var(--up);background:rgba(62,207,142,.14);color:var(--up)}
 .tipo-sel button[aria-pressed="true"][data-tipo="saida"]{border-color:var(--down);background:rgba(224,113,92,.14);color:var(--down)}
+
+/* selector essencial / dá para adiar */
+#campo-ess[hidden]{display:none}
+.ess-sel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ess-sel button{
+  padding:12px 8px;border-radius:12px;border:1px solid rgba(217,178,110,.22);
+  background:#0a1210;color:var(--cream-dim);font-family:inherit;font-weight:700;
+  font-size:.84rem;cursor:pointer;transition:all .2s;min-height:46px;
+}
+.ess-sel button[aria-pressed="true"]{
+  border-color:var(--gold);background:rgba(217,178,110,.12);color:var(--gold-soft);
+}
 
 .bloco .btn{width:100%;justify-content:center;margin-top:6px}
 
@@ -99,6 +135,36 @@ ul.movs li:last-child{border-bottom:none}
 .cat-linha span{color:var(--cream-dim);white-space:nowrap}
 .barra{height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
 .barra i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold-soft));transition:width .5s ease}
+
+/* repartição essencial / dá para adiar, acima da lista de categorias */
+.reparticao{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(217,178,110,.12)}
+.reparticao[hidden]{display:none}
+.rep-item{margin-bottom:12px}
+.rep-item:last-child{margin-bottom:0}
+.barra.ess i{background:linear-gradient(90deg,#8a7350,var(--gold))}
+.barra.adi i{background:linear-gradient(90deg,rgba(169,184,176,.5),rgba(169,184,176,.85))}
+
+/* ---------- bloco "A minha reserva" ---------- */
+.res-topo{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.res-topo b{font-family:'Playfair Display',serif;font-size:clamp(1.5rem,4vw,2rem);font-weight:700;color:var(--gold-soft)}
+.res-topo span{font-size:.86rem;color:var(--cream-dim)}
+.res-barra{margin-bottom:14px}
+.res-degrau{font-size:.9rem;font-weight:700;margin-bottom:10px}
+.res-mensal{font-size:.9rem;margin-bottom:8px}
+.res-nota{font-size:.86rem;color:var(--cream-dim);margin-bottom:10px;line-height:1.6}
+.res-titulo{font-size:1rem;font-weight:700;color:var(--gold-soft);margin-bottom:10px}
+.res-subtitulo{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-dim);font-weight:700;margin:16px 0 8px}
+.res-tabela{display:grid;grid-template-columns:1fr auto;gap:6px 14px;margin:14px 0;font-size:.88rem}
+.res-tabela dt{color:var(--cream-dim)}
+.res-tabela dd{text-align:right;font-weight:700;white-space:nowrap}
+.res-maiores{list-style:none}
+.res-maiores li{display:flex;justify-content:space-between;gap:12px;font-size:.88rem;padding:7px 0;border-bottom:1px solid rgba(217,178,110,.1)}
+.res-maiores li:last-child{border-bottom:none}
+.res-maiores span{color:var(--cream-dim);white-space:nowrap}
+.res-acoes{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.bloco .btn.btn-peq{width:auto;padding:12px 20px;font-size:.85rem;margin-top:0;min-height:44px}
+.res-acerto{margin-top:18px;padding-top:16px;border-top:1px solid rgba(217,178,110,.14);font-size:.88rem}
+.res-rodape{margin-top:16px;font-size:.78rem;color:var(--cream-dim);line-height:1.6}
 
 /* ---------- rodapé do painel ---------- */
 .painel-nota{margin-top:26px;font-size:.82rem;color:var(--cream-dim);text-align:center}
