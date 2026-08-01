@@ -16,13 +16,22 @@
 // 6. Publique as regras do ficheiro `firestore.rules` (ver INSTRUÇÕES.md)
 // ============================================================
 
+// Projeto: vida-financeira-faf77
+//
+// Estas chaves são públicas de propósito — vão dentro do site e qualquer
+// visitante as consegue ler no navegador. Não são uma senha. O que protege
+// mesmo os dados são as regras em `firestore.rules` e a lista de domínios
+// autorizados no Authentication.
+//
+// O `measurementId` do Google Analytics foi deixado de fora: este site não
+// carrega o SDK de Analytics, por isso o campo não teria uso nenhum.
 const firebaseConfig = {
-  apiKey: "COLE-AQUI",
-  authDomain: "COLE-AQUI",
-  projectId: "COLE-AQUI",
-  storageBucket: "COLE-AQUI",
-  messagingSenderId: "COLE-AQUI",
-  appId: "COLE-AQUI"
+  apiKey: "AIzaSyAL4af_o5kHuzlIxWYFKAMShk11Hem96oE",
+  authDomain: "vida-financeira-faf77.firebaseapp.com",
+  projectId: "vida-financeira-faf77",
+  storageBucket: "vida-financeira-faf77.firebasestorage.app",
+  messagingSenderId: "409876255459",
+  appId: "1:409876255459:web:c0a00beea50e04960f2bd6"
 };
 
 // ------------------------------------------------------------
