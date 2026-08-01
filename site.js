@@ -174,8 +174,11 @@
   const botao = document.createElement('button');
   botao.type = 'button';
   botao.className = 'app-float';
-  botao.setAttribute('aria-label', 'Instalar a aplicação Vida Financeira');
-  botao.innerHTML = '<span class="af-ic">⬇</span> Instalar app';
+  // O rótulo não pode dizer "Instalar app": lido a partir do site, dá a
+  // entender que a aplicação está noutro sítio e é preciso ir buscá-la. Ela
+  // está aqui, na página "Aplicação" — isto é só o atalho para o ecrã inicial.
+  botao.setAttribute('aria-label', 'Pôr a Vida Financeira no ecrã do telemóvel');
+  botao.innerHTML = '<span class="af-ic">📲</span> Pôr no telemóvel';
   document.body.appendChild(botao);
 
   /* ---------- modal ---------- */
