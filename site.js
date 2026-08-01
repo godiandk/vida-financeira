@@ -88,14 +88,38 @@
   });
 })();
 
+/* Raiz do site, vista de qualquer profundidade.
+
+   A aplicação vive em `/app/`, o resto das páginas na raiz. Um caminho
+   relativo escrito à mão no JavaScript funciona num sítio e falha no outro —
+   foi o que aconteceu com o `sw.js` e com o logótipo do modal, ambos a dar
+   404 dentro de `/app/`.
+
+   O `link rel="manifest"` de cada página já aponta correctamente para a raiz,
+   e o navegador resolve-o em endereço absoluto. Serve de âncora e evita
+   escrever o caminho do repositório à mão. */
+function raizDoSite() {
+  const man = document.querySelector('link[rel="manifest"]');
+  return man ? man.href.replace(/manifest\.json(\?.*)?$/, '') : './';
+}
+
 /* ---------- PWA ---------- */
 (function pwa() {
   if (!('serviceWorker' in navigator)) return;
   // Em `file://` o registo rebenta sempre — só faz sentido em http(s).
   if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
 
+  // O `sw.js` está na raiz do site, mas a aplicação vive em `/app/`. Um
+  // caminho relativo simples procurava-o em `/app/sw.js` e dava 404 — e sem
+  // service worker não há funcionamento offline nenhum.
+  //
+  // A raiz descobre-se pelo `link rel="manifest"`, que cada página já aponta
+  // correctamente para a raiz. Assim isto funciona a qualquer profundidade e
+  // sem escrever o caminho do repositório à mão.
+  const raiz = raizDoSite();
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register(raiz + 'sw.js', { scope: raiz }).catch(() => {});
   });
 })();
 
@@ -179,12 +203,12 @@
      Só na própria página da aplicação é que ele passa a oferecer o atalho
      para o ecrã do telemóvel — aí a pessoa já lá está, e pôr o ícone no
      telefone é a única coisa que ainda falta oferecer-lhe. */
-  const naApp = /(^|\/)app\.html($|[?#])/.test(location.pathname + location.search);
+  const naApp = /(^|\/)app\/?$|(^|\/)app\.html$/.test(location.pathname.replace(/index\.html$/, ''));
 
   let botao;
   if (!naApp) {
     botao = document.createElement('a');
-    botao.href = 'app.html';
+    botao.href = 'app/';
     botao.className = 'app-float';
     botao.setAttribute('aria-label', 'Abrir a aplicação Vida Financeira');
     botao.innerHTML = '<span class="af-ic">📊</span> Abrir aplicação';
@@ -206,11 +230,11 @@
   modal.innerHTML =
     '<div class="app-modal-box" role="dialog" aria-modal="true" aria-label="Instalar a aplicação">' +
       '<button class="app-modal-close" aria-label="Fechar">&times;</button>' +
-      '<img class="app-modal-logo" src="img/logo-marca.png" alt="">' +
+      '<img class="app-modal-logo" src="' + raizDoSite() + 'img/logo-marca.png" alt="">' +
       '<h3>Levar consigo</h3>' +
       '<p>Fica com um ícone no ecrã inicial e abre sem barra do navegador. ' +
          'Não passa pela App Store nem pela Play Store.</p>' +
-      '<a class="app-open-btn" href="app.html">Abrir o meu mês</a>' +
+      '<a class="app-open-btn" href="app/">Abrir o meu mês</a>' +
       '<div class="app-or"><span>ou instalar no ecrã</span></div>' +
       '<div class="app-detectado"></div>' +
       '<div class="app-steps"></div>' +

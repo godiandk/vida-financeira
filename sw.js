@@ -14,11 +14,12 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v5';
+const VERSAO = 'vida-financeira-v6';
 
 const FICHEIROS = [
   './',
   './index.html',
+  './app/',
   './app.html',
   './conta.html',
   './sobre.html',
