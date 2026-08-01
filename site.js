@@ -167,16 +167,34 @@
     pedidoNativo = e;
   });
 
-  // Dentro da app instalada, um botão a dizer "Instalar app" não faz sentido.
+  // Já dentro da app instalada não há nada a oferecer: nem abrir a aplicação
+  // (é onde se está), nem instalar (já está).
   if (jaInstalada()) return;
 
-  /* ---------- botão flutuante ---------- */
-  const botao = document.createElement('button');
+  /* ---------- botão flutuante ----------
+     Fora da aplicação, o botão leva à aplicação. É esse o seu trabalho, e é
+     o que qualquer pessoa espera de um botão em destaque num site que tem
+     uma aplicação lá dentro.
+
+     Só na própria página da aplicação é que ele passa a oferecer o atalho
+     para o ecrã do telemóvel — aí a pessoa já lá está, e pôr o ícone no
+     telefone é a única coisa que ainda falta oferecer-lhe. */
+  const naApp = /(^|\/)app\.html($|[?#])/.test(location.pathname + location.search);
+
+  let botao;
+  if (!naApp) {
+    botao = document.createElement('a');
+    botao.href = 'app.html';
+    botao.className = 'app-float';
+    botao.setAttribute('aria-label', 'Abrir a aplicação Vida Financeira');
+    botao.innerHTML = '<span class="af-ic">📊</span> Abrir aplicação';
+    document.body.appendChild(botao);
+    return;   // sem modal: este botão navega, não abre nada
+  }
+
+  botao = document.createElement('button');
   botao.type = 'button';
   botao.className = 'app-float';
-  // O rótulo não pode dizer "Instalar app": lido a partir do site, dá a
-  // entender que a aplicação está noutro sítio e é preciso ir buscá-la. Ela
-  // está aqui, na página "Aplicação" — isto é só o atalho para o ecrã inicial.
   botao.setAttribute('aria-label', 'Pôr a Vida Financeira no ecrã do telemóvel');
   botao.innerHTML = '<span class="af-ic">📲</span> Pôr no telemóvel';
   document.body.appendChild(botao);
