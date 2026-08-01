@@ -175,8 +175,24 @@ footer{border-top:1px solid rgba(217,178,110,.14);padding:44px 0 28px}
 .app-choice button{padding:18px 12px;border-radius:14px;border:1px solid rgba(217,178,110,.3);background:var(--ink);color:var(--cream);font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;align-items:center;position:relative}
 .app-choice button:hover,.app-choice button.rec{border-color:var(--gold);background:rgba(217,178,110,.08)}
 .app-choice button .os-ic{font-size:1.9rem;line-height:1}
-.app-steps{margin-top:22px;text-align:left;display:none}
+/* linha "Detectámos iPhone" — confirma à pessoa que os passos são os dela */
+.app-detectado{
+  display:flex;align-items:center;gap:10px;text-align:left;
+  background:rgba(217,178,110,.08);border:1px solid rgba(217,178,110,.25);
+  border-radius:12px;padding:11px 14px;margin-top:14px;
+  font-size:.84rem;color:var(--cream-dim);
+}
+.app-detectado b{color:var(--gold-soft)}
+.app-eq-ic{font-size:1.4rem;line-height:1;flex:none}
+
+.app-steps{margin-top:16px;text-align:left;display:none}
 .app-steps.show{display:block;animation:appFade .3s ease}
+.app-steps .btn{width:100%;justify-content:center}
+.app-nota{color:var(--cream-dim);font-size:.8rem;margin-top:10px}
+.app-ok{background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.35);color:#8fe3ac;padding:12px 14px;border-radius:10px;font-size:.88rem}
+/* Firefox e iOS-fora-do-Safari não conseguem instalar: o aviso poupa a
+   pessoa de procurar um botão que não existe no navegador dela. */
+.app-aviso{background:rgba(217,178,110,.08);border:1px solid rgba(217,178,110,.3);color:var(--gold-soft);padding:12px 14px;border-radius:10px;font-size:.86rem}
 @keyframes appFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .app-steps ol{margin:0;padding-left:20px;color:var(--cream-dim);font-size:.9rem;line-height:1.8}
 .app-steps ol b{color:var(--cream)}
