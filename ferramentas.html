@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=16">
-<link rel="stylesheet" href="ferramentas.css?v=16">
+<link rel="stylesheet" href="estilo.css?v=17">
+<link rel="stylesheet" href="ferramentas.css?v=17">
 </head>
 <body>
 
@@ -172,8 +172,10 @@
           <button class="btn btn-gold" id="a-calc" type="button">Fazer o plano</button>
           <div class="res" id="a-out"></div>
           <ul class="plano-lista" id="a-tabela"></ul>
-          <div class="trinco js-se-gratis">
-            🔒 Precisa de chave. <a href="premium.html">Ver o que inclui</a>
+          <div class="cadeado js-se-gratis">
+            <span class="cad-ic">🔒</span>
+            <b>Fechada</b>
+            <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
           </div>
         </div>
 
@@ -191,8 +193,10 @@
           </div>
           <button class="btn btn-gold" id="c-calc" type="button">Comparar</button>
           <div class="res" id="c-out"></div>
-          <div class="trinco js-se-gratis">
-            🔒 Precisa de chave. <a href="premium.html">Ver o que inclui</a>
+          <div class="cadeado js-se-gratis">
+            <span class="cad-ic">🔒</span>
+            <b>Fechada</b>
+            <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
           </div>
         </div>
 
@@ -209,28 +213,63 @@
           </div>
           <button class="btn btn-gold" id="i-calc" type="button">Calcular</button>
           <div class="res" id="i-out"></div>
-          <div class="trinco js-se-gratis">
-            🔒 Precisa de chave. <a href="premium.html">Ver o que inclui</a>
+          <div class="cadeado js-se-gratis">
+            <span class="cad-ic">🔒</span>
+            <b>Fechada</b>
+            <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
           </div>
         </div>
 
       </div>
 
       <div class="js-se-premium" hidden style="margin-top:26px">
-        <div class="aviso ok">Tem chave activa neste dispositivo. As três ferramentas de planeamento estão abertas.</div>
+        <div class="aviso ok">Tem chave activa. <span id="validade"></span></div>
       </div>
 
-      <div class="caixa-chave js-se-gratis">
-        <h3>Já tem uma chave?</h3>
-        <p>Escreva-a aqui para abrir as ferramentas de planeamento neste dispositivo.</p>
+      <!-- ---------- desbloquear ---------- -->
+      <div class="caixa-chave js-se-gratis" style="max-width:none">
+        <h3>🔒 As três de planeamento estão fechadas</h3>
+        <p>Custam <b>9,89 €</b> e a chave vale <b>um ano inteiro</b>. Tudo o resto do site continua grátis.</p>
+        <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
+      </div>
+
+      <div class="painel-desbloq" id="painel-desbloqueio" hidden>
+        <h3>Desbloquear as três ferramentas</h3>
+
+        <div class="preco-linha">
+          <div class="preco-val">9,89 €</div>
+          <div class="preco-txt">
+            <b>Um ano inteiro</b>
+            <span>Cerca de 82 cêntimos por mês. Não renova sozinho.</span>
+          </div>
+        </div>
+
+        <ul class="inclui">
+          <li><span class="v">✓</span> Plano de 12 meses, mês a mês, com os subsídios contados</li>
+          <li><span class="v">✓</span> Comparar dois caminhos lado a lado</li>
+          <li><span class="v">✓</span> Quantos anos até não precisar de trabalhar</li>
+          <li><span class="v">✓</span> Sincronizar entre telemóvel e computador</li>
+        </ul>
+
+        <a class="btn btn-gold larga js-ignorar-trinco"
+           href="https://wa.me/351919277205?text=Ol%C3%A1%21%20Quero%20uma%20chave%20da%20Vida%20Financeira%20%289%2C89%20%E2%82%AC%2C%20um%20ano%29."
+           target="_blank" rel="noopener">Pedir a chave por WhatsApp</a>
+
+        <p class="pag-nota">
+          Responde-se com as formas de pagamento e a chave chega a seguir.
+          <br><b>Se não puder pagar, diga — a chave é sua na mesma</b>, sem
+          justificação nenhuma.
+        </p>
+
+        <div class="ou-linha"><span>já tenho chave</span></div>
+
         <form id="form-chave" novalidate>
           <div class="linha-chave">
-            <input id="c-chave" class="js-ignorar-trinco" type="text" placeholder="VF-XXXX-XXXX-0" autocomplete="off" spellcheck="false">
+            <input id="c-chave" class="js-ignorar-trinco" type="text" placeholder="VF-2708-XXXX-0" autocomplete="off" spellcheck="false">
             <button class="btn btn-gold js-ignorar-trinco" type="submit">Abrir</button>
           </div>
         </form>
         <div class="aviso" id="aviso-chave" hidden></div>
-        <p style="margin:14px 0 0"><a href="premium.html">Ainda não tenho chave</a></p>
       </div>
 
       <div class="js-se-premium" hidden>
@@ -252,8 +291,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=16"></script>
-<script src="site.js?v=16"></script>
-<script src="ferramentas.js?v=16"></script>
+<script src="firebase-config.js?v=17"></script>
+<script src="site.js?v=17"></script>
+<script src="ferramentas.js?v=17"></script>
 </body>
 </html>

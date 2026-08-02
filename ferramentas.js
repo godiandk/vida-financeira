@@ -16,8 +16,6 @@
    cadeado. Um cadeado a sério exigiria servidor e custo fixo mensal.
    ============================================================ */
 
-const CHAVE_PREMIUM = 'vf:chave';
-
 /* ---------- moeda ---------- */
 function moedaActual() {
   return localStorage.getItem('vf:moeda') || 'EUR';
@@ -35,40 +33,72 @@ function num(id) {
 }
 
 /* ============================================================
-   Chave de acesso
+   Chave de acesso — válida um ano
 
-   A chave tem a forma VF-XXXX-XXXX-K, onde K é um dígito calculado a partir
-   das letras. Não é criptografia — serve para uma chave inventada ao acaso
-   não funcionar, e nada mais do que isso.
+   Formato: VF-AAMM-XXXX-K
+     AAMM  ano e mês em que a chave deixa de valer (ex.: 2708 = Agosto 2027)
+     XXXX  quatro caracteres livres, para as chaves não se repetirem
+     K     dígito de controlo, calculado a partir do resto
+
+   O dígito não é segurança: serve para uma chave inventada ao acaso não
+   funcionar. A validade vem escrita na própria chave, por isso não se
+   contorna reinstalando a aplicação nem limpando os dados.
+
+   Continua a ser verificado no navegador. Está dito na página de preços que
+   quem percebe do assunto contorna isto — vale mais dizê-lo do que fingir um
+   cadeado que não existe.
    ============================================================ */
-function chaveValida(txt) {
-  const s = String(txt || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!/^VF[A-Z0-9]{8}[0-9]$/.test(s)) return false;
-  const corpo = s.slice(2, 10);
-  const digito = Number(s.slice(10));
-  let soma = 0;
-  for (let i = 0; i < corpo.length; i++) {
-    soma += corpo.charCodeAt(i) * (i + 2);
-  }
-  return soma % 10 === digito;
+const CHAVE_PREMIUM = 'vf:chave';
+
+function limparChave(txt) {
+  return String(txt || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
-function temPremium() {
-  try {
-    return chaveValida(localStorage.getItem(CHAVE_PREMIUM));
-  } catch (e) {
-    return false;
+function digitoChave(corpo) {
+  let soma = 0;
+  for (let i = 0; i < corpo.length; i++) soma += corpo.charCodeAt(i) * (i + 2);
+  return soma % 10;
+}
+
+/* Devolve { ok, motivo, expira } — nunca só um booleano, para se poder dizer
+   à pessoa se a chave está errada ou se apenas caducou. */
+function lerChave(txt) {
+  const s = limparChave(txt);
+  if (!/^VF[0-9]{4}[A-Z0-9]{4}[0-9]$/.test(s)) {
+    return { ok: false, motivo: 'formato' };
   }
+  const corpo = s.slice(2, 10);
+  if (digitoChave(corpo) !== Number(s.slice(10))) {
+    return { ok: false, motivo: 'invalida' };
+  }
+  const ano = 2000 + Number(s.slice(2, 4));
+  const mes = Number(s.slice(4, 6));
+  if (mes < 1 || mes > 12) return { ok: false, motivo: 'invalida' };
+
+  // Vale até ao último instante do mês indicado.
+  const expira = new Date(ano, mes, 1);
+  if (expira <= new Date()) return { ok: false, motivo: 'caducada', expira };
+  return { ok: true, expira };
+}
+
+function chaveValida(txt) { return lerChave(txt).ok; }
+
+function temPremium() {
+  try { return lerChave(localStorage.getItem(CHAVE_PREMIUM)).ok; } catch (e) { return false; }
+}
+
+function validadeChave() {
+  try {
+    const r = lerChave(localStorage.getItem(CHAVE_PREMIUM));
+    return r.ok ? r.expira : null;
+  } catch (e) { return null; }
 }
 
 function guardarChave(txt) {
-  if (!chaveValida(txt)) return false;
-  try {
-    localStorage.setItem(CHAVE_PREMIUM, String(txt).toUpperCase().trim());
-  } catch (e) {
-    return false;
-  }
-  return true;
+  const r = lerChave(txt);
+  if (!r.ok) return r;
+  try { localStorage.setItem(CHAVE_PREMIUM, limparChave(txt)); } catch (e) { return { ok: false, motivo: 'formato' }; }
+  return r;
 }
 
 function removerChave() {
@@ -342,14 +372,40 @@ const CALCULOS = {
 
 function aplicarEstadoPremium() {
   const tem = temPremium();
+  const ate = validadeChave();
+
   document.querySelectorAll('.ferramenta.premium').forEach(f => {
     f.classList.toggle('trancada', !tem);
     f.querySelectorAll('input, button').forEach(el => {
       if (!el.classList.contains('js-ignorar-trinco')) el.disabled = !tem;
     });
   });
+
   document.querySelectorAll('.js-se-premium').forEach(el => { el.hidden = !tem; });
   document.querySelectorAll('.js-se-gratis').forEach(el => { el.hidden = tem; });
+
+  const val = document.getElementById('validade');
+  if (val && ate) {
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                   'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const fim = new Date(ate.getTime() - 1);
+    const dias = Math.ceil((ate - new Date()) / 86400000);
+    val.textContent = 'Chave activa até ' + meses[fim.getMonth()] + ' de ' + fim.getFullYear() +
+                      ' — faltam ' + dias + (dias === 1 ? ' dia' : ' dias') + '.';
+  }
+}
+
+/* ---------- painel de desbloqueio ----------
+   O cadeado fica à vista em cima da ferramenta, com o nome e o que ela faz
+   legíveis por baixo. Esconder o que se vende não vende nada: quem não vê o
+   que está do outro lado não tem razão nenhuma para pagar. */
+function abrirDesbloqueio() {
+  const p = document.getElementById('painel-desbloqueio');
+  if (!p) return;
+  p.hidden = false;
+  p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const campo = document.getElementById('c-chave');
+  if (campo) setTimeout(() => campo.focus({ preventScroll: true }), 400);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -370,18 +426,30 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const campo = document.getElementById('c-chave');
       const aviso = document.getElementById('aviso-chave');
-      if (guardarChave(campo.value)) {
+      const r = guardarChave(campo.value);
+      aviso.hidden = false;
+      if (r.ok) {
         aviso.className = 'aviso ok';
-        aviso.textContent = 'Chave aceite. As ferramentas de assinatura estão abertas.';
-        aviso.hidden = false;
+        aviso.textContent = 'Chave aceite. As três ferramentas estão abertas.';
         aplicarEstadoPremium();
+        campo.value = '';
+        const p = document.getElementById('painel-desbloqueio');
+        if (p) p.hidden = true;
+      } else if (r.motivo === 'caducada') {
+        aviso.className = 'aviso erro';
+        aviso.textContent = 'Essa chave já caducou. Peça uma nova — é o mesmo preço e volta a valer um ano.';
+      } else if (r.motivo === 'formato') {
+        aviso.className = 'aviso erro';
+        aviso.textContent = 'Falta alguma coisa na chave. Deve ter o formato VF-2708-XXXX-0, com os traços.';
       } else {
         aviso.className = 'aviso erro';
-        aviso.textContent = 'Essa chave não é válida. Confirme se a copiou inteira, incluindo os traços.';
-        aviso.hidden = false;
+        aviso.textContent = 'Essa chave não é válida. Confirme se a copiou inteira.';
       }
     });
   }
+
+  document.querySelectorAll('.js-desbloquear').forEach(b =>
+    b.addEventListener('click', e => { e.preventDefault(); abrirDesbloqueio(); }));
 
   const sair = document.getElementById('remover-chave');
   if (sair) {

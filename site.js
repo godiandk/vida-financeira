@@ -103,6 +103,60 @@ function raizDoSite() {
   return man ? man.href.replace(/manifest\.json(\?.*)?$/, '') : './';
 }
 
+/* ============================================================
+   Moeda automática, pelo fuso horário
+
+   Podia perguntar-se o país a um serviço de geolocalização por IP, mas isso
+   obriga a chamar um servidor de terceiros em cada visita — que passa a saber
+   quem entra e de onde. Este site promete não ter rastreadores, e essa
+   promessa vale mais do que a diferença de precisão.
+
+   O fuso horário do dispositivo dá o país com fiabilidade equivalente para
+   este efeito, não sai do telemóvel, funciona offline e é instantâneo. A
+   língua serve de rede quando o fuso não é reconhecido.
+
+   Aplica-se uma vez. Se a pessoa escolher outra moeda no painel, essa
+   escolha manda para sempre — o palpite nunca a contradiz.
+   ============================================================ */
+(function moeda() {
+  const CHAVE = 'vf:moeda';
+  try { if (localStorage.getItem(CHAVE)) return; } catch (e) { return; }
+
+  const porFuso = {
+    'Europe/Lisbon': 'EUR', 'Atlantic/Madeira': 'EUR', 'Atlantic/Azores': 'EUR',
+    'Europe/Madrid': 'EUR', 'Europe/Paris': 'EUR', 'Europe/Brussels': 'EUR',
+    'Europe/Berlin': 'EUR', 'Europe/Rome': 'EUR', 'Europe/Amsterdam': 'EUR',
+    'Europe/Dublin': 'EUR', 'Europe/Luxembourg': 'EUR',
+    'Europe/London': 'GBP',
+    'Africa/Luanda': 'AOA',
+    'Atlantic/Cape_Verde': 'CVE',
+    'Africa/Maputo': 'EUR',   // sem metical na lista de moedas da aplicação
+    'America/New_York': 'USD', 'America/Chicago': 'USD', 'America/Denver': 'USD',
+    'America/Los_Angeles': 'USD', 'America/Phoenix': 'USD'
+  };
+
+  let escolha = null;
+  try {
+    const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (porFuso[fuso]) escolha = porFuso[fuso];
+    // Todo o Brasil usa fusos America/… próprios; apanham-se todos de uma vez.
+    else if (/^America\/(Sao_Paulo|Bahia|Fortaleza|Recife|Manaus|Belem|Cuiaba|Campo_Grande|Porto_Velho|Boa_Vista|Rio_Branco|Maceio|Araguaina|Santarem|Noronha|Eirunepe)/.test(fuso)) escolha = 'BRL';
+    else if (/^Europe\//.test(fuso)) escolha = 'EUR';
+  } catch (e) {}
+
+  if (!escolha) {
+    const lang = (navigator.language || '').toLowerCase();
+    if (lang.startsWith('pt-br')) escolha = 'BRL';
+    else if (lang.startsWith('pt')) escolha = 'EUR';
+    else if (lang.startsWith('en-gb')) escolha = 'GBP';
+    else if (lang.startsWith('en-us')) escolha = 'USD';
+  }
+
+  if (escolha) {
+    try { localStorage.setItem(CHAVE, escolha); } catch (e) {}
+  }
+})();
+
 /* ---------- PWA ---------- */
 (function pwa() {
   if (!('serviceWorker' in navigator)) return;
