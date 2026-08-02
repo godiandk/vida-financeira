@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=35">
-<link rel="stylesheet" href="../app-financas.css?v=35">
-<link rel="stylesheet" href="../app-shell.css?v=35">
-<link rel="stylesheet" href="../assistente.css?v=35">
-<link rel="stylesheet" href="../ferramentas.css?v=35">
+<link rel="stylesheet" href="../estilo.css?v=38">
+<link rel="stylesheet" href="../app-financas.css?v=38">
+<link rel="stylesheet" href="../app-shell.css?v=38">
+<link rel="stylesheet" href="../assistente.css?v=38">
+<link rel="stylesheet" href="../ferramentas.css?v=38">
 </head>
 <body class="app-shell">
 
@@ -273,6 +273,9 @@
         Os movimentos estão guardados só neste dispositivo.
         </p>
         <div class="acoes-dados">
+        <button class="btn btn-line" id="abrir-partilha" type="button" style="width:100%;justify-content:center;margin-bottom:10px">
+        📤 Mandar um cartão a alguém
+        </button>
         <button class="btn btn-gold" id="exportar-excel" type="button" style="width:100%;justify-content:center;margin-bottom:10px">
         📗 Descarregar folha de Excel
         </button>
@@ -713,6 +716,39 @@
     </div>
   </section>
 
+
+  <!-- ============ CARTÃO DE PARTILHA ============
+       Nada sai daqui sem a pessoa ver primeiro: desenha-se, mostra-se em
+       grande, e só depois há um botão. Uma aplicação de dinheiro que publica
+       sozinha perde a confiança de toda a gente, e com razão. -->
+  <div class="partilha" id="partilha" hidden>
+    <div class="partilha-caixa">
+      <div class="partilha-topo">
+        <b>Mandar para alguém</b>
+        <button type="button" id="partilha-fora" aria-label="Fechar">✕</button>
+      </div>
+
+      <div class="partilha-abas" id="partilha-abas"></div>
+      <div class="partilha-zona" id="partilha-zona"></div>
+
+      <div class="partilha-vazio" id="partilha-vazio" hidden>
+        <span class="em">🖼️</span>
+        Ainda não há números seus para pôr num cartão.<br>
+        Lance um mês e volte aqui.
+      </div>
+
+      <p class="partilha-nota">
+        Vai só o que está na imagem. O seu salário nunca entra num cartão —
+        quanto se ganha é a coisa mais privada que aqui existe.
+      </p>
+
+      <div class="partilha-accoes">
+        <button class="btn btn-gold" id="partilha-enviar" type="button">Enviar</button>
+        <button class="btn btn-line" id="partilha-guardar" type="button">Guardar imagem</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
@@ -726,13 +762,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=35"></script>
-<script src="../site.js?v=35"></script>
-<script src="../app-financas.js?v=35"></script>
-<script src="../excel.js?v=35"></script>
-<script src="../interpretar.js?v=35"></script>
-<script src="../assistente.js?v=35"></script>
-<script src="../ferramentas.js?v=35"></script>
+<script src="../firebase-config.js?v=38"></script>
+<script src="../site.js?v=38"></script>
+<script src="../app-financas.js?v=38"></script>
+<script src="../excel.js?v=38"></script>
+<script src="../partilha.js?v=38"></script>
+<script src="../interpretar.js?v=38"></script>
+<script src="../assistente.js?v=38"></script>
+<script src="../ferramentas.js?v=38"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

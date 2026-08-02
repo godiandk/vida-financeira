@@ -4465,6 +4465,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('exportar').addEventListener('click', exportarCSV);
   const btExcel = document.getElementById('exportar-excel');
   if (btExcel) btExcel.addEventListener('click', exportarExcel);
+
+  const btPart = document.getElementById('abrir-partilha');
+  if (btPart) btPart.addEventListener('click', abrirPartilha);
+  const partFora = document.getElementById('partilha-fora');
+  if (partFora) partFora.addEventListener('click', fecharPartilha);
+  const partEnv = document.getElementById('partilha-enviar');
+  if (partEnv) partEnv.addEventListener('click', enviarCartao);
+  const partGuar = document.getElementById('partilha-guardar');
+  if (partGuar) partGuar.addEventListener('click', () => guardarCartao());
+  const painelPart = document.getElementById('partilha');
+  /* Tocar fora fecha. Num telemóvel é o gesto que toda a gente tenta antes de
+     procurar o X. */
+  if (painelPart) painelPart.addEventListener('click', e => {
+    if (e.target === painelPart) fecharPartilha();
+  });
   document.getElementById('apagar-tudo').addEventListener('click', apagarTudo);
   document.getElementById('f-moeda').addEventListener('change', e => {
     moeda = e.target.value;

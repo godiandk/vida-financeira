@@ -536,3 +536,53 @@ ul.movs li:last-child{border-bottom:none}
   font-weight:700;cursor:pointer;min-height:40px;
 }
 .msg-accao:disabled{opacity:.5;cursor:default;border-color:rgba(217,178,110,.2);color:var(--cream-dim)}
+
+/* ============================================================
+   CARTÃO DE PARTILHA
+   ============================================================ */
+.partilha{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(6,11,9,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:20px 14px calc(14px + env(safe-area-inset-bottom,0px));
+  overflow-y:auto;
+}
+@media(min-width:700px){.partilha{align-items:center}}
+
+.partilha-caixa{
+  width:100%;max-width:460px;background:var(--ink-2);
+  border:1px solid rgba(217,178,110,.3);border-radius:22px;
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.partilha-topo{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.partilha-topo b{font-size:1.05rem;color:var(--gold-soft)}
+.partilha-topo button{
+  width:40px;height:40px;border-radius:50%;cursor:pointer;flex:none;
+  border:1px solid rgba(217,178,110,.28);background:transparent;
+  color:var(--cream-dim);font-size:1rem;font-family:inherit;
+}
+
+.partilha-abas{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.partilha-aba{
+  flex:none;border:1px solid rgba(217,178,110,.28);background:transparent;
+  color:var(--cream-dim);border-radius:999px;padding:10px 15px;
+  font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;
+  white-space:nowrap;min-height:42px;
+}
+.partilha-aba[aria-pressed="true"]{
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  color:var(--ink);border-color:transparent;
+}
+
+.partilha-zona{display:flex;justify-content:center}
+.cartao-vista{
+  width:100%;max-width:300px;height:auto;border-radius:14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+
+.partilha-vazio{color:var(--cream-dim);font-size:.9rem;line-height:1.7;text-align:center;padding:26px 10px}
+.partilha-vazio .em{display:block;font-size:2rem;margin-bottom:10px}
+.partilha-nota{color:var(--cream-dim);font-size:.8rem;line-height:1.6;margin:14px 0 16px;text-align:center}
+.partilha-accoes{display:flex;flex-direction:column;gap:9px}
+.partilha-accoes .btn{width:100%;justify-content:center;margin-top:0}
