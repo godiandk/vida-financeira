@@ -406,6 +406,81 @@ function executarLeitura(r) {
   return (criados.length === 1 ? 'Lançado:' : 'Lançados:') + '\n\n' + linhas.join('\n') + quando;
 }
 
+/* ============================================================
+   A fotografia do talão
+
+   O que isto NÃO faz, e vale a pena estar escrito: não lê o talão. Ler
+   números de uma fotografia exige ou um serviço pago — e a chave desse
+   serviço iria dentro deste ficheiro, público, para a primeira pessoa que a
+   quisesse copiar — ou uma biblioteca de muitos megabytes descarregada para
+   o telemóvel de quem tem dados contados, para depois falhar num talão
+   amarrotado. Prometer que lê e depois errar o valor é pior do que não
+   prometer.
+
+   O que faz: guarda a fotografia agarrada ao movimento. A pessoa escreve
+   "30 no continente", o movimento fica lançado, e o talão fica lá para
+   quando for preciso provar o que foi.
+
+   As fotografias ficam à parte dos movimentos e nunca sobem para a nuvem:
+   são o que ocupa espaço a sério, e o dono do telemóvel não pediu para as
+   guardar em lado nenhum.
+   ============================================================ */
+const FOTOS_CHAVE = 'vf:fotos';
+const FOTOS_MAX = 20;
+let fotoEmEspera = null;
+
+function lerFotos() {
+  try {
+    const f = JSON.parse(localStorage.getItem(FOTOS_CHAVE) || '{}');
+    return (f && typeof f === 'object') ? f : {};
+  } catch (e) { return {}; }
+}
+
+function guardarFoto(idMovimento, dataUrl) {
+  const fotos = lerFotos();
+  fotos[idMovimento] = dataUrl;
+
+  /* Vinte é o tecto. O armazenamento do navegador anda pelos cinco megabytes
+     e é partilhado com os movimentos — deixar as fotografias crescerem sem
+     limite acabava com a aplicação a não conseguir gravar um lançamento, que
+     é a coisa que ela não pode falhar. */
+  const chaves = Object.keys(fotos);
+  if (chaves.length > FOTOS_MAX) chaves.slice(0, chaves.length - FOTOS_MAX).forEach(k => delete fotos[k]);
+
+  try { localStorage.setItem(FOTOS_CHAVE, JSON.stringify(fotos)); }
+  catch (e) {
+    /* Sem espaço: a fotografia perde-se, o movimento não. */
+    try { localStorage.removeItem(FOTOS_CHAVE); } catch (e2) {}
+    return false;
+  }
+  return true;
+}
+
+/* Encolher antes de guardar. Uma fotografia de telemóvel são três ou quatro
+   megabytes; a 640 pixéis de largura e qualidade média fica em dezenas de
+   kilobytes e continua a dar para ler um talão com os olhos. */
+function encolherImagem(ficheiro) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => reject(new Error('não foi possível ler o ficheiro'));
+    leitor.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('isso não parece uma imagem'));
+      img.onload = () => {
+        const max = 640;
+        const escala = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * escala);
+        c.height = Math.round(img.height * escala);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = leitor.result;
+    };
+    leitor.readAsDataURL(ficheiro);
+  });
+}
+
 function apagarUltimoLote() {
   if (!ultimoLote || !ultimoLote.length || typeof movimentos === 'undefined') return false;
   const ids = {};
@@ -496,8 +571,17 @@ Pergunte à vontade.`, 'ele');
       }
       const resposta = executarLeitura(r);
       if (resposta) {
-        if (r.tipo === 'saldo') juntar(resposta, 'ele');
-        else juntarComAccao(resposta, 'Apagar isto', apagarUltimoLote);
+        if (r.tipo === 'saldo') { juntar(resposta, 'ele'); return; }
+
+        /* A fotografia que estava à espera agarra-se ao primeiro movimento
+           deste lote — é o que a pessoa acabou de fotografar. */
+        let comFoto = '';
+        if (fotoEmEspera && ultimoLote && ultimoLote.length) {
+          if (guardarFoto(ultimoLote[0], fotoEmEspera)) comFoto = '\n\nCom a fotografia agarrada.';
+          else comFoto = '\n\nNão coube a fotografia — o movimento ficou lançado à mesma.';
+          limparFotoEmEspera();
+        }
+        juntarComAccao(resposta + comFoto, 'Apagar isto', apagarUltimoLote);
         return;
       }
     }
@@ -513,6 +597,46 @@ Pergunte à vontade.`, 'ele');
     campo.value = '';
     setTimeout(() => tratar(t), 340);
   });
+
+  /* ---------- a fotografia ---------- */
+  const zonaFoto = document.getElementById('foto-espera');
+  const vistaFoto = document.getElementById('foto-vista');
+  const campoFicheiro = document.getElementById('assist-ficheiro');
+
+  window.limparFotoEmEspera = function () {
+    fotoEmEspera = null;
+    if (zonaFoto) zonaFoto.hidden = true;
+    if (vistaFoto) vistaFoto.removeAttribute('src');
+    if (campoFicheiro) campoFicheiro.value = '';
+  };
+
+  if (campoFicheiro) {
+    campoFicheiro.addEventListener('change', async () => {
+      const f = campoFicheiro.files && campoFicheiro.files[0];
+      if (!f) return;
+      if (!podeLancarPorTexto()) {
+        campoFicheiro.value = '';
+        juntar('Guardar a fotografia do talão faz parte da assinatura.\n\n' +
+          '**Crie conta e tem um mês inteiro, de graça.**', 'ele');
+        return;
+      }
+      try {
+        fotoEmEspera = await encolherImagem(f);
+        if (vistaFoto) vistaFoto.src = fotoEmEspera;
+        if (zonaFoto) zonaFoto.hidden = false;
+        juntar('Guardei a fotografia.\n\n' +
+          'Não a consigo ler sozinho — e prefiro dizer-lhe isso a arriscar meter ' +
+          'um valor errado nas suas contas. **Escreva quanto foi** (por exemplo, ' +
+          '"30 no continente") e eu lanço com o talão agarrado.', 'ele');
+      } catch (err) {
+        campoFicheiro.value = '';
+        juntar('Não consegui abrir essa imagem. Tente outra vez.', 'ele');
+      }
+    });
+  }
+
+  const foraFoto = document.getElementById('foto-fora');
+  if (foraFoto) foraFoto.addEventListener('click', () => window.limparFotoEmEspera());
 
   document.querySelectorAll('.assist-sug').forEach(b => {
     b.addEventListener('click', () => {

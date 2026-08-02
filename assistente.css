@@ -95,3 +95,27 @@
   .assist-fio{max-height:56vh;padding:24px}
   .msg-txt{font-size:.95rem}
 }
+
+/* ---------- a fotografia do talão ---------- */
+.assist-foto{
+  flex:none;display:grid;place-items:center;
+  width:46px;height:46px;border-radius:14px;cursor:pointer;
+  border:1px solid rgba(217,178,110,.3);background:transparent;font-size:1.2rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.assist-foto:active{transform:scale(.94)}
+
+.foto-espera{
+  display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  background:rgba(217,178,110,.08);border:1px solid rgba(217,178,110,.28);
+  border-radius:14px;padding:10px 12px;
+}
+.foto-espera img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex:none}
+.foto-espera div{flex:1;min-width:0}
+.foto-espera b{display:block;font-size:.86rem;color:var(--cream)}
+.foto-espera span{display:block;font-size:.78rem;color:var(--cream-dim);margin-top:1px}
+.foto-espera button{
+  flex:none;width:38px;height:38px;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(217,178,110,.3);background:transparent;
+  color:var(--cream-dim);font-size:.95rem;font-family:inherit;
+}

@@ -823,7 +823,11 @@ const CALCULOS = {
 };
 
 function aplicarEstadoPremium() {
-  const tem = temPremium();
+  /* `temAcessoTotal` e não `temPremium`: o mês de experiência abre as mesmas
+     portas que a chave. Se aqui ficasse `temPremium`, quem criasse conta via
+     o chat a lançar por si e as calculadoras trancadas ao lado — dois estados
+     contraditórios na mesma aplicação. */
+  const tem = temAcessoTotal();
   const ate = validadeChave();
 
   document.querySelectorAll('.ferramenta.premium').forEach(f => {
@@ -837,7 +841,11 @@ function aplicarEstadoPremium() {
   document.querySelectorAll('.js-se-gratis').forEach(el => { el.hidden = tem; });
 
   const val = document.getElementById('validade');
-  if (val && ate) {
+  const dias = diasDeTeste();
+  if (val && !ate && dias > 0) {
+    val.textContent = 'Está no seu mês de experiência — faltam ' +
+      dias + (dias === 1 ? ' dia' : ' dias') + '.';
+  } else if (val && ate) {
     const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
                    'Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const fim = new Date(ate.getTime() - 1);

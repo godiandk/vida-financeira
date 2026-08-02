@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=33">
-<link rel="stylesheet" href="../app-financas.css?v=33">
-<link rel="stylesheet" href="../app-shell.css?v=33">
-<link rel="stylesheet" href="../assistente.css?v=33">
-<link rel="stylesheet" href="../ferramentas.css?v=33">
+<link rel="stylesheet" href="../estilo.css?v=35">
+<link rel="stylesheet" href="../app-financas.css?v=35">
+<link rel="stylesheet" href="../app-shell.css?v=35">
+<link rel="stylesheet" href="../assistente.css?v=35">
+<link rel="stylesheet" href="../ferramentas.css?v=35">
 </head>
 <body class="app-shell">
 
@@ -145,7 +145,7 @@
           <span class="ic">📗</span><b>Método</b><small>Como se junta uma reserva</small>
         </a>
         <button class="atalho destaque" type="button" data-ir="mais">
-          <span class="ic">⭐</span><b>Premium</b><small>Três ferramentas de planeamento</small>
+          <span class="ic">🧮</span><b>Ferramentas</b><small>Nove calculadoras, seis grátis</small>
         </button>
       </div>
     </div>
@@ -305,8 +305,24 @@
         <button class="assist-sug" type="button" data-q="ganhar mais negócio">Como ganho mais?</button>
       </div>
 
+      <!-- A fotografia entra como prova agarrada ao movimento. Ler o talao
+           sozinho exigiria um servico pago (com uma chave secreta, impossivel
+           num site publico) ou uma biblioteca de muitos megabytes no telemovel
+           de quem tem dados contados. Esta escrito na pagina em vez de
+           prometido. -->
+      <div class="foto-espera" id="foto-espera" hidden>
+        <img id="foto-vista" alt="">
+        <div>
+          <b>Fotografia guardada</b>
+          <span>Escreva quanto foi e eu lanço com ela agarrada.</span>
+        </div>
+        <button type="button" id="foto-fora" aria-label="Tirar a fotografia">✕</button>
+      </div>
+
       <form class="assist-form" id="assist-form" novalidate>
-        <input id="assist-campo" type="text" placeholder="Escreva a sua pergunta…" autocomplete="off">
+        <label class="assist-foto" for="assist-ficheiro" aria-label="Tirar fotografia">📷</label>
+        <input id="assist-ficheiro" type="file" accept="image/*" capture="environment" hidden>
+        <input id="assist-campo" type="text" placeholder="Escreva o que gastou…" autocomplete="off">
         <button type="submit" aria-label="Enviar">↑</button>
       </form>
 
@@ -463,8 +479,12 @@
   <!-- ============ PREMIUM E FERRAMENTAS ============ -->
   <section class="ecra" id="ecra-mais">
     <div class="wrap">
-      <h1 class="ecra-titulo">Premium</h1>
-      <p class="ecra-sub">Três ferramentas de planeamento, e as seis do dia a dia que são grátis para sempre.</p>
+      <h1 class="ecra-titulo">Ferramentas</h1>
+      <p class="ecra-sub">
+        Nove calculadoras, no mesmo sítio. Seis são grátis para sempre; as três
+        de planeamento têm cadeado, e abrem com a assinatura — ou com o mês
+        que lhe damos por criar conta.
+      </p>
 
       <div class="eyebrow">Assinatura</div>
       <h2>As três de planeamento</h2>
@@ -700,19 +720,19 @@
   <button class="aba" role="tab" data-ecra="lancar" aria-selected="false"><span class="ic">➕</span><small>Lançar</small></button>
   <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Chat</small></button>
   <button class="aba" role="tab" data-ecra="mes" aria-selected="false"><span class="ic">📊</span><small>Mês</small></button>
-  <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">⭐</span><small>Premium</small></button>
+  <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">🧮</span><small>Ferramentas</small></button>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=33"></script>
-<script src="../site.js?v=33"></script>
-<script src="../app-financas.js?v=33"></script>
-<script src="../excel.js?v=33"></script>
-<script src="../interpretar.js?v=33"></script>
-<script src="../assistente.js?v=33"></script>
-<script src="../ferramentas.js?v=33"></script>
+<script src="../firebase-config.js?v=35"></script>
+<script src="../site.js?v=35"></script>
+<script src="../app-financas.js?v=35"></script>
+<script src="../excel.js?v=35"></script>
+<script src="../interpretar.js?v=35"></script>
+<script src="../assistente.js?v=35"></script>
+<script src="../ferramentas.js?v=35"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
