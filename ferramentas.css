@@ -219,3 +219,32 @@
    que diz o que está do outro lado do cadeado, e ninguém paga por uma coisa
    que não percebe para que serve. */
 .ferramenta.trancada .ajuda{opacity:1;filter:none;pointer-events:auto}
+
+/* ============================================================
+   "Usar os meus números" — preencher em vez de mandar procurar
+   ============================================================ */
+.meus-linha{margin:0 0 18px}
+.meus-bt{
+  width:100%;min-height:48px;
+  border:1px solid rgba(62,207,142,.42);border-radius:14px;
+  background:linear-gradient(135deg,rgba(62,207,142,.16),rgba(62,207,142,.05));
+  color:#7ee0b0;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:border-color .15s;
+}
+.meus-bt:hover{border-color:var(--up)}
+.meus-bt:active{transform:scale(.985)}
+
+.meus-nota{
+  color:var(--cream-dim);font-size:.83rem;line-height:1.6;
+  margin-top:10px;padding-left:2px;
+}
+.meus-nota.ok{color:#7ee0b0}
+.meus-nota:empty{display:none}
+
+/* Dica por baixo de um campo que a aplicação não consegue preencher. Existe
+   para a pessoa não ficar parada ali a achar que tem de ir buscar o papel. */
+.campo-dica{
+  display:block;color:var(--cream-dim);font-size:.76rem;
+  line-height:1.5;margin-top:6px;opacity:.85;
+}

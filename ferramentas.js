@@ -121,6 +121,27 @@ const AJUDA = {
   }
 };
 
+/* Os campos que a aplicação não tem como saber — quanto rende uma poupança,
+   que juro cobra um cartão. Já vêm com um número razoável escrito, e a dica
+   diz que se pode deixar assim. Sem ela, uma pessoa que não conhece a sua
+   taxa fica parada no campo a achar que não pode continuar; com ela, segue.
+   O pressuposto usado aparece depois no resultado, onde tem de aparecer. */
+const DEIXAR_ASSIM = [
+  'p-taxa', 'd-taxa1', 'd-taxa2', 'd-taxa3', 'c-taxaA', 'c-taxaB', 'i-taxa'
+];
+
+function desenharDicasDeCampo() {
+  DEIXAR_ASSIM.forEach(id => {
+    const el = document.getElementById(id);
+    const campo = el && el.closest('.field');
+    if (!campo || campo.querySelector('.campo-dica')) return;
+    const s = document.createElement('small');
+    s.className = 'campo-dica';
+    s.textContent = 'Já preenchido — se não souber o seu, deixe assim.';
+    campo.appendChild(s);
+  });
+}
+
 /* Desenha a ajuda dentro de cada ferramenta, por cima dos campos. Fechada:
    quem já sabe usar não a vê, quem não sabe abre-a com um toque. É um
    <details> do próprio navegador — abre sem JavaScript nenhum, os leitores de
@@ -163,6 +184,209 @@ function desenharAjuda() {
     }
 
     campos.parentNode.insertBefore(d, campos);
+  });
+}
+
+/* ============================================================
+   OS MEUS NÚMEROS — preencher em vez de mandar procurar
+
+   Dizer a alguém onde encontrar um número não resolve nada: se tiver de ir
+   buscar o extracto do banco, não vai. E a maior parte destes números a
+   aplicação já os tem — foram lançados por ela, mês após mês.
+
+   Por isso as ferramentas passam a preencher-se sozinhas com o que já foi
+   lançado, e a pessoa só corrige o que quiser. O que a aplicação não pode
+   saber (quanto rende uma poupança, que juro cobra um cartão) já vem com um
+   valor razoável escrito, dito como pressuposto — nunca como facto.
+
+   Isto lê o `localStorage` em vez de chamar o app-financas.js porque a página
+   ferramentas.html não o carrega. A conta do essencial é a mesma que lá está
+   (`ehEssencial` + `padraoCategoria`): se uma mudar, a outra tem de mudar.
+   ============================================================ */
+
+/* Cópia deliberada do PADRAO_ESS do app-financas.js. Está aqui porque esta
+   página vive sem ele — e não a meio de uma função, para se ver a olho que
+   são as duas listas iguais. */
+const ESS_PADRAO = {
+  casa: true, contas: true, mercado: true, transporte: true,
+  saude: true, educacao: true, dividas: true,
+  lazer: false, 'outros-s': false
+};
+
+function lerGuardado(chave, omissao) {
+  try {
+    const v = JSON.parse(localStorage.getItem(chave) || 'null');
+    return v === null ? omissao : v;
+  } catch (e) { return omissao; }
+}
+
+/* Média por mês, contada só sobre meses que a pessoa lançou mesmo. Dividir
+   pelo número de meses do calendário daria sempre a menos: quem começou a
+   usar a aplicação a meio de Março tem Janeiro e Fevereiro vazios, e não é
+   verdade que tenha ganho zero nesses meses. */
+function meusNumeros() {
+  const movs = lerGuardado('vf:movimentos', []);
+  if (!Array.isArray(movs) || !movs.length) return null;
+
+  const preferidos = lerGuardado('vf:essenciais', {}) || {};
+  const ehEss = (m) => {
+    if (typeof m.ess === 'boolean') return m.ess;
+    if (Object.prototype.hasOwnProperty.call(preferidos, m.categoria)) return !!preferidos[m.categoria];
+    if (Object.prototype.hasOwnProperty.call(ESS_PADRAO, m.categoria)) return ESS_PADRAO[m.categoria];
+    return true;
+  };
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const meses = {};
+  let reserva = 0;
+
+  movs.forEach(m => {
+    if (!m || typeof m.data !== 'string' || !isFinite(Number(m.valor))) return;
+    const v = Number(m.valor);
+    const saida = m.tipo !== 'entrada';
+
+    if (saida && m.categoria === 'reserva') reserva += v;
+    if (!saida && m.categoria === 'reserva-tirei') reserva -= v;
+
+    /* Prestações futuras estão gravadas com a data real, que ainda não
+       chegou. Contá-las na média faria a pessoa parecer mais gastadora do
+       que é — e a ferramenta devolvia um número que ela não reconhece. */
+    if (m.data > hoje) return;
+
+    const k = m.data.slice(0, 7);
+    const a = meses[k] || (meses[k] = { entrou: 0, ess: 0, gasto: 0, guardou: 0 });
+    if (!saida) {
+      if (m.categoria === 'reserva-tirei') a.guardou -= v; else a.entrou += v;
+    } else if (m.categoria === 'reserva') {
+      a.guardou += v;
+    } else {
+      a.gasto += v;
+      if (ehEss(m)) a.ess += v;
+    }
+  });
+
+  const ks = Object.keys(meses);
+  if (!ks.length) return null;
+  const med = (campo) => {
+    const s = ks.reduce((t, k) => t + meses[k][campo], 0);
+    return Math.round((s / ks.length) * 100) / 100;
+  };
+
+  return {
+    nMeses: ks.length,
+    entrou: med('entrou'),
+    essenciais: med('ess'),
+    gasto: med('gasto'),
+    guardou: Math.max(0, med('guardou')),
+    reserva: Math.max(0, Math.round(reserva * 100) / 100)
+  };
+}
+
+/* Que campo de cada ferramenta recebe que número. Só os que a aplicação pode
+   saber por ter sido ela a registá-los. Nada de adivinhar taxas de juro. */
+const AUTO = {
+  p: { 'p-mensal': 'guardou' },
+  r: { 'r-essenciais': 'essenciais', 'r-tenho': 'reserva', 'r-pormes': 'guardou' },
+  e: { 'e-rendimento': 'entrou' },
+  a: { 'a-rendimento': 'entrou', 'a-essenciais': 'essenciais' },
+  c: { 'c-mensalA': 'guardou' },
+  i: { 'i-gasto': 'gasto', 'i-poupo': 'guardou', 'i-tenho': 'reserva' }
+};
+
+const ROTULO_NUM = {
+  entrou: 'o que entra por mês', essenciais: 'os essenciais',
+  gasto: 'o que gasta por mês', guardou: 'o que guarda por mês',
+  reserva: 'a reserva'
+};
+
+function escreverNumero(id, valor) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.value = String(valor).replace('.', ',');
+  return true;
+}
+
+/* Preenche uma ferramenta com os números da pessoa e diz, por baixo, o que
+   foi preenchido e de onde veio. Sem isso o campo mudava sozinho e ninguém
+   sabia porquê — e um número que aparece do nada não se confia. */
+function usarMeusNumeros(pre) {
+  const n = meusNumeros();
+  const zona = document.getElementById('meus-' + pre);
+  if (!zona) return;
+
+  if (!n) {
+    zona.className = 'meus-nota';
+    zona.textContent = 'Ainda não há movimentos lançados para usar. Lance um mês na aplicação e este botão passa a preencher isto sozinho.';
+    return;
+  }
+
+  const usados = [];
+  Object.entries(AUTO[pre] || {}).forEach(([campo, chave]) => {
+    const v = n[chave];
+    if (!(v > 0)) return;               // zero não ajuda ninguém: fica o exemplo
+    if (escreverNumero(campo, v)) usados.push(ROTULO_NUM[chave]);
+  });
+
+  if (!usados.length) {
+    zona.className = 'meus-nota';
+    zona.textContent = 'Do que está lançado não dá ainda para tirar estes números. Continue a lançar e volte aqui.';
+    return;
+  }
+
+  zona.className = 'meus-nota ok';
+  zona.textContent = 'Preenchido com ' + listaPt(usados) + ', pela média dos seus ' +
+    (n.nMeses === 1 ? 'movimentos deste mês' : n.nMeses + ' meses lançados') +
+    '. Corrija o que quiser antes de calcular.';
+
+  /* Calcular logo, para a pessoa ver a resposta sem ter de carregar noutro
+     botão — mas nunca numa ferramenta fechada. */
+  const ferr = zona.closest('.ferramenta');
+  if (ferr && ferr.classList.contains('trancada')) return;
+  const fn = CALCULOS[pre];
+  if (fn) fn();
+}
+
+function listaPt(a) {
+  if (a.length === 1) return a[0];
+  return a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1];
+}
+
+/* O botão só aparece nas ferramentas que a aplicação consegue preencher, e só
+   quando há mesmo movimentos lançados. Um botão que não faz nada é pior do
+   que não haver botão nenhum. */
+function desenharBotoesMeus() {
+  const n = meusNumeros();
+  if (!n) return;
+
+  Object.keys(AUTO).forEach(pre => {
+    const btn = document.getElementById(pre + '-calc');
+    if (!btn) return;
+    const ferr = btn.closest('.ferramenta');
+    if (!ferr || ferr.querySelector('.meus-linha')) return;
+
+    const temAlgum = Object.values(AUTO[pre]).some(c => n[c] > 0);
+    if (!temAlgum) return;
+
+    const linha = document.createElement('div');
+    linha.className = 'meus-linha';
+
+    const b = document.createElement('button');
+    b.type = 'button';
+    /* Sem `js-ignorar-trinco` de propósito: numa ferramenta de assinatura
+       fechada, o `aplicarEstadoPremium` desliga-o com os outros botões. Com
+       essa classe, preencher e calcular passava por cima do cadeado. */
+    b.className = 'meus-bt';
+    b.textContent = '✨ Usar os meus números';
+    b.addEventListener('click', () => usarMeusNumeros(pre));
+
+    const nota = document.createElement('p');
+    nota.id = 'meus-' + pre;
+
+    linha.appendChild(b);
+    linha.appendChild(nota);
+
+    const campos = ferr.querySelector('.campos');
+    campos.parentNode.insertBefore(linha, campos);
   });
 }
 
@@ -560,6 +784,8 @@ function abrirDesbloqueio() {
 
 document.addEventListener('DOMContentLoaded', () => {
   desenharAjuda();
+  desenharDicasDeCampo();
+  desenharBotoesMeus();
 
   Object.entries(CALCULOS).forEach(([pre, fn]) => {
     const btn = document.getElementById(pre + '-calc');
