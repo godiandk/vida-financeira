@@ -8,13 +8,26 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 
 ## Estrutura
 
+### Páginas
 - `index.html` — página de entrada (o que é, o que faz, como começar)
-- `app.html` — o painel: lançar movimentos, saldo do mês, repartição por categoria
+- `app/` — a aplicação, em ecrãs: Escrever, Início, Lançar, Mês, Ferramentas
+- `app.html` — reencaminha para `app/` (endereços antigos continuam a abrir)
+- `ferramentas.html` — as nove calculadoras, também acessíveis dentro da app
 - `conta.html` — entrar / criar conta (Firebase Authentication, opcional)
-- `sobre.html` — como funciona, onde ficam os dados, o que não é
-- `estilo.css` — estilo partilhado por todas as páginas
-- `app-financas.css` / `app-financas.js` — o painel
-- `site.js` — menu, animações, estado da conta e registo do service worker
+- `metodo.html` · `sobre.html` · `premium.html` — conteúdo e explicações
+- `admin.html` — painel de administração (chaves, facturação, acessos)
+
+### O que faz o trabalho
+- `app-financas.js` — o motor: movimentos, meses, reserva, prestações,
+  contas fixas, primeiro arranque, exportação
+- `interpretar.js` — lê o que a pessoa escreve ("gastei 30 no continente") e
+  faz as contas do chat ("12x de 45,90 ou 480 a pronto?")
+- `assistente.js` — o chat: lança, calcula e responde
+- `divida.js` — o que uma dívida custa, com as taxas de referência por país
+- `excel.js` — gera um ficheiro .xlsx à mão, sem bibliotecas
+- `partilha.js` — desenha o cartão que se manda para o grupo
+- `ferramentas.js` — as calculadoras, a ajuda e o acesso de assinatura
+- `site.js` — menu, moeda por país, sessão e registo do service worker
 - `firebase-config.js` — ligação ao Firebase (**opcional**, ver abaixo)
 - `firestore.rules` — regras de segurança da base de dados
 - `manifest.json` + `sw.js` + `icon-*.png` — tornam o site instalável como app
@@ -28,12 +41,21 @@ internet.
 Se a pessoa criar conta e iniciar sessão, os mesmos movimentos passam também a
 ser gravados no Firestore, em `utilizadores/{uid}`, para poderem ser vistos
 noutro dispositivo. As regras em `firestore.rules` garantem que **cada conta só
-lê os seus próprios movimentos** — não existe administrador com acesso a tudo.
+lê os seus próprios movimentos**.
+
+Existe um painel de administração, e convém ser exacto sobre o que ele vê. O
+administrador chega a duas colecções: `perfis` (nome, email e data da última
+visita) e `vendas` (as chaves de assinatura emitidas). **Nunca chega a
+`utilizadores`**, que é onde vivem os movimentos — as regras do Firestore
+recusam-lhe essa leitura, e não é uma questão de o código não a pedir. As
+fotografias de talões ficam só no dispositivo e não sobem para lado nenhum.
 
 ## Firebase (opcional)
 
-Sem configurar nada, `index.html`, `app.html` e `sobre.html` funcionam por
-completo; só `conta.html` mostra um aviso a dizer que a conta está indisponível.
+Sem configurar nada, o site e a aplicação funcionam por completo — incluindo
+lançar, o chat, as contas fixas e a exportação. Só `conta.html` mostra um aviso
+a dizer que a conta está indisponível, e sem conta não há mês de experiência
+nem sincronização entre dispositivos.
 
 Para activar a sincronização entre dispositivos, siga o `INSTRUÇÕES.md`. Em
 resumo:
