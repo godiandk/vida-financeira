@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=32">
-<link rel="stylesheet" href="../app-financas.css?v=32">
-<link rel="stylesheet" href="../app-shell.css?v=32">
-<link rel="stylesheet" href="../assistente.css?v=32">
-<link rel="stylesheet" href="../ferramentas.css?v=32">
+<link rel="stylesheet" href="../estilo.css?v=33">
+<link rel="stylesheet" href="../app-financas.css?v=33">
+<link rel="stylesheet" href="../app-shell.css?v=33">
+<link rel="stylesheet" href="../assistente.css?v=33">
+<link rel="stylesheet" href="../ferramentas.css?v=33">
 </head>
 <body class="app-shell">
 
@@ -273,7 +273,10 @@
         Os movimentos estão guardados só neste dispositivo.
         </p>
         <div class="acoes-dados">
-        <button class="mini-btn" id="exportar" type="button">⬇ Exportar para Excel (CSV)</button>
+        <button class="btn btn-gold" id="exportar-excel" type="button" style="width:100%;justify-content:center;margin-bottom:10px">
+        📗 Descarregar folha de Excel
+        </button>
+        <button class="mini-btn" id="exportar" type="button">⬇ Ou em CSV, para outros programas</button>
         <button class="mini-btn danger" id="apagar-tudo" type="button">Apagar tudo</button>
         </div>
     </div>
@@ -703,12 +706,13 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=32"></script>
-<script src="../site.js?v=32"></script>
-<script src="../app-financas.js?v=32"></script>
-<script src="../interpretar.js?v=32"></script>
-<script src="../assistente.js?v=32"></script>
-<script src="../ferramentas.js?v=32"></script>
+<script src="../firebase-config.js?v=33"></script>
+<script src="../site.js?v=33"></script>
+<script src="../app-financas.js?v=33"></script>
+<script src="../excel.js?v=33"></script>
+<script src="../interpretar.js?v=33"></script>
+<script src="../assistente.js?v=33"></script>
+<script src="../ferramentas.js?v=33"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

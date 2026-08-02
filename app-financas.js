@@ -4096,6 +4096,102 @@ function proporMomento(m) {
 /* ============================================================
    DADOS
    ============================================================ */
+/* ============================================================
+   Exportar para Excel
+
+   Três folhas: os movimentos um a um, um resumo por mês, e o que se gastou
+   por categoria. É o que uma pessoa faz a seguir a exportar — e se a app não
+   as fizer, ela vai fazê-las à mão numa folha que não sabe usar.
+
+   Os valores vão como números e as datas como datas, para a folha somar. Um
+   CSV aberto no Excel português transforma 45,90 em texto ou em 4590 conforme
+   a máquina, e quem exportou fica com uma folha que não soma nada.
+   ============================================================ */
+function folhasParaExcel() {
+  const r = calcular();
+  const T = (v) => ({ v: v, t: 't' });
+  const H = (v) => ({ v: v, t: 'h' });
+  const N = (v) => ({ v: v, t: 'n' });
+  const D = (v) => ({ v: v, t: 'd' });
+
+  /* ---- folha 1: os movimentos ---- */
+  const movs = [[H('Data'), H('Tipo'), H('Categoria'), H('Descrição'), H('Valor'),
+                 H('Essencial'), H('Moeda'), H('Prestação'), H('De')]];
+  movimentos.slice().sort((a, b) => a.data.localeCompare(b.data)).forEach(m => {
+    const ess = (m.tipo === 'saida' && m.categoria !== 'reserva')
+      ? (ehEssencial(m) ? 'Essencial' : 'Dá para adiar') : '';
+    movs.push([
+      D(m.data),
+      T(m.tipo === 'entrada' ? 'Entrada' : 'Saída'),
+      T(catInfo(m.tipo, m.categoria).nome),
+      T(m.descricao || ''),
+      /* Saídas com sinal negativo: assim a coluna soma sozinha e dá o saldo,
+         em vez de dar a soma de tudo o que passou pelas mãos da pessoa. */
+      N(m.tipo === 'entrada' ? m.valor : -m.valor),
+      T(ess),
+      T(m.moeda || moeda),
+      m.parc ? N(m.parc.n) : T(''),
+      m.parc ? N(m.parc.de) : T('')
+    ]);
+  });
+
+  /* ---- folha 2: mês a mês ---- */
+  const mes = [[H('Mês'), H('Entrou'), H('Saiu'), H('Guardado'), H('Sobrou')]];
+  Object.keys(r.meses).sort().forEach(k => {
+    const a = r.meses[k];
+    const saiu = a.essenciais + a.naoEssenciais;
+    mes.push([
+      T(comMaiuscula(mesExtenso(k))),
+      N(Math.round(a.rendimento * 100) / 100),
+      N(Math.round(saiu * 100) / 100),
+      N(Math.round(a.guardado * 100) / 100),
+      N(Math.round((a.rendimento - saiu - a.guardado) * 100) / 100)
+    ]);
+  });
+
+  /* ---- folha 3: para onde foi ---- */
+  const cats = {};
+  movimentos.forEach(m => {
+    if (m.tipo !== 'saida' || m.categoria === 'reserva') return;
+    cats[m.categoria] = (cats[m.categoria] || 0) + m.valor;
+  });
+  const porCat = [[H('Categoria'), H('Total gasto')]];
+  Object.keys(cats).sort((a, b) => cats[b] - cats[a]).forEach(c => {
+    porCat.push([T(catInfo('saida', c).nome), N(Math.round(cats[c] * 100) / 100)]);
+  });
+
+  return [
+    { nome: 'Movimentos', linhas: movs },
+    { nome: 'Mês a mês', linhas: mes },
+    { nome: 'Por categoria', linhas: porCat }
+  ];
+}
+
+function exportarExcel() {
+  if (typeof construirXlsx !== 'function') {
+    mostrarAviso('O gerador de Excel não carregou. Tente recarregar a página.', 'erro');
+    return;
+  }
+  if (!movimentos.length) {
+    mostrarAviso('Ainda não há nada para exportar. Lance um movimento primeiro.', 'info');
+    return;
+  }
+  try {
+    const bytes = construirXlsx(folhasParaExcel(), moeda);
+    const blob = new Blob([bytes], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'vida-financeira-' + isoLocal(new Date()) + '.xlsx';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    mostrarAviso('Folha de Excel criada com ' + movimentos.length + ' movimentos.', 'ok');
+  } catch (e) {
+    mostrarAviso('Não foi possível criar a folha: ' + e.message, 'erro');
+  }
+}
+
 function exportarCSV() {
   const csv = linhasCSV().map(l => l.map(c => '"' + c + '"').join(';')).join('\r\n');
   // O BOM faz o Excel abrir os acentos correctamente.
@@ -4367,6 +4463,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('mes-antes').addEventListener('click', () => mudarMes(-1));
   document.getElementById('mes-depois').addEventListener('click', () => mudarMes(1));
   document.getElementById('exportar').addEventListener('click', exportarCSV);
+  const btExcel = document.getElementById('exportar-excel');
+  if (btExcel) btExcel.addEventListener('click', exportarExcel);
   document.getElementById('apagar-tudo').addEventListener('click', apagarTudo);
   document.getElementById('f-moeda').addEventListener('change', e => {
     moeda = e.target.value;
