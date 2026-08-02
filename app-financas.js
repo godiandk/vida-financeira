@@ -384,9 +384,16 @@ let simVals = { pronto: '', prestacao: '', vezes: '' };
 let compVerTodos = false;       // "ver todos" os meses comprometidos
 
 /* ---------- utilitários ---------- */
+/* A língua acompanha a moeda. Em pt-PT o real sai "61,59 R$", que nenhum
+   brasileiro escreve — lá é "R$ 61,59", com o símbolo à frente. É um pormenor
+   que diz a quem lê se aquilo foi feito para ele. */
+function localDaMoeda(m) {
+  return m === 'BRL' ? 'pt-BR' : 'pt-PT';
+}
+
 function dinheiro(v) {
   try {
-    return new Intl.NumberFormat('pt-PT', {
+    return new Intl.NumberFormat(localDaMoeda(moeda), {
       style: 'currency', currency: moeda, minimumFractionDigits: 2
     }).format(v || 0);
   } catch (e) {
@@ -4465,6 +4472,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('exportar').addEventListener('click', exportarCSV);
   const btExcel = document.getElementById('exportar-excel');
   if (btExcel) btExcel.addEventListener('click', exportarExcel);
+
+  if (typeof ligarDivida === 'function') ligarDivida();
 
   const btPart = document.getElementById('abrir-partilha');
   if (btPart) btPart.addEventListener('click', abrirPartilha);

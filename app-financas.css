@@ -586,3 +586,56 @@ ul.movs li:last-child{border-bottom:none}
 .partilha-nota{color:var(--cream-dim);font-size:.8rem;line-height:1.6;margin:14px 0 16px;text-align:center}
 .partilha-accoes{display:flex;flex-direction:column;gap:9px}
 .partilha-accoes .btn{width:100%;justify-content:center;margin-top:0}
+
+/* ============================================================
+   O CUSTO DA DÍVIDA
+   ============================================================ */
+.dv-escolha{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.dv-bt{
+  flex:1;min-width:140px;min-height:46px;
+  border:1px solid rgba(217,178,110,.3);background:transparent;color:var(--cream-dim);
+  border-radius:14px;padding:11px 14px;font-family:inherit;font-size:.85rem;
+  font-weight:700;cursor:pointer;
+}
+.dv-bt[aria-pressed="true"]{
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  color:var(--ink);border-color:transparent;
+}
+.dv-fonte{color:var(--cream-dim);font-size:.8rem;line-height:1.6;margin-top:10px}
+.dv-lancada{color:#7ee0b0;font-size:.83rem;line-height:1.6;margin-bottom:14px}
+.dv-espera{color:var(--cream-dim);font-size:.88rem;line-height:1.65}
+
+.dv-destaque{
+  background:linear-gradient(150deg,rgba(217,178,110,.1),rgba(217,178,110,.02));
+  border:1px solid rgba(217,178,110,.32);border-radius:16px;
+  padding:20px 18px;margin-bottom:16px;
+}
+/* Quando a dívida cresce, muda a cor e mais nada. Um ecrã a gritar é um ecrã
+   que se fecha — e quem está nisto já sabe que é mau. */
+.dv-destaque.mau{
+  background:linear-gradient(150deg,rgba(224,113,92,.12),rgba(224,113,92,.02));
+  border-color:rgba(224,113,92,.4);
+}
+.dv-rot{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim);font-weight:700}
+.dv-val{
+  font-family:'Playfair Display',serif;font-size:2rem;line-height:1.15;
+  color:var(--gold-soft);font-weight:700;margin:6px 0 10px;
+}
+.dv-destaque.mau .dv-val{color:#f0a292}
+.dv-exp{color:var(--cream-dim);font-size:.88rem;line-height:1.7}
+
+.dv-linha{
+  display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+  padding:11px 0;border-bottom:1px solid rgba(217,178,110,.1);font-size:.9rem;
+}
+.dv-linha:last-of-type{border-bottom:none}
+.dv-linha span{color:var(--cream-dim)}
+.dv-linha b{color:var(--cream);font-weight:700;white-space:nowrap}
+
+.dv-nota{color:var(--cream-dim);font-size:.86rem;line-height:1.7;margin-top:14px}
+.dv-ajuda{
+  color:var(--cream-dim);font-size:.85rem;line-height:1.7;margin-top:16px;
+  border-left:3px solid var(--gold);background:rgba(217,178,110,.06);
+  border-radius:0 12px 12px 0;padding:14px 16px;
+}
+.dv-ajuda a{color:var(--gold-soft);font-weight:700}

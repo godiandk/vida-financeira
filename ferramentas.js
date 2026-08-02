@@ -425,7 +425,9 @@ function moedaActual() {
   return localStorage.getItem('vf:moeda') || 'EUR';
 }
 function eur(v) {
-  return new Intl.NumberFormat('pt-PT', {
+  /* Como no app-financas.js: em pt-PT o real sai "61,59 R$", e no Brasil
+     escreve-se "R$ 61,59". */
+  return new Intl.NumberFormat(moedaActual() === 'BRL' ? 'pt-BR' : 'pt-PT', {
     style: 'currency', currency: moedaActual(), minimumFractionDigits: 2
   }).format(isFinite(v) ? v : 0);
 }

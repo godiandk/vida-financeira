@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=38">
-<link rel="stylesheet" href="../app-financas.css?v=38">
-<link rel="stylesheet" href="../app-shell.css?v=38">
-<link rel="stylesheet" href="../assistente.css?v=38">
-<link rel="stylesheet" href="../ferramentas.css?v=38">
+<link rel="stylesheet" href="../estilo.css?v=41">
+<link rel="stylesheet" href="../app-financas.css?v=41">
+<link rel="stylesheet" href="../app-shell.css?v=41">
+<link rel="stylesheet" href="../assistente.css?v=41">
+<link rel="stylesheet" href="../ferramentas.css?v=41">
 </head>
 <body class="app-shell">
 
@@ -132,15 +132,15 @@
         <button class="atalho destaque" type="button" data-ir="wesley">
           <span class="ic">💬</span><b>Chat com o Wesley</b><small>Perguntas de dinheiro, respondidas</small>
         </button>
+        <button class="atalho" type="button" data-ir="divida">
+          <span class="ic">💳</span><b>O que a dívida custa</b><small>Prestações, juro e quanto falta</small>
+        </button>
         <button class="atalho" type="button" data-ir="contas">
           <span class="ic">🗓️</span><b>As minhas contas</b><small>O que vence e em que dia</small>
         </button>
         <button class="atalho" type="button" data-ir="mes">
           <span class="ic">📊</span><b>O meu mês</b><small>Movimentos e categorias</small>
         </button>
-        <a class="atalho" href="../ferramentas.html">
-          <span class="ic">🧮</span><b>Ferramentas</b><small>Nove calculadoras</small>
-        </a>
         <a class="atalho" href="../metodo.html">
           <span class="ic">📗</span><b>Método</b><small>Como se junta uma reserva</small>
         </a>
@@ -344,6 +344,59 @@
   <section class="ecra" id="ecra-arranque" hidden>
     <div class="wrap">
       <div class="arranque" id="arranque-corpo"></div>
+    </div>
+  </section>
+
+  <!-- ============ O CUSTO DA DÍVIDA ============
+       A app já registava prestações e já dizia quanto estava comprometido. O
+       que nunca dizia era o preço — e é esse o número que muda alguma coisa. -->
+  <section class="ecra" id="ecra-divida">
+    <div class="wrap">
+      <h1 class="ecra-titulo">O que a dívida custa</h1>
+      <p class="ecra-sub">
+        Ninguém decide sobre uma percentagem. Decide-se sobre «isto vai
+        levar-me quatro anos e custar-me quase o dobro».
+      </p>
+
+      <div class="bloco">
+        <h3>Que juro cobra</h3>
+        <div class="dv-escolha">
+          <button type="button" id="dv-ref" class="dv-bt" aria-pressed="false">Cartão de crédito</button>
+          <button type="button" id="dv-meu" class="dv-bt" aria-pressed="false">Sei o meu juro</button>
+        </div>
+        <p class="dv-fonte" id="dv-fonte" hidden></p>
+        <div class="field" id="dv-meu-zona" hidden>
+          <label for="dv-taxa">Juro por ano (%)</label>
+          <input id="dv-taxa" type="text" inputmode="decimal" placeholder="18,5">
+          <small class="campo-dica">Está no contrato ou no extracto, às vezes com o nome TAEG.</small>
+        </div>
+      </div>
+
+      <div class="bloco">
+        <h3>Os seus números</h3>
+        <p class="dv-lancada" id="divida-lancada" hidden></p>
+        <div class="cf-dois">
+          <div class="field">
+            <label for="dv-deve">Quanto ainda deve</label>
+            <input id="dv-deve" type="text" inputmode="decimal" placeholder="0,00">
+          </div>
+          <div class="field">
+            <label for="dv-paga">Quanto paga por mês</label>
+            <input id="dv-paga" type="text" inputmode="decimal" placeholder="0,00">
+          </div>
+        </div>
+      </div>
+
+      <div class="bloco" id="divida-bloco">
+        <h3>A conta</h3>
+        <div id="divida-corpo"></div>
+      </div>
+
+      <p class="cf-nota">
+        A taxa que a aplicação sugere é uma referência publicada, não é a sua —
+        a sua está no contrato e pode ser outra. E aqui não se diz a ninguém o
+        que fazer com a dívida: mostra-se a conta e diz-se onde há ajuda.
+      </p>
     </div>
   </section>
 
@@ -762,14 +815,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=38"></script>
-<script src="../site.js?v=38"></script>
-<script src="../app-financas.js?v=38"></script>
-<script src="../excel.js?v=38"></script>
-<script src="../partilha.js?v=38"></script>
-<script src="../interpretar.js?v=38"></script>
-<script src="../assistente.js?v=38"></script>
-<script src="../ferramentas.js?v=38"></script>
+<script src="../firebase-config.js?v=41"></script>
+<script src="../site.js?v=41"></script>
+<script src="../app-financas.js?v=41"></script>
+<script src="../excel.js?v=41"></script>
+<script src="../partilha.js?v=41"></script>
+<script src="../divida.js?v=41"></script>
+<script src="../interpretar.js?v=41"></script>
+<script src="../assistente.js?v=41"></script>
+<script src="../ferramentas.js?v=41"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

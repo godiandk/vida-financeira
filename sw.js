@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v30';
+const VERSAO = 'vida-financeira-v33';
 
 const FICHEIROS = [
   './',
@@ -34,6 +34,7 @@ const FICHEIROS = [
   './interpretar.js',
   './excel.js',
   './partilha.js',
+  './divida.js',
   './estilo.css',
   './app-financas.css',
   './app-financas.js',
