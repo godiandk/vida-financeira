@@ -17,10 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=18">
-<link rel="stylesheet" href="../app-financas.css?v=18">
-<link rel="stylesheet" href="../app-shell.css?v=18">
-<link rel="stylesheet" href="../assistente.css?v=18">
+<link rel="stylesheet" href="../estilo.css?v=19">
+<link rel="stylesheet" href="../app-financas.css?v=19">
+<link rel="stylesheet" href="../app-shell.css?v=19">
+<link rel="stylesheet" href="../assistente.css?v=19">
+<link rel="stylesheet" href="../ferramentas.css?v=19">
 </head>
 <body class="app-shell">
 
@@ -124,9 +125,9 @@
         <a class="atalho" href="../metodo.html">
           <span class="ic">📗</span><b>Método</b><small>Como se junta uma reserva</small>
         </a>
-        <a class="atalho destaque" href="../premium.html">
-          <span class="ic">⭐</span><b>Premium</b><small>Planear vários anos</small>
-        </a>
+        <button class="atalho destaque" type="button" data-ir="mais">
+          <span class="ic">⭐</span><b>Premium</b><small>Três ferramentas de planeamento</small>
+        </button>
       </div>
     </div>
   </section>
@@ -377,21 +378,229 @@
     </div>
   </section>
 
-  <!-- ============ MAIS ============ -->
+  <!-- ============ PREMIUM E FERRAMENTAS ============ -->
   <section class="ecra" id="ecra-mais">
     <div class="wrap">
-      <h1 class="ecra-titulo">Mais</h1>
-      <p class="ecra-sub">Ferramentas, leitura e definições.</p>
+      <h1 class="ecra-titulo">Premium</h1>
+      <p class="ecra-sub">Três ferramentas de planeamento, e as seis do dia a dia que são grátis para sempre.</p>
 
-      <a class="accao-grande" href="../premium.html">
-        <span class="ic">⭐</span>
-        <span><b>Premium — 4,90 €, uma vez</b><span>Plano de 12 meses, comparar caminhos, e mais</span></span>
-        <span class="seta">›</span>
-      </a>
+      <div class="eyebrow">Assinatura</div>
+      <h2>As três de planeamento</h2>
+      <p class="lead">
+      Estas não servem para sobreviver ao mês — servem para projectar anos e
+      comparar decisões. É a linha que separa as duas partes: <b>o que se
+      precisa é grátis; o que se planeia é que se paga.</b>
+      </p>
 
+      <div class="ferr-grid">
+
+      <!-- 7 -->
+      <div class="ferramenta premium">
+      <span class="selo">Assinatura</span>
+      <h3><span class="ic">🗓️</span> Plano de 12 meses</h3>
+      <p class="sub">Mês a mês, com os subsídios contados onde entram.</p>
+      <div class="campos">
+      <div class="field"><label for="a-rendimento">Entra por mês</label><input id="a-rendimento" type="text" inputmode="decimal" value="1000"></div>
+      <div class="field"><label for="a-essenciais">Essenciais por mês</label><input id="a-essenciais" type="text" inputmode="decimal" value="820"></div>
+      <div class="field larga"><label for="a-extra">Subsídio, quando há (cada um)</label><input id="a-extra" type="text" inputmode="decimal" value="0"></div>
+      </div>
+      <button class="btn btn-gold" id="a-calc" type="button">Fazer o plano</button>
+      <div class="res" id="a-out"></div>
+      <ul class="plano-lista" id="a-tabela"></ul>
+      <div class="cadeado js-se-gratis">
+      <span class="cad-ic">🔒</span>
+      <b>Fechada</b>
+      <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
+      </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="ferramenta premium">
+      <span class="selo">Assinatura</span>
+      <h3><span class="ic">⚖️</span> Comparar dois caminhos</h3>
+      <p class="sub">Duas decisões lado a lado, para ver qual pesa mais.</p>
+      <div class="campos">
+      <div class="field"><label for="c-mensalA">A · por mês</label><input id="c-mensalA" type="text" inputmode="decimal" value="50"></div>
+      <div class="field"><label for="c-taxaA">A · rende (%)</label><input id="c-taxaA" type="text" inputmode="decimal" value="2"></div>
+      <div class="field"><label for="c-mensalB">B · por mês</label><input id="c-mensalB" type="text" inputmode="decimal" value="80"></div>
+      <div class="field"><label for="c-taxaB">B · rende (%)</label><input id="c-taxaB" type="text" inputmode="decimal" value="1"></div>
+      <div class="field larga"><label for="c-anos">Durante (anos)</label><input id="c-anos" type="text" inputmode="numeric" value="10"></div>
+      </div>
+      <button class="btn btn-gold" id="c-calc" type="button">Comparar</button>
+      <div class="res" id="c-out"></div>
+      <div class="cadeado js-se-gratis">
+      <span class="cad-ic">🔒</span>
+      <b>Fechada</b>
+      <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
+      </div>
+      </div>
+
+      <!-- 9 -->
+      <div class="ferramenta premium">
+      <span class="selo">Assinatura</span>
+      <h3><span class="ic">🎯</span> Quantos anos até não precisar de trabalhar</h3>
+      <p class="sub">Aritmética com os seus números — não é previsão nem conselho.</p>
+      <div class="campos">
+      <div class="field"><label for="i-gasto">Gasto por mês</label><input id="i-gasto" type="text" inputmode="decimal" value="900"></div>
+      <div class="field"><label for="i-poupo">Poupo por mês</label><input id="i-poupo" type="text" inputmode="decimal" value="150"></div>
+      <div class="field"><label for="i-tenho">Tenho hoje</label><input id="i-tenho" type="text" inputmode="decimal" value="2000"></div>
+      <div class="field"><label for="i-taxa">Rende por ano (%)</label><input id="i-taxa" type="text" inputmode="decimal" value="3"></div>
+      </div>
+      <button class="btn btn-gold" id="i-calc" type="button">Calcular</button>
+      <div class="res" id="i-out"></div>
+      <div class="cadeado js-se-gratis">
+      <span class="cad-ic">🔒</span>
+      <b>Fechada</b>
+      <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
+      </div>
+      </div>
+
+      </div>
+
+      <div class="js-se-premium" hidden style="margin-top:26px">
+      <div class="aviso ok">Tem chave activa. <span id="validade"></span></div>
+      </div>
+
+      <!-- ---------- desbloquear ---------- -->
+      <div class="caixa-chave js-se-gratis" style="max-width:none">
+      <h3>🔒 As três de planeamento estão fechadas</h3>
+      <p>Custam <b>9,89 €</b> e a chave vale <b>um ano inteiro</b>. Tudo o resto do site continua grátis.</p>
+      <button class="btn btn-gold js-desbloquear js-ignorar-trinco" type="button">Desbloquear</button>
+      </div>
+
+      <div class="painel-desbloq" id="painel-desbloqueio" hidden>
+      <h3>Desbloquear as três ferramentas</h3>
+
+      <div class="preco-linha">
+      <div class="preco-val">9,89 €</div>
+      <div class="preco-txt">
+      <b>Um ano inteiro</b>
+      <span>Cerca de 82 cêntimos por mês. Não renova sozinho.</span>
+      </div>
+      </div>
+
+      <ul class="inclui">
+      <li><span class="v">✓</span> Plano de 12 meses, mês a mês, com os subsídios contados</li>
+      <li><span class="v">✓</span> Comparar dois caminhos lado a lado</li>
+      <li><span class="v">✓</span> Quantos anos até não precisar de trabalhar</li>
+      <li><span class="v">✓</span> Sincronizar entre telemóvel e computador</li>
+      </ul>
+
+      <a class="btn btn-gold larga js-ignorar-trinco"
+      href="https://wa.me/351919277205?text=Ol%C3%A1%21%20Quero%20uma%20chave%20da%20Vida%20Financeira%20%289%2C89%20%E2%82%AC%2C%20um%20ano%29."
+      target="_blank" rel="noopener">Pedir a chave por WhatsApp</a>
+
+      <p class="pag-nota">
+      Responde-se com as formas de pagamento e a chave chega a seguir.
+      <br><b>Se não puder pagar, diga — a chave é sua na mesma</b>, sem
+      justificação nenhuma.
+      </p>
+
+      <div class="ou-linha"><span>já tenho chave</span></div>
+
+      <form id="form-chave" novalidate>
+      <div class="linha-chave">
+      <input id="c-chave" class="js-ignorar-trinco" type="text" placeholder="VF-2708-XXXX-0" autocomplete="off" spellcheck="false">
+      <button class="btn btn-gold js-ignorar-trinco" type="submit">Abrir</button>
+      </div>
+      </form>
+      <div class="aviso" id="aviso-chave" hidden></div>
+      </div>
+
+      <div class="js-se-premium" hidden>
+      <button class="remover" id="remover-chave" type="button">Remover a chave deste dispositivo</button>
+      </div>
+
+      <div class="eyebrow" style="margin-top:38px">Gratuitas</div>
+      <h2 style="font-size:1.3rem;margin:10px 0 6px">As seis do dia a dia</h2>
+      <p class="ecra-sub">Não ficam atrás de pagamento nenhum, e não vão ficar.</p>
+
+      <div class="ferr-grid">
+
+      <!-- 1 -->
+      <div class="ferramenta">
+      <h3><span class="ic">🪙</span> Quanto rende guardar todos os meses</h3>
+      <p class="sub">O que se junta ao fim de alguns anos, e quanto disso veio do juro.</p>
+      <div class="campos">
+      <div class="field"><label for="p-mensal">Guardo por mês</label><input id="p-mensal" type="text" inputmode="decimal" value="50"></div>
+      <div class="field"><label for="p-anos">Durante (anos)</label><input id="p-anos" type="text" inputmode="numeric" value="5"></div>
+      <div class="field larga"><label for="p-taxa">Rende por ano (%)</label><input id="p-taxa" type="text" inputmode="decimal" value="2"></div>
+      </div>
+      <button class="btn btn-gold" id="p-calc" type="button">Calcular</button>
+      <div class="res" id="p-out"></div>
+      </div>
+
+      <!-- 2 -->
+      <div class="ferramenta">
+      <h3><span class="ic">🛟</span> De quanto precisa a minha reserva</h3>
+      <p class="sub">Medida em meses de despesa essencial, que é a única unidade que diz alguma coisa.</p>
+      <div class="campos">
+      <div class="field"><label for="r-essenciais">Essenciais por mês</label><input id="r-essenciais" type="text" inputmode="decimal" value="600"></div>
+      <div class="field"><label for="r-meses">Quero (meses)</label><input id="r-meses" type="text" inputmode="numeric" value="3"></div>
+      <div class="field"><label for="r-tenho">Já tenho</label><input id="r-tenho" type="text" inputmode="decimal" value="0"></div>
+      <div class="field"><label for="r-pormes">Guardo por mês</label><input id="r-pormes" type="text" inputmode="decimal" value="50"></div>
+      </div>
+      <button class="btn btn-gold" id="r-calc" type="button">Calcular</button>
+      <div class="res" id="r-out"></div>
+      </div>
+
+      <!-- 3 -->
+      <div class="ferramenta">
+      <h3><span class="ic">💳</span> Vale a pena parcelar?</h3>
+      <p class="sub">Sem perguntar taxa de juro nenhuma: é o total menos o preço a pronto.</p>
+      <div class="campos">
+      <div class="field"><label for="q-pronto">Preço a pronto</label><input id="q-pronto" type="text" inputmode="decimal" value="480"></div>
+      <div class="field"><label for="q-vezes">Em quantas vezes</label><input id="q-vezes" type="text" inputmode="numeric" value="12"></div>
+      <div class="field larga"><label for="q-prestacao">Valor de cada prestação</label><input id="q-prestacao" type="text" inputmode="decimal" value="45,90"></div>
+      </div>
+      <button class="btn btn-gold" id="q-calc" type="button">Calcular</button>
+      <div class="res" id="q-out"></div>
+      </div>
+
+      <!-- 4 -->
+      <div class="ferramenta">
+      <h3><span class="ic">⛓️</span> Por onde começar a pagar dívidas</h3>
+      <p class="sub">Compara o caminho que poupa mais com o caminho que se abandona menos.</p>
+      <div class="campos">
+      <div class="field"><label for="d-valor1">Dívida 1</label><input id="d-valor1" type="text" inputmode="decimal" value="300"></div>
+      <div class="field"><label for="d-taxa1">Juro anual (%)</label><input id="d-taxa1" type="text" inputmode="decimal" value="18"></div>
+      <div class="field"><label for="d-valor2">Dívida 2</label><input id="d-valor2" type="text" inputmode="decimal" value="1200"></div>
+      <div class="field"><label for="d-taxa2">Juro anual (%)</label><input id="d-taxa2" type="text" inputmode="decimal" value="9"></div>
+      <div class="field"><label for="d-valor3">Dívida 3</label><input id="d-valor3" type="text" inputmode="decimal" value="0"></div>
+      <div class="field"><label for="d-taxa3">Juro anual (%)</label><input id="d-taxa3" type="text" inputmode="decimal" value="0"></div>
+      </div>
+      <button class="btn btn-gold" id="d-calc" type="button">Comparar</button>
+      <div class="res" id="d-out"></div>
+      </div>
+
+      <!-- 5 -->
+      <div class="ferramenta">
+      <h3><span class="ic">🏠</span> Quanto pesa a habitação</h3>
+      <p class="sub">A percentagem do que entra em casa que vai para renda ou prestação.</p>
+      <div class="campos">
+      <div class="field"><label for="e-rendimento">Entra em casa por mês</label><input id="e-rendimento" type="text" inputmode="decimal" value="1000"></div>
+      <div class="field"><label for="e-habitacao">Renda ou prestação</label><input id="e-habitacao" type="text" inputmode="decimal" value="450"></div>
+      </div>
+      <button class="btn btn-gold" id="e-calc" type="button">Calcular</button>
+      <div class="res" id="e-out"></div>
+      </div>
+
+      <!-- 6 -->
+      <div class="ferramenta">
+      <h3><span class="ic">☕</span> O custo de um hábito</h3>
+      <p class="sub">Uma despesa pequena e repetida, vista ao ano.</p>
+      <div class="campos">
+      <div class="field"><label for="h-valor">Custa de cada vez</label><input id="h-valor" type="text" inputmode="decimal" value="1,20"></div>
+      <div class="field"><label for="h-vezes">Vezes por semana</label><input id="h-vezes" type="text" inputmode="numeric" value="10"></div>
+      </div>
+      <button class="btn btn-gold" id="h-calc" type="button">Calcular</button>
+      <div class="res" id="h-out"></div>
+      </div>
+      </div>
+
+      <div class="eyebrow" style="margin-top:38px">Mais</div>
       <div class="atalhos">
         <button class="atalho" type="button" data-ir="apoios"><span class="ic">🎁</span><b>Apoios</b><small>O que talvez não receba</small></button>
-        <a class="atalho" href="../ferramentas.html"><span class="ic">🧮</span><b>Ferramentas</b><small>Nove calculadoras</small></a>
         <a class="atalho" href="../metodo.html"><span class="ic">📗</span><b>Método</b><small>Reserva com salário baixo</small></a>
         <a class="atalho js-abrir-app" href="#"><span class="ic">📲</span><b>Pôr no telemóvel</b><small>Ícone no ecrã inicial</small></a>
         <a class="atalho" href="../sobre.html"><span class="ic">🔒</span><b>Privacidade</b><small>Onde ficam os dados</small></a>
@@ -406,18 +615,19 @@
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
   <button class="aba" role="tab" data-ecra="inicio" aria-selected="true"><span class="ic">🏠</span><small>Início</small></button>
   <button class="aba" role="tab" data-ecra="lancar" aria-selected="false"><span class="ic">➕</span><small>Lançar</small></button>
-  <button class="aba aba-chat" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic"><img src="../img/wesley.jpg" alt=""></span><small>Chat</small></button>
+  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Chat</small></button>
   <button class="aba" role="tab" data-ecra="mes" aria-selected="false"><span class="ic">📊</span><small>Mês</small></button>
-  <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">⭐</span><small>Mais</small></button>
+  <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">⭐</span><small>Premium</small></button>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=18"></script>
-<script src="../site.js?v=18"></script>
-<script src="../app-financas.js?v=18"></script>
-<script src="../assistente.js?v=18"></script>
+<script src="../firebase-config.js?v=19"></script>
+<script src="../site.js?v=19"></script>
+<script src="../app-financas.js?v=19"></script>
+<script src="../assistente.js?v=19"></script>
+<script src="../ferramentas.js?v=19"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
