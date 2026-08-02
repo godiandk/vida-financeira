@@ -42,12 +42,19 @@
 
 /* ---------- ferramenta de assinatura, trancada ---------- */
 .ferramenta.premium{border-color:rgba(217,178,110,.32)}
+/* O selo estava a `top:-10px`, ou seja, a pairar dez pixéis acima do cartão.
+   Resultava enquanto o cartão não tinha `overflow:hidden` — mas o cartão
+   fechado tem, para o desfoque não escorrer pelas bordas, e o `overflow`
+   cortava o selo ao meio. Passa a ser uma fita encostada ao canto: nunca sai
+   do cartão, portanto não há como voltar a cortar-se. */
 .selo{
-  position:absolute;top:-10px;right:18px;
+  position:absolute;top:0;right:0;z-index:2;
   background:linear-gradient(135deg,var(--gold-soft),var(--gold));color:var(--ink);
   font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-  padding:4px 11px;border-radius:999px;
+  padding:6px 13px 7px;border-radius:0 calc(var(--radius) - 1px) 0 14px;
 }
+/* Espaço para a fita, senão a primeira linha do título passa-lhe por baixo. */
+.ferramenta.premium h3{padding-right:104px}
 .ferramenta.trancada .campos,
 .ferramenta.trancada .btn,
 .ferramenta.trancada .res{opacity:.4;pointer-events:none;filter:blur(.4px)}
@@ -115,6 +122,14 @@
 .ferramenta.trancada > .btn,
 .ferramenta.trancada .res,
 .ferramenta.trancada .plano-lista{opacity:.28;filter:blur(2.5px);pointer-events:none;user-select:none}
+
+/* O cartão fechado desenhava os campos todos por baixo do desfoque, e ficava
+   tão alto que num telemóvel só se via a mancha cinzenta e a palavra FECHADA
+   — o botão "Desbloquear" caía fora do ecrã. Quem não vê o botão não carrega
+   nele. O aperitivo passa a ser curto: vê-se o que a ferramenta faz, e o
+   botão fica sempre à vista sem rolar. */
+.ferramenta.trancada .campos{max-height:118px;overflow:hidden}
+.ferramenta.trancada .plano-lista{max-height:70px;overflow:hidden}
 
 .cadeado{
   position:absolute;inset:auto 0 0 0;
