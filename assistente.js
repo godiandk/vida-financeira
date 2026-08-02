@@ -530,6 +530,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const d = dadosAssistente();
   juntar(`Sou o **Wesley Vianna**, fundador da Vida Financeira. Comecei sem nada e construí o que tenho a partir de negócios pequenos — por isso não lhe vou dar conselhos que nunca tive de aplicar a mim próprio.
 
+**Escreva-me como falaria com alguém.** Três coisas que faço aqui:
+
+**Lanço por si.** «Acabei de gastar 30 no continente» — e fica lançado, com o valor, a categoria e a loja. Não tem de preencher nada.
+
+**Faço as contas.** Está na loja e diz «12x de 45,90 ou 480 a pronto?» — eu respondo com os números antes de assinar.
+
+**Respondo a perguntas** com os seus números, não com generalidades.
+
 ${d.nMovs > 0 ? `Já vi os seus números: ${d.R ? `entra cerca de ${dinAssist(d.R)} por mês` : `${d.nMovs} movimentos lançados`}. Posso responder com base neles.` : 'Ainda não lançou nada, mas posso responder na mesma — e depois de lançar um mês, respondo com os seus números.'}
 
 Pergunte à vontade.`, 'ele');
@@ -585,6 +593,12 @@ Pergunte à vontade.`, 'ele');
         return;
       }
     }
+
+    /* A calculadora vem antes das respostas escritas: quem pergunta
+       "12x de 45,90 ou 480 a pronto?" quer o número, não um texto sobre
+       crédito. É grátis — fazer uma conta a alguém não se cobra. */
+    const c = (typeof calculadora === 'function') ? calculadora(t) : { ok: false };
+    if (c.ok) { juntar(c.resposta, 'ele'); return; }
 
     juntar(responder(t), 'ele');
   }

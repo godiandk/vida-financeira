@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=41">
-<link rel="stylesheet" href="../app-financas.css?v=41">
-<link rel="stylesheet" href="../app-shell.css?v=41">
-<link rel="stylesheet" href="../assistente.css?v=41">
-<link rel="stylesheet" href="../ferramentas.css?v=41">
+<link rel="stylesheet" href="../estilo.css?v=43">
+<link rel="stylesheet" href="../app-financas.css?v=43">
+<link rel="stylesheet" href="../app-shell.css?v=43">
+<link rel="stylesheet" href="../assistente.css?v=43">
+<link rel="stylesheet" href="../ferramentas.css?v=43">
 </head>
 <body class="app-shell">
 
@@ -300,6 +300,8 @@
       <div class="assist-fio" id="assist-fio"></div>
 
       <div class="assist-sugs">
+        <button class="assist-sug" type="button" data-q="gastei 30 no continente">Gastei 30 no continente</button>
+        <button class="assist-sug" type="button" data-q="12x de 45,90 ou 480 a pronto?">12x de 45,90 ou 480 a pronto?</button>
         <button class="assist-sug" type="button" data-q="não sobra nada">Não sobra nada</button>
         <button class="assist-sug" type="button" data-q="recebo subsídio">Recebo subsídio</button>
         <button class="assist-sug" type="button" data-q="por onde começar">Por onde começo?</button>
@@ -325,7 +327,7 @@
       <form class="assist-form" id="assist-form" novalidate>
         <label class="assist-foto" for="assist-ficheiro" aria-label="Tirar fotografia">📷</label>
         <input id="assist-ficheiro" type="file" accept="image/*" capture="environment" hidden>
-        <input id="assist-campo" type="text" placeholder="Escreva o que gastou…" autocomplete="off">
+        <input id="assist-campo" type="text" placeholder="Gastei 30 no continente…" autocomplete="off">
         <button type="submit" aria-label="Enviar">↑</button>
       </form>
 
@@ -805,9 +807,10 @@
 </main>
 
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
+  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Escrever</small></button>
   <button class="aba" role="tab" data-ecra="inicio" aria-selected="true"><span class="ic">🏠</span><small>Início</small></button>
   <button class="aba" role="tab" data-ecra="lancar" aria-selected="false"><span class="ic">➕</span><small>Lançar</small></button>
-  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Chat</small></button>
+  
   <button class="aba" role="tab" data-ecra="mes" aria-selected="false"><span class="ic">📊</span><small>Mês</small></button>
   <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">🧮</span><small>Ferramentas</small></button>
 </nav>
@@ -815,15 +818,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=41"></script>
-<script src="../site.js?v=41"></script>
-<script src="../app-financas.js?v=41"></script>
-<script src="../excel.js?v=41"></script>
-<script src="../partilha.js?v=41"></script>
-<script src="../divida.js?v=41"></script>
-<script src="../interpretar.js?v=41"></script>
-<script src="../assistente.js?v=41"></script>
-<script src="../ferramentas.js?v=41"></script>
+<script src="../firebase-config.js?v=43"></script>
+<script src="../site.js?v=43"></script>
+<script src="../app-financas.js?v=43"></script>
+<script src="../excel.js?v=43"></script>
+<script src="../partilha.js?v=43"></script>
+<script src="../divida.js?v=43"></script>
+<script src="../interpretar.js?v=43"></script>
+<script src="../assistente.js?v=43"></script>
+<script src="../ferramentas.js?v=43"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
@@ -849,7 +852,20 @@
   document.querySelectorAll('[data-ir]').forEach(b =>
     b.addEventListener('click', () => ir(b.dataset.ir)));
 
-  const inicial = (location.hash || '#inicio').slice(1);
+  /* Quem chega sem nada lançado abre no chat: é o ecrã que mostra o que esta
+     aplicação faz de diferente, e um painel de zeros não explica a ninguém
+     que se pode escrever "gastei 30 no continente".
+
+     Quem já tem movimentos abre no Início, que é onde estão os seus números —
+     mandá-lo para o chat todos os dias era esconder-lhe aquilo que ele veio
+     ver. O endereço manda sempre por cima das duas regras. */
+  function ecraDeAbertura() {
+    try {
+      const m = JSON.parse(localStorage.getItem('vf:movimentos') || '[]');
+      return (Array.isArray(m) && m.length) ? 'inicio' : 'wesley';
+    } catch (e) { return 'inicio'; }
+  }
+  const inicial = location.hash ? location.hash.slice(1) : ecraDeAbertura();
   if (document.getElementById('ecra-' + inicial)) ir(inicial);
 
   /* Depois de lançar um movimento, volta-se ao Início: é lá que está o

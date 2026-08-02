@@ -358,8 +358,177 @@ function interpretar(texto, opcoes) {
   return { ok: true, tipo: 'movimentos', lancamentos, texto: cru };
 }
 
+/* ============================================================
+   A CALCULADORA DO CHAT
+
+   Quem está no mercado com o telemóvel na mão não vai a outro ecrã abrir uma
+   ferramenta. Pergunta ali: "12x de 45,90 ou 480 a pronto?". E a resposta tem
+   de vir ali, com as contas feitas.
+
+   O que isto responde é sempre aritmética verificável, nunca opinião. "Fica
+   mais caro X" é um facto; "não compre" é um conselho, e conselhos sobre o
+   dinheiro dos outros não se dão a partir de uma frase escrita à pressa numa
+   fila de supermercado.
+   ============================================================ */
+
+/* Fora da aplicação (nos testes) não há `dinheiro()`. A alternativa continua a
+   ser o `Intl`, e não um `toFixed` — senão mil euros saíam "1000,00" nos
+   testes e "1 000,00 €" no ecrã, e um teste que não vê o que a pessoa vê não
+   está a testar o que interessa. */
+function fmtCalc(v) {
+  if (typeof dinheiro === 'function') return dinheiro(v);
+  const m = (typeof localStorage !== 'undefined' && localStorage.getItem('vf:moeda')) || 'EUR';
+  try {
+    return new Intl.NumberFormat(m === 'BRL' ? 'pt-BR' : 'pt-PT',
+      { style: 'currency', currency: m, minimumFractionDigits: 2 }).format(v || 0);
+  } catch (e) {
+    return (Math.round(v * 100) / 100).toFixed(2).replace('.', ',');
+  }
+}
+
+function fmtNum(v) {
+  const n = Math.round(v * 100) / 100;
+  return (n % 1 === 0 ? String(n) : n.toFixed(2)).replace('.', ',');
+}
+
+/* Todos os números da frase, incluindo os que `acharValores` deixa de fora
+   por serem contagens de prestações — aqui esses interessam. */
+function numerosCrus(texto) {
+  const out = [];
+  const re = /([0-9][0-9.,\s  ]*)/g;
+  let m;
+  while ((m = re.exec(texto)) !== null) {
+    const v = numeroDeTexto(m[1].replace(/[\s  ]+$/, ''));
+    if (v !== null) out.push(v);
+  }
+  return out;
+}
+
+function calculadora(texto) {
+  const cru = String(texto || '').trim();
+  if (!cru) return { ok: false };
+  const t = semAcentos(cru).toLowerCase();
+  const n = numerosCrus(cru);
+
+  /* --- parcelar: o cálculo mais pedido de todos, e o que mais dinheiro
+     poupa a quem o faz antes de assinar --- */
+  const mParc = t.match(/(\d{1,2})\s*(?:x|vezes|prestac\w*|parcelas?)\s*(?:de\s*)?([0-9][0-9.,]*)/);
+  if (mParc) {
+    const vezes = Number(mParc[1]);
+    const prestacao = numeroDeTexto(mParc[2]);
+    if (vezes >= 2 && prestacao > 0) {
+      const total = vezes * prestacao;
+      /* O preço a pronto é o outro número da frase, se houver um que não seja
+         nem as vezes nem a prestação. */
+      const pronto = n.find(v => Math.abs(v - vezes) > 0.001 &&
+                                 Math.abs(v - prestacao) > 0.001 && v > prestacao);
+      let r = '**' + vezes + ' × ' + fmtCalc(prestacao) + ' = ' + fmtCalc(total) + '**';
+      if (pronto) {
+        const aMais = total - pronto;
+        r += '\n\nA pronto são ' + fmtCalc(pronto) + '.';
+        if (aMais > 0.005) {
+          const pct = (aMais / pronto) * 100;
+          r += ' Parcelado paga **' + fmtCalc(aMais) + ' a mais** — ' +
+               fmtNum(pct) + '% acima do preço. Isso é juro, mesmo que digam que não há.';
+        } else if (aMais < -0.005) {
+          r += ' Parcelado fica ' + fmtCalc(-aMais) + ' **abaixo** do preço a pronto.';
+        } else {
+          r += ' Dá exactamente o mesmo: aqui não há juro nenhum.';
+        }
+      } else {
+        r += '\n\nSe souber o preço a pronto, escreva-o também e eu digo quanto está a pagar a mais.';
+      }
+      return { ok: true, tipo: 'parcelar', resposta: r };
+    }
+  }
+
+  /* --- percentagem: "30% de 900", "quanto é 15% de 1200" --- */
+  const mPct = t.match(/([0-9][0-9.,]*)\s*%\s*(?:de|do|da)\s*([0-9][0-9.,]*)/);
+  if (mPct) {
+    const p = numeroDeTexto(mPct[1]), base = numeroDeTexto(mPct[2]);
+    if (p !== null && base !== null) {
+      return { ok: true, tipo: 'percentagem',
+        resposta: '**' + fmtNum(p) + '% de ' + fmtCalc(base) + ' = ' + fmtCalc(base * p / 100) + '**' };
+    }
+  }
+
+  /* --- poupar todos os meses: "quanto rende 50 por mes durante 5 anos" --- */
+  if (/\b(rende|render|juntar|junto|poupar|poupo|guardar|guardo)\b/.test(t) &&
+      /\b(ano|anos|mes|meses)\b/.test(t)) {
+    const mensal = n[0];
+    const mAnos = t.match(/([0-9]+)\s*anos?/);
+    const mMeses = t.match(/([0-9]+)\s*meses/);
+    const mTaxa = t.match(/([0-9][0-9.,]*)\s*%/);
+    const meses = mAnos ? Number(mAnos[1]) * 12 : (mMeses ? Number(mMeses[1]) : 0);
+    if (mensal > 0 && meses >= 1 && meses <= 600) {
+      const taxa = mTaxa ? numeroDeTexto(mTaxa[1]) / 100 : 0;
+      const i = taxa / 12;
+      const total = i === 0 ? mensal * meses : mensal * ((Math.pow(1 + i, meses) - 1) / i);
+      const posto = mensal * meses;
+      let r = 'Guardando **' + fmtCalc(mensal) + ' por mês** durante ' +
+              (mAnos ? mAnos[1] + (Number(mAnos[1]) === 1 ? ' ano' : ' anos') : meses + ' meses') +
+              ':\n\n**' + fmtCalc(total) + '**';
+      if (taxa > 0) {
+        r += '\n\nDo seu bolso: ' + fmtCalc(posto) + '. Do juro: ' + fmtCalc(total - posto) +
+             '. Repare que quase tudo veio do que **você** pôs.';
+      } else {
+        r += '\n\nÉ tudo seu — não contei juro nenhum. Se o dinheiro estiver num sítio que renda, ' +
+             'escreva a percentagem e eu conto.';
+      }
+      return { ok: true, tipo: 'poupanca', resposta: r };
+    }
+  }
+
+  /* --- a reserva: "quanto preciso de reserva se gasto 600" --- */
+  if (/\breserva\b/.test(t) && n.length) {
+    const ess = n[0];
+    if (ess > 0) {
+      return { ok: true, tipo: 'reserva',
+        resposta: 'Com **' + fmtCalc(ess) + '** de essenciais por mês:\n\n' +
+          '1 mês de reserva = ' + fmtCalc(ess) + '\n' +
+          '3 meses = ' + fmtCalc(ess * 3) + '\n' +
+          '6 meses = ' + fmtCalc(ess * 6) + '\n\n' +
+          'Comece por um mês. Três é o que se costuma dizer, mas um mês já muda a vida a quem não tem nenhum.' };
+    }
+  }
+
+  /* --- por dia: "tenho 300 e faltam 12 dias" --- */
+  const mDias = t.match(/([0-9]+)\s*dias?/);
+  if (mDias && n.length >= 2 && /\b(por dia|ao dia|faltam|restam|ate ao fim)\b/.test(t)) {
+    const dias = Number(mDias[1]);
+    const quanto = n.find(v => Math.abs(v - dias) > 0.001);
+    if (dias >= 1 && quanto > 0) {
+      return { ok: true, tipo: 'pordia',
+        resposta: '**' + fmtCalc(quanto / dias) + ' por dia**, durante ' + dias +
+          (dias === 1 ? ' dia' : ' dias') + '.\n\nÉ este o número que decide o que se compra hoje.' };
+    }
+  }
+
+  /* --- aritmética simples: "12 x 45,90", "480 / 12", "900 - 600" ---
+     Fica em último porque é a rede: qualquer coisa acima é mais útil do que
+     uma conta seca. */
+  const mOp = cru.match(/([0-9][0-9.,\s  ]*?)\s*([x*+\-\/÷])\s*([0-9][0-9.,]*)/i);
+  if (mOp) {
+    const a = numeroDeTexto(mOp[1]), b = numeroDeTexto(mOp[3]);
+    const op = mOp[2].toLowerCase();
+    if (a !== null && b !== null) {
+      let v = null, sinal = op;
+      if (op === 'x' || op === '*') { v = a * b; sinal = '×'; }
+      else if (op === '+') v = a + b;
+      else if (op === '-') v = a - b;
+      else if (op === '/' || op === '÷') { if (b !== 0) { v = a / b; sinal = '÷'; } }
+      if (v !== null) {
+        return { ok: true, tipo: 'conta',
+          resposta: '**' + fmtNum(a) + ' ' + sinal + ' ' + fmtNum(b) + ' = ' + fmtCalc(v) + '**' };
+      }
+    }
+  }
+
+  return { ok: false };
+}
+
 /* Para os testes correrem em node sem browser. No navegador esta linha não
    faz nada — `module` não existe e o `typeof` evita o erro. */
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { interpretar, acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
+  module.exports = { interpretar, calculadora, acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
 }
