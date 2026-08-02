@@ -22,6 +22,11 @@ const PRECOS = {
 
 let vendas = [];
 let admin = null;
+let admins = [];
+
+/* O dono é sempre administrador e não se retira. É o que impede alguém —
+   incluindo o próprio — de ficar de fora do painel por engano. */
+const DONO = 'wly.vianna@gmail.com';
 
 /* ---------- gerar a chave ---------- */
 function digito(corpo) {
@@ -69,6 +74,59 @@ function carregarVendas() {
 function gravarVenda(v) {
   if (!window.db) return Promise.reject(new Error('Firestore indisponível'));
   return db.collection('vendas').add(v);
+}
+
+/* ---------- administradores ----------
+   A lista vive em `config/admins`, no Firestore, para se poder mudar sem
+   tocar no código. As regras lêem esse mesmo documento, por isso é ele que
+   manda de verdade. */
+function carregarAdmins() {
+  if (!window.db) return Promise.resolve([DONO]);
+  return db.collection('config').doc('admins').get()
+    .then(d => {
+      const e = (d.exists && Array.isArray(d.data().emails)) ? d.data().emails : [];
+      return [DONO].concat(e.filter(x => x.toLowerCase() !== DONO)).filter((v, i, a) => a.indexOf(v) === i);
+    })
+    .catch(() => [DONO]);
+}
+
+function gravarAdmins(lista) {
+  const outros = lista.filter(x => x.toLowerCase() !== DONO);
+  return db.collection('config').doc('admins')
+           .set({ emails: outros, actualizado: new Date().toISOString() }, { merge: true });
+}
+
+function desenharAdmins() {
+  const ul = document.getElementById('lista-admins');
+  if (!ul) return;
+  ul.innerHTML = '';
+  admins.forEach(em => {
+    const li = document.createElement('li');
+    const nome = document.createElement('span');
+    nome.textContent = em;
+    li.appendChild(nome);
+
+    if (em.toLowerCase() === DONO) {
+      const tag = document.createElement('span');
+      tag.className = 'dono';
+      tag.textContent = 'dono';
+      li.appendChild(tag);
+    } else {
+      const bt = document.createElement('button');
+      bt.className = 'mini-btn danger';
+      bt.type = 'button';
+      bt.textContent = 'Retirar';
+      bt.addEventListener('click', async () => {
+        if (!confirm('Retirar o acesso de ' + em + '?')) return;
+        admins = admins.filter(x => x !== em);
+        try { await gravarAdmins(admins); aviso('Acesso retirado.', 'ok'); }
+        catch (e) { aviso('Não foi possível gravar: ' + e.message, 'erro'); }
+        desenharAdmins();
+      });
+      li.appendChild(bt);
+    }
+    ul.appendChild(li);
+  });
 }
 
 /* ---------- avisos ---------- */
@@ -287,13 +345,36 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open('https://wa.me/?text=' + t, '_blank');
   });
 
+  document.getElementById('form-admin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const campo = document.getElementById('novo-admin');
+    const em = campo.value.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { aviso('Esse email não parece válido.', 'erro'); return; }
+    if (admins.map(x => x.toLowerCase()).includes(em)) { aviso('Essa conta já tem acesso.', 'info'); return; }
+    admins.push(em);
+    try {
+      await gravarAdmins(admins);
+      aviso('Acesso dado a ' + em + '. A pessoa precisa de ter conta criada com esse email.', 'ok');
+      campo.value = '';
+    } catch (err) {
+      admins = admins.filter(x => x !== em);
+      aviso('Não foi possível gravar: ' + err.message, 'erro');
+    }
+    desenharAdmins();
+  });
+
   document.getElementById('procura').addEventListener('input', desenharLista);
   document.getElementById('exportar-vendas').addEventListener('click', exportarVendas);
 
   /* ---------- estado da sessão ---------- */
   auth.onAuthStateChanged(async u => {
-    const eAdmin = u && Array.isArray(window.ADMIN_EMAILS) &&
-                   ADMIN_EMAILS.map(x => x.toLowerCase()).includes((u.email || '').toLowerCase());
+    let eAdmin = false;
+    if (u) {
+      const doFicheiro = Array.isArray(window.ADMIN_EMAILS) ? ADMIN_EMAILS : [];
+      const naNuvem = await carregarAdmins();
+      eAdmin = doFicheiro.concat(naNuvem).map(x => x.toLowerCase())
+                         .includes((u.email || '').toLowerCase());
+    }
 
     if (!u) {
       admin = null;
@@ -315,6 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
     zonaLogin.hidden = true;
     zonaPainel.hidden = false;
     document.getElementById('quem').textContent = u.email;
+
+    admins = await carregarAdmins();
+    desenharAdmins();
 
     vendas = await carregarVendas();
     desenharFacturacao();

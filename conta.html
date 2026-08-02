@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=19">
+<link rel="stylesheet" href="estilo.css?v=20">
 <style>
 .conta-wrap{max-width:440px;margin:0 auto;padding:120px 24px 100px}
 .caixa{background:var(--ink-2);border:1px solid rgba(217,178,110,.2);border-radius:22px;padding:32px 28px;box-shadow:0 30px 70px rgba(0,0,0,.5)}
@@ -24,6 +24,12 @@
 .esqueci{display:block;margin:10px auto 0;background:none;border:none;color:var(--cream-dim);font-family:inherit;font-size:.82rem;cursor:pointer;text-decoration:underline}
 .sessao{text-align:center}
 .sessao .avatar{width:78px;height:78px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(160deg,var(--gold-soft),var(--gold));color:var(--ink);font-family:'Playfair Display',serif;font-weight:800;font-size:1.9rem}
+.btn-admin{
+  width:100%;justify-content:center;margin-bottom:10px;
+  background:linear-gradient(135deg,#8a7350,#6d5b3f);color:var(--cream);
+  border:1px solid rgba(217,178,110,.5);
+}
+.btn-admin[hidden]{display:none}
 .sessao .email{color:var(--cream-dim);font-size:.9rem;margin-bottom:22px;word-break:break-all}
 [hidden]{display:none!important}
 </style>
@@ -92,6 +98,9 @@
         <div class="avatar" id="s-inicial">?</div>
         <h1 id="s-nome">—</h1>
         <p class="email" id="s-email">—</p>
+        <!-- Só aparece a quem tem acesso. O botão não protege nada: quem
+             protege são as regras do Firestore, do lado do servidor. -->
+        <a class="btn btn-admin" id="btn-admin" href="admin.html" hidden>🛠️ Painel de administração</a>
         <a class="btn btn-gold" href="app/">Abrir a aplicação</a>
         <button class="btn btn-line" id="sair" type="button" style="margin-top:10px">Terminar sessão</button>
       </div>
@@ -122,8 +131,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=19"></script>
-<script src="site.js?v=19"></script>
+<script src="firebase-config.js?v=20"></script>
+<script src="site.js?v=20"></script>
 <script>
 (function () {
   const aviso = document.getElementById('aviso');
@@ -238,6 +247,14 @@
     document.getElementById('s-inicial').textContent = (nome || '?').charAt(0).toUpperCase();
     document.getElementById('s-nome').textContent = nome;
     document.getElementById('s-email').textContent = u.email || '';
+
+    // Painel de administração: só para quem está na lista.
+    const btnAdmin = document.getElementById('btn-admin');
+    if (btnAdmin) {
+      const lista = Array.isArray(window.ADMIN_EMAILS) ? ADMIN_EMAILS : [];
+      btnAdmin.hidden = !lista.map(x => x.toLowerCase())
+                              .includes((u.email || '').toLowerCase());
+    }
     areaForm.hidden = true;
     areaSessao.hidden = false;
   });

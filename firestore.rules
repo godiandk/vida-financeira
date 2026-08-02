@@ -46,13 +46,35 @@ service cloud.firestore {
     // página saber o que mostrar — mudá-la no navegador não dá acesso a
     // dado nenhum.
     // ----------------------------------------------------------
-    function ehAdmin() {
+    // O dono está escrito aqui e não se retira — é o que impede o painel de
+    // ficar sem ninguém. Os outros administradores vivem em config/admins,
+    // para se poderem acrescentar sem mexer nas regras.
+    function ehDono() {
       return request.auth != null
-          && request.auth.token.email in ['wly.vianna@gmail.com'];
+          && request.auth.token.email == 'wly.vianna@gmail.com';
+    }
+
+    function ehAdmin() {
+      return ehDono()
+          || (request.auth != null
+              && exists(/databases/$(database)/documents/config/admins)
+              && request.auth.token.email
+                 in get(/databases/$(database)/documents/config/admins).data.emails);
     }
 
     match /vendas/{id} {
       allow read, create, update, delete: if ehAdmin();
+    }
+
+    // ----------------------------------------------------------
+    // config/admins — quem mais tem acesso ao painel
+    //
+    // Qualquer administrador lê a lista, mas só o dono a altera. Sem isto,
+    // quem recebesse acesso podia retirá-lo a quem lho deu.
+    // ----------------------------------------------------------
+    match /config/{doc} {
+      allow read: if ehAdmin();
+      allow write: if ehDono();
     }
 
     // ----------------------------------------------------------

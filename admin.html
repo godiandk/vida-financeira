@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=19">
-<link rel="stylesheet" href="ferramentas.css?v=19">
+<link rel="stylesheet" href="estilo.css?v=20">
+<link rel="stylesheet" href="ferramentas.css?v=20">
 <style>
 main{padding-top:96px;padding-bottom:80px}
 .painel-grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
@@ -68,6 +68,10 @@ ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
 .check input{width:20px;height:20px;flex:none;accent-color:var(--gold)}
 .quem-linha{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
 .quem-linha span{color:var(--cream-dim);font-size:.86rem}
+ul.admins{list-style:none;margin-top:16px}
+ul.admins li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(217,178,110,.1);font-size:.9rem}
+ul.admins li:last-child{border-bottom:none}
+ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800}
 </style>
 </head>
 <body>
@@ -155,6 +159,25 @@ ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
         </div>
         <p class="nota-fact" id="f-activas"></p>
         <p class="nota-fact" id="f-oferecidas"></p>
+      </div>
+
+      <!-- administradores -->
+      <div class="cx">
+        <h3>Quem tem acesso ao painel</h3>
+        <p class="sub">
+          Acrescentar aqui dá acesso a gerar chaves e a ver o facturado.
+          A sua conta é a dona e não pode ser retirada.
+        </p>
+        <form id="form-admin" novalidate>
+          <div class="linha-chave">
+            <input id="novo-admin" type="email" placeholder="email da pessoa" autocomplete="off">
+            <button class="btn btn-gold" type="submit">Dar acesso</button>
+          </div>
+        </form>
+        <ul class="admins" id="lista-admins"></ul>
+        <p class="nota-fact" style="margin-top:12px">
+          Quem receber acesso precisa de ter conta criada com esse email.
+        </p>
       </div>
 
       <div class="painel-grid">
@@ -254,7 +277,7 @@ ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=19"></script>
-<script src="admin.js?v=19"></script>
+<script src="firebase-config.js?v=20"></script>
+<script src="admin.js?v=20"></script>
 </body>
 </html>

@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=19">
-<link rel="stylesheet" href="../app-financas.css?v=19">
-<link rel="stylesheet" href="../app-shell.css?v=19">
-<link rel="stylesheet" href="../assistente.css?v=19">
-<link rel="stylesheet" href="../ferramentas.css?v=19">
+<link rel="stylesheet" href="../estilo.css?v=20">
+<link rel="stylesheet" href="../app-financas.css?v=20">
+<link rel="stylesheet" href="../app-shell.css?v=20">
+<link rel="stylesheet" href="../assistente.css?v=20">
+<link rel="stylesheet" href="../ferramentas.css?v=20">
 </head>
 <body class="app-shell">
 
@@ -606,6 +606,7 @@
         <a class="atalho" href="../sobre.html"><span class="ic">🔒</span><b>Privacidade</b><small>Onde ficam os dados</small></a>
         <a class="atalho" href="../index.html"><span class="ic">🏠</span><b>Ir ao site</b><small>Página de entrada</small></a>
         <a class="atalho" href="../conta.html"><span class="ic">👤</span><b>A minha conta</b><small>Entrar ou criar</small></a>
+        <a class="atalho js-so-admin" href="../admin.html" hidden><span class="ic">🛠️</span><b>Painel</b><small>Chaves e facturação</small></a>
       </div>
     </div>
   </section>
@@ -623,11 +624,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=19"></script>
-<script src="../site.js?v=19"></script>
-<script src="../app-financas.js?v=19"></script>
-<script src="../assistente.js?v=19"></script>
-<script src="../ferramentas.js?v=19"></script>
+<script src="../firebase-config.js?v=20"></script>
+<script src="../site.js?v=20"></script>
+<script src="../app-financas.js?v=20"></script>
+<script src="../assistente.js?v=20"></script>
+<script src="../ferramentas.js?v=20"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
@@ -674,6 +675,16 @@
     document.getElementById('apoios-pt').hidden = b.dataset.pais !== 'pt';
     document.getElementById('apoios-br').hidden = b.dataset.pais !== 'br';
   }));
+})();
+
+/* O atalho do painel só aparece a quem tem acesso. */
+(function painel(){
+  if (typeof firebase === 'undefined' || !window.auth) return;
+  auth.onAuthStateChanged(u => {
+    const lista = Array.isArray(window.ADMIN_EMAILS) ? ADMIN_EMAILS : [];
+    const eAdmin = !!u && lista.map(x => x.toLowerCase()).includes((u.email || '').toLowerCase());
+    document.querySelectorAll('.js-so-admin').forEach(el => { el.hidden = !eAdmin; });
+  });
 })();
 </script>
 </body>

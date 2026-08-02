@@ -97,6 +97,9 @@ body.app-shell .app-float{display:none}
   min-height:104px;justify-content:center;
 }
 .atalho:active{background:rgba(217,178,110,.08);transform:scale(.98)}
+/* O display:flex acima ganha ao [hidden] da folha do navegador — sem esta
+   linha, um cartão marcado como escondido continuava à vista. */
+.atalho[hidden]{display:none}
 .atalho .ic{font-size:1.7rem;line-height:1}
 .atalho b{font-size:.9rem;font-weight:700}
 .atalho small{color:var(--cream-dim);font-size:.74rem;line-height:1.3}
