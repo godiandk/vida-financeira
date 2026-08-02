@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v35';
+const VERSAO = 'vida-financeira-v36';
 
 const FICHEIROS = [
   './',
@@ -91,21 +91,51 @@ self.addEventListener('fetch', ev => {
     return;
   }
 
-  // Ficheiros do site: cache primeiro.
+  // ----------------------------------------------------------
+  // Código do site (js e css): REDE primeiro, cache se falhar.
   //
-  // `ignoreSearch` é o que faz isto funcionar mesmo. As páginas pedem os
-  // ficheiros com `?v=8` para obrigar o navegador a largar a versão antiga,
-  // mas a lista FICHEIROS guarda-os sem query. Sem ignorar a query, um
-  // pedido de `app-financas.js?v=8` não encontrava o `app-financas.js`
-  // guardado — e quem instalasse a app e ficasse sem rede antes da primeira
-  // ida à Internet ficava sem o ficheiro, ou seja, sem aplicação.
+  // Isto era cache primeiro, com `ignoreSearch: true`. E o `ignoreSearch` —
+  // que existia para uma app instalada sem rede não ficar sem ficheiros —
+  // anulava por completo o `?v=` que serve para obrigar o navegador a largar
+  // a versão antiga: um pedido de `app-financas.js?v=43` encontrava o
+  // `app-financas.js` guardado na versão anterior e era ESSE que era servido.
+  // O novo só ia para a cache para a vez seguinte.
+  //
+  // O resultado, no telemóvel de quem já tinha a aplicação: HTML novo com
+  // JavaScript velho. Ou seja, publicava-se uma coisa e via-se outra — e nada
+  // do que se corrigia chegava a quem já usava a app, que são precisamente as
+  // pessoas a quem importa chegar.
+  //
+  // Rede primeiro custa uns milissegundos com ligação e não custa nada sem
+  // ela: falhando a rede, serve-se a cache exactamente como antes. Para
+  // ficheiros de dezenas de kilobytes é uma troca óbvia.
+  const caminho = new URL(req.url).pathname;
+  const ehCodigo = /\.(js|css)$/i.test(caminho);
+
+  if (ehCodigo) {
+    ev.respondWith(
+      fetch(req)
+        .then(res => {
+          const copia = res.clone();
+          const semQuery = new URL(req.url);
+          semQuery.search = '';
+          caches.open(VERSAO).then(c => c.put(semQuery.toString(), copia));
+          return res;
+        })
+        .catch(() => caches.match(req, { ignoreSearch: true }))
+    );
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // Tudo o resto (ícones, imagens, manifesto): cache primeiro.
+  // Estes não mudam de conteúdo sem mudarem de nome, por isso servi-los da
+  // cache é sempre certo — e é o que faz a app abrir de imediato.
   ev.respondWith(
     caches.match(req, { ignoreSearch: true }).then(guardado => {
       const daRede = fetch(req)
         .then(res => {
           const copia = res.clone();
-          // Guardar sem a query, para a próxima versão do `?v=` continuar a
-          // encontrar isto em vez de acumular uma entrada por versão.
           const semQuery = new URL(req.url);
           semQuery.search = '';
           caches.open(VERSAO).then(c => c.put(semQuery.toString(), copia));
