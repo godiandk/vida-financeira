@@ -28,6 +28,38 @@ const ETIQUETAS_CHAVE = 'vf:etiquetas';
 const AGREGADO_CHAVE = 'vf:agregado';
 const BALANCO_CHAVE = 'vf:balanco';
 const PLANO_CHAVE = 'vf:plano';
+const CONTAS_CHAVE = 'vf:contasfixas';
+
+/* Quantos dias à frente se avisa. Sete porque é o horizonte em que ainda se
+   consegue fazer alguma coisa — adiar uma compra, pedir um adiantamento,
+   cobrar quem deve. Avisar com um mês não muda nada; avisar no próprio dia
+   já não serve para nada. */
+const CONTAS_JANELA = 7;
+
+/* Sugestões ao criar uma conta fixa. Não é tradução: é outra lista. Quem vive
+   no Brasil não paga "renda" nem tem "passe", e ler as palavras erradas é
+   perceber em dois segundos que isto não foi feito para si. A lista segue a
+   moeda, que é o que a app já sabe sobre o país. */
+const CONTAS_SUGESTOES = {
+  EUR: [
+    { nome: 'Renda',      cat: 'casa',       emoji: '🏠' },
+    { nome: 'Luz',        cat: 'contas',     emoji: '💡' },
+    { nome: 'Água',       cat: 'contas',     emoji: '🚿' },
+    { nome: 'Gás',        cat: 'contas',     emoji: '🔥' },
+    { nome: 'Telemóvel',  cat: 'contas',     emoji: '📱' },
+    { nome: 'Internet',   cat: 'contas',     emoji: '📶' },
+    { nome: 'Passe',      cat: 'transporte', emoji: '🚌' }
+  ],
+  BRL: [
+    { nome: 'Aluguel',    cat: 'casa',       emoji: '🏠' },
+    { nome: 'Luz',        cat: 'contas',     emoji: '💡' },
+    { nome: 'Água',       cat: 'contas',     emoji: '🚿' },
+    { nome: 'Gás',        cat: 'contas',     emoji: '🔥' },
+    { nome: 'Celular',    cat: 'contas',     emoji: '📱' },
+    { nome: 'Internet',   cat: 'contas',     emoji: '📶' },
+    { nome: 'Transporte', cat: 'transporte', emoji: '🚌' }
+  ]
+};
 
 const CATEGORIAS = {
   saida: [
@@ -250,6 +282,16 @@ let planoAberto = false;
 let planoPasso = 0;         // 0..5 perguntas, 6 = o documento
 let planoResp = {};
 let planoEssAberto = false; // "há coisas mal marcadas" abriu os interruptores
+
+/* ---------- contas fixas ----------
+   `contas` é a lista do que se repete todos os meses; `pagas` diz quais já
+   foram pagas, mês a mês, com a chave `idDaConta|2026-08`. Guardar por mês e
+   não um booleano na conta é o que faz o mês seguinte recomeçar sozinho, e o
+   que permite voltar a Julho e ver o que lá ficou por pagar. */
+let contasFixas = [];
+let contasPagas = {};
+let contaAberta = null;    // id da conta com o campo do valor à vista
+let contasEditando = false;// o ecrã de gestão está em modo de edição
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -642,6 +684,51 @@ function carregarLocal() {
       respostas: pl.respostas,
       versao: 1
     };
+  }
+
+  /* Contas fixas. Cada campo é validado à entrada: o que vier torto é
+     descartado, não corrigido às cegas. Uma conta com `dia` fora de 1..31 ou
+     com valor negativo entrava aqui e só rebentava três ecrãs à frente. */
+  const cf = lerJSON(CONTAS_CHAVE, null);
+  if (cf) {
+    if (Array.isArray(cf.contas)) {
+      contasFixas = cf.contas.map(c => {
+        if (!c || typeof c !== 'object') return null;
+        const dia = Math.floor(Number(c.dia));
+        const valor = Number(c.valor);
+        const nome = typeof c.nome === 'string' ? c.nome.trim().slice(0, 40) : '';
+        if (!nome || !(dia >= 1 && dia <= 31)) return null;
+        return {
+          id: typeof c.id === 'string' && c.id ? c.id : idNovo(),
+          nome: nome,
+          valor: (isFinite(valor) && valor > 0) ? Math.round(valor * 100) / 100 : 0,
+          dia: dia,
+          categoria: typeof c.categoria === 'string' && c.categoria ? c.categoria : 'contas',
+          emoji: typeof c.emoji === 'string' ? c.emoji.slice(0, 4) : '🧾'
+        };
+      }).filter(Boolean).slice(0, 40);
+    }
+    if (cf.pagas && typeof cf.pagas === 'object') {
+      Object.keys(cf.pagas).forEach(k => {
+        if (/^[^|]+\|\d{4}-\d{2}$/.test(k) && typeof cf.pagas[k] === 'string') {
+          contasPagas[k] = cf.pagas[k];
+        }
+      });
+    }
+  }
+}
+
+function guardarContas() {
+  try {
+    localStorage.setItem(CONTAS_CHAVE, JSON.stringify({
+      contas: contasFixas, pagas: contasPagas
+    }));
+  } catch (e) { /* sem localStorage a app funciona, só não se lembra */ }
+
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ contasFixas: { contas: contasFixas, pagas: contasPagas } }, { merge: true })
+      .catch(() => { /* silencioso: já ficou gravado no telemóvel */ });
   }
 }
 
@@ -2818,6 +2905,372 @@ function actualizarParc(notaDivisao) {
   }
 }
 
+/* ============================================================
+   CONTAS FIXAS — o calendário do que vence
+
+   Porquê isto e não mais uma estatística: o dinheiro que uma pessoa pobre
+   perde por esquecimento — juros de mora, multa, corte da luz e a taxa de
+   religação — é dinheiro que ela tinha. Não é um problema de rendimento, é um
+   problema de data. Uma linha a dizer "quinta vence a luz, e tem quanto"
+   evita isso, e nenhuma outra parte da app o faz.
+
+   Duas regras que vêm do resto da app e continuam aqui:
+   - Se não há nada a vencer nem nada em atraso, o bloco desaparece. Não se
+     ocupa o ecrã para dizer que está tudo bem.
+   - O valor é sempre confirmado por quem paga. A luz e a água mudam todos os
+     meses; dar por adquirido o valor do mês passado é gravar ficção. O valor
+     habitual entra escrito no campo, e quem paga corrige ou aceita.
+   ============================================================ */
+
+/* O dia 31 numa conta fixa não existe em Fevereiro. Encostar ao último dia do
+   mês é o que a pessoa faz na vida real — e é o mesmo cuidado que as
+   prestações já tinham em `datasPrestacoes`. */
+function dataVencimento(conta, ano, mes) {
+  return new Date(ano, mes, Math.min(conta.dia, diasNoMes(ano, mes)));
+}
+
+function chavePaga(id, k) { return id + '|' + k; }
+
+/* Trocar de ecrã. Quem manda nas abas é o app/index.html, que expõe a sua
+   função em `window.irEcra`; fora da casca da aplicação ela não existe e não
+   se faz nada, em vez de rebentar.
+
+   O nome daqui é outro de propósito. Uma `function irEcra` declarada neste
+   ficheiro passaria a ser `window.irEcra` e ficava a chamar-se a si própria —
+   é a mesma armadilha do `const` que não fica em `window`, ao contrário. */
+function abrirEcra(nome) {
+  if (typeof window.irEcra === 'function') window.irEcra(nome);
+}
+
+/* Dias inteiros entre hoje e uma data, contados em dias de calendário e não
+   em milissegundos: às 23h de segunda, terça continua a ser "amanhã". */
+function diasAte(d) {
+  const a = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((b - a) / 86400000);
+}
+
+function quandoVence(dias) {
+  if (dias === 0) return 'vence hoje';
+  if (dias === 1) return 'vence amanhã';
+  if (dias > 1) return 'vence em ' + dias + ' dias';
+  if (dias === -1) return 'venceu ontem';
+  return 'venceu há ' + (-dias) + ' dias';
+}
+
+/* O estado das contas fixas no mês que está no ecrã. */
+function calcularContasFixas(k) {
+  const ano = parseInt(k.slice(0, 4), 10);
+  const mes = parseInt(k.slice(5, 7), 10) - 1;
+
+  const lista = contasFixas.map(c => {
+    const d = dataVencimento(c, ano, mes);
+    const pagaEm = contasPagas[chavePaga(c.id, k)] || null;
+    return { conta: c, data: d, dias: diasAte(d), paga: !!pagaEm, pagaEm: pagaEm };
+  }).sort((a, b) => a.data - b.data);
+
+  let total = 0, pago = 0;
+  lista.forEach(l => { total += l.conta.valor; if (l.paga) pago += l.conta.valor; });
+
+  /* O que interessa mostrar: o que está em atraso e o que vence dentro da
+     janela. O resto do mês fica no ecrã das contas, não à frente de quem
+     abriu a app para lançar um café. */
+  const urgentes = lista.filter(l => !l.paga && l.dias <= CONTAS_JANELA);
+
+  return {
+    lista, urgentes, total, pago,
+    falta: Math.round((total - pago) * 100) / 100,
+    atrasadas: lista.filter(l => !l.paga && l.dias < 0).length
+  };
+}
+
+function desenharContasFixas(r) {
+  const bloco = document.getElementById('bloco-contas');
+  const corpo = document.getElementById('contas-corpo');
+  if (!bloco || !corpo) return;
+
+  const k = chaveMes(mesVisto.ano, mesVisto.mes);
+  const c = calcularContasFixas(k);
+  corpo.innerHTML = '';
+
+  /* Sem contas criadas: um convite, uma vez, e só no mês corrente. Não se
+     insiste em meses passados nem se enche o ecrã de quem já disse que não
+     tem contas fixas — quem não criar nenhuma vê isto e mais nada. */
+  if (!contasFixas.length) {
+    if (k !== chaveMes(hoje.getFullYear(), hoje.getMonth())) { bloco.hidden = true; return; }
+    bloco.hidden = false;
+    document.getElementById('contas-titulo').textContent = 'As contas que se repetem';
+    const p = document.createElement('p');
+    p.className = 'contas-vazio';
+    p.textContent = 'Renda, luz, água, telemóvel. Diga quanto e em que dia, ' +
+      'e a app avisa antes de vencer — é assim que se deixa de pagar multa por esquecimento.';
+    corpo.appendChild(p);
+    corpo.appendChild(botao('Escrever as minhas contas', 'btn btn-gold', () => abrirEcra('contas')));
+    return;
+  }
+
+  /* Está tudo pago e nada vence: desaparece. */
+  if (!c.urgentes.length) { bloco.hidden = true; return; }
+
+  bloco.hidden = false;
+  document.getElementById('contas-titulo').textContent =
+    c.atrasadas ? 'A pagar — e há atrasadas' : 'A pagar';
+
+  c.urgentes.forEach(l => corpo.appendChild(linhaContaFixa(l, k)));
+
+  /* O aviso que muda comportamento: comparar o que falta pagar com o que
+     ainda existe. Um facto, sem adjectivos — a pessoa já sabe que é mau. */
+  const livre = (r && r.mesVisivel && typeof r.mesVisivel.livre === 'number')
+    ? r.mesVisivel.livre : null;
+  const porPagar = c.urgentes.reduce((s, l) => s + l.conta.valor, 0);
+  if (livre !== null && porPagar > 0) {
+    const nota = document.createElement('p');
+    nota.className = 'contas-nota' + (livre < porPagar ? ' aperto' : '');
+    nota.textContent = livre < porPagar
+      ? 'Falta pagar ' + dinheiro(porPagar) + ' e tem ' + dinheiro(livre) + '.'
+      : 'Falta pagar ' + dinheiro(porPagar) + ', e tem ' + dinheiro(livre) + '.';
+    corpo.appendChild(nota);
+  }
+
+  corpo.appendChild(botao('Ver todas as contas', 'ligacao-simples', () => abrirEcra('contas')));
+}
+
+/* Uma linha do bloco "A pagar", com o campo do valor a abrir por baixo. */
+function linhaContaFixa(l, k) {
+  const li = document.createElement('div');
+  li.className = 'conta-linha' + (l.dias < 0 ? ' atrasada' : '');
+
+  const topo = document.createElement('div');
+  topo.className = 'cf-topo';
+
+  const ic = document.createElement('span');
+  ic.className = 'cf-ic';
+  ic.textContent = l.conta.emoji || '🧾';
+
+  const meio = document.createElement('div');
+  meio.className = 'cf-meio';
+  const nome = document.createElement('b');
+  nome.textContent = l.conta.nome;
+  const quando = document.createElement('small');
+  quando.textContent = quandoVence(l.dias) +
+    (l.conta.valor > 0 ? ' · ' + dinheiro(l.conta.valor) : '');
+  meio.append(nome, quando);
+
+  const bt = document.createElement('button');
+  bt.type = 'button';
+  bt.className = 'cf-bt';
+  bt.textContent = contaAberta === l.conta.id ? 'Fechar' : 'Paguei';
+  bt.addEventListener('click', () => {
+    contaAberta = (contaAberta === l.conta.id) ? null : l.conta.id;
+    desenhar();
+  });
+
+  topo.append(ic, meio, bt);
+  li.appendChild(topo);
+
+  if (contaAberta === l.conta.id) li.appendChild(caixaPagar(l, k));
+  return li;
+}
+
+/* O valor entra escrito e seleccionado. A luz de Agosto não é a de Julho, e
+   confirmar um valor errado é pior do que não registar nada. */
+function caixaPagar(l, k) {
+  const cx = document.createElement('div');
+  cx.className = 'cf-pagar';
+
+  const lab = document.createElement('label');
+  lab.textContent = 'Quanto pagou';
+  lab.setAttribute('for', 'cf-valor');
+
+  const inp = document.createElement('input');
+  inp.id = 'cf-valor';
+  inp.type = 'text';
+  inp.inputMode = 'decimal';
+  inp.value = l.conta.valor > 0 ? String(l.conta.valor).replace('.', ',') : '';
+  inp.placeholder = '0,00';
+
+  const conf = document.createElement('button');
+  conf.type = 'button';
+  conf.className = 'btn btn-gold';
+  conf.textContent = 'Confirmar';
+
+  const feito = () => {
+    const v = parseFloat(String(inp.value).replace(',', '.'));
+    if (!isFinite(v) || v <= 0) {
+      mostrarAviso('Escreva quanto pagou.', 'erro');
+      inp.focus();
+      return;
+    }
+    pagarContaFixa(l.conta, k, v);
+  };
+  conf.addEventListener('click', feito);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); feito(); } });
+
+  cx.append(lab, inp, conf);
+  setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  return cx;
+}
+
+/* Pagar é lançar uma saída normal. Não há um segundo tipo de movimento: a
+   conta fixa é só a lembrança de que ele existe, e depois de lançado vive na
+   lista, no CSV e nas categorias como qualquer outro. */
+function pagarContaFixa(conta, k, valor) {
+  const ano = parseInt(k.slice(0, 4), 10);
+  const mes = parseInt(k.slice(5, 7), 10) - 1;
+  const venc = dataVencimento(conta, ano, mes);
+
+  /* A data é a de hoje quando se paga dentro do mês em que se está — é
+     verdade e mantém o mês do ecrã coerente. Num mês passado ou futuro
+     escreve-se na data de vencimento, que é a única defensável. */
+  const mesmoMes = (ano === hoje.getFullYear() && mes === hoje.getMonth());
+  const data = mesmoMes ? HOJE : isoLocal(venc);
+
+  lancar({
+    tipo: 'saida', valor: valor, categoria: conta.categoria,
+    descricao: conta.nome, data: data
+  });
+
+  contasPagas[chavePaga(conta.id, k)] = data;
+
+  /* O valor habitual passa a ser o último pago: no mês seguinte a caixa já
+     abre com o número certo, sem ninguém ter de o ir corrigir. */
+  if (Math.abs(valor - conta.valor) > 0.005) {
+    conta.valor = Math.round(valor * 100) / 100;
+  }
+  guardarContas();
+
+  contaAberta = null;
+  desenhar();
+  mostrarAviso(conta.nome + ' — ' + dinheiro(valor) + ' lançado.', 'ok');
+}
+
+function desmarcarContaFixa(conta, k) {
+  delete contasPagas[chavePaga(conta.id, k)];
+  guardarContas();
+  desenhar();
+  mostrarAviso('Marcada como por pagar. O movimento que já lançou não foi apagado.', 'info');
+}
+
+/* ---------- o ecrã das contas ---------- */
+function desenharGestaoContas() {
+  const corpo = document.getElementById('contas-lista');
+  if (!corpo) return;
+
+  const k = chaveMes(mesVisto.ano, mesVisto.mes);
+  const c = calcularContasFixas(k);
+  corpo.innerHTML = '';
+
+  const resumo = document.getElementById('contas-resumo');
+  if (resumo) {
+    resumo.textContent = contasFixas.length
+      ? 'Este mês: ' + dinheiro(c.total) + ' em contas fixas. Já pagou ' +
+        dinheiro(c.pago) + '. Falta ' + dinheiro(c.falta) + '.'
+      : 'Ainda não escreveu nenhuma.';
+  }
+
+  c.lista.forEach(l => {
+    const li = document.createElement('div');
+    li.className = 'conta-gerir' + (l.paga ? ' paga' : '');
+
+    const ic = document.createElement('span');
+    ic.className = 'cf-ic';
+    ic.textContent = l.conta.emoji || '🧾';
+
+    const meio = document.createElement('div');
+    meio.className = 'cf-meio';
+    const nome = document.createElement('b');
+    nome.textContent = l.conta.nome;
+    const sub = document.createElement('small');
+    sub.textContent = 'dia ' + l.conta.dia +
+      (l.conta.valor > 0 ? ' · ' + dinheiro(l.conta.valor) : ' · valor por dizer') +
+      (l.paga ? ' · paga' : '');
+    meio.append(nome, sub);
+
+    const bt = document.createElement('button');
+    bt.type = 'button';
+    bt.className = 'cf-bt' + (l.paga ? ' feito' : '');
+    bt.textContent = l.paga ? 'Paga ✓' : 'Apagar';
+    bt.addEventListener('click', () => {
+      if (l.paga) { desmarcarContaFixa(l.conta, k); return; }
+      if (!confirm('Apagar "' + l.conta.nome + '" da lista de contas fixas?\n\n' +
+                   'Os movimentos que já lançou ficam como estão.')) return;
+      contasFixas = contasFixas.filter(x => x.id !== l.conta.id);
+      Object.keys(contasPagas).forEach(kk => {
+        if (kk.indexOf(l.conta.id + '|') === 0) delete contasPagas[kk];
+      });
+      guardarContas();
+      desenhar();
+    });
+
+    li.append(ic, meio, bt);
+    corpo.appendChild(li);
+  });
+
+  desenharSugestoesContas();
+}
+
+/* As sugestões são atalhos, não uma lista fechada: tocar numa escreve o nome
+   e a categoria, e o que falta é o dia e o valor. Quem tiver uma conta que
+   não está aqui escreve-a à mão no mesmo formulário. */
+function desenharSugestoesContas() {
+  const zona = document.getElementById('contas-sugestoes');
+  if (!zona) return;
+  zona.innerHTML = '';
+  const lista = CONTAS_SUGESTOES[moeda] || CONTAS_SUGESTOES.EUR;
+  lista.forEach(s => {
+    if (contasFixas.some(c => c.nome.toLowerCase() === s.nome.toLowerCase())) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cf-sug';
+    b.textContent = s.emoji + ' ' + s.nome;
+    b.addEventListener('click', () => {
+      document.getElementById('cf-nome').value = s.nome;
+      document.getElementById('cf-nome').dataset.emoji = s.emoji;
+      document.getElementById('cf-nome').dataset.cat = s.cat;
+      document.getElementById('cf-dia').focus();
+    });
+    zona.appendChild(b);
+  });
+}
+
+function adicionarContaFixa(ev) {
+  if (ev) ev.preventDefault();
+  const campoNome = document.getElementById('cf-nome');
+  const nome = campoNome.value.trim();
+  const dia = Math.floor(Number(document.getElementById('cf-dia').value));
+  const valor = parseFloat(String(document.getElementById('cf-novo-valor').value).replace(',', '.'));
+
+  if (!nome) { mostrarAviso('Escreva o nome da conta.', 'erro'); campoNome.focus(); return; }
+  if (!(dia >= 1 && dia <= 31)) {
+    mostrarAviso('O dia tem de estar entre 1 e 31.', 'erro');
+    document.getElementById('cf-dia').focus();
+    return;
+  }
+  if (contasFixas.length >= 40) {
+    mostrarAviso('São já quarenta contas fixas — não deve caber mais nenhuma.', 'erro');
+    return;
+  }
+
+  contasFixas.push({
+    id: idNovo(),
+    nome: nome.slice(0, 40),
+    valor: (isFinite(valor) && valor > 0) ? Math.round(valor * 100) / 100 : 0,
+    dia: dia,
+    categoria: campoNome.dataset.cat || 'contas',
+    emoji: campoNome.dataset.emoji || '🧾'
+  });
+  guardarContas();
+
+  campoNome.value = '';
+  delete campoNome.dataset.cat;
+  delete campoNome.dataset.emoji;
+  document.getElementById('cf-dia').value = '';
+  document.getElementById('cf-novo-valor').value = '';
+
+  desenhar();
+  mostrarAviso(nome + ' entrou nas contas fixas.', 'ok');
+}
+
 /* ---------- render ---------- */
 function desenhar() {
   const r = calcular();
@@ -2832,6 +3285,8 @@ function desenhar() {
   desenharCategorias(r);
   desenharReserva(r);
   desenharComprometido(r);
+  desenharContasFixas(r);
+  desenharGestaoContas();
   desenharParc();
   desenharSimulador();
 }
@@ -3470,6 +3925,48 @@ function ligarNuvem() {
           }
         }
 
+        /* Contas fixas. Juntam-se pelo id e nunca se apagam: uma conta criada
+           no telemóvel e outra criada no computador têm de sobreviver às
+           duas. Quem já cá está ganha — trazer da nuvem um valor antigo por
+           cima do que se acabou de pagar seria desfazer trabalho à frente
+           dos olhos de quem o fez. */
+        const cf = dados.contasFixas;
+        if (cf && typeof cf === 'object') {
+          if (Array.isArray(cf.contas)) {
+            const tenho = {};
+            contasFixas.forEach(c => { tenho[c.id] = true; });
+            cf.contas.forEach(c => {
+              if (!c || typeof c !== 'object' || tenho[c.id]) return;
+              const dia = Math.floor(Number(c.dia));
+              const nome = typeof c.nome === 'string' ? c.nome.trim().slice(0, 40) : '';
+              if (!nome || !(dia >= 1 && dia <= 31)) return;
+              const v = Number(c.valor);
+              contasFixas.push({
+                id: typeof c.id === 'string' && c.id ? c.id : idNovo(),
+                nome: nome,
+                valor: (isFinite(v) && v > 0) ? Math.round(v * 100) / 100 : 0,
+                dia: dia,
+                categoria: typeof c.categoria === 'string' && c.categoria ? c.categoria : 'contas',
+                emoji: typeof c.emoji === 'string' ? c.emoji.slice(0, 4) : '🧾'
+              });
+            });
+          }
+          /* Pagamentos juntam-se sempre: marcado como pago num sítio é pago
+             em todos. O contrário — desmarcar por sincronização — faria a
+             app pedir duas vezes o mesmo pagamento. */
+          if (cf.pagas && typeof cf.pagas === 'object') {
+            Object.keys(cf.pagas).forEach(kk => {
+              if (/^[^|]+\|\d{4}-\d{2}$/.test(kk) && !contasPagas[kk] &&
+                  typeof cf.pagas[kk] === 'string') {
+                contasPagas[kk] = cf.pagas[kk];
+              }
+            });
+          }
+          guardarContas();
+        } else if (contasFixas.length) {
+          guardarContas();   // primeira vez nesta conta: enviar o que já há
+        }
+
         const naNuvem = Array.isArray(dados.movimentos) ? dados.movimentos : [];
         if (!naNuvem.length) {
           // Primeira vez nesta conta: enviamos o que já existe no telemóvel.
@@ -3539,6 +4036,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('form').addEventListener('submit', adicionar);
+  const formConta = document.getElementById('form-conta');
+  if (formConta) formConta.addEventListener('submit', adicionarContaFixa);
   document.getElementById('mes-antes').addEventListener('click', () => mudarMes(-1));
   document.getElementById('mes-depois').addEventListener('click', () => mudarMes(1));
   document.getElementById('exportar').addEventListener('click', exportarCSV);

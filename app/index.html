@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=25">
-<link rel="stylesheet" href="../app-financas.css?v=25">
-<link rel="stylesheet" href="../app-shell.css?v=25">
-<link rel="stylesheet" href="../assistente.css?v=25">
-<link rel="stylesheet" href="../ferramentas.css?v=25">
+<link rel="stylesheet" href="../estilo.css?v=26">
+<link rel="stylesheet" href="../app-financas.css?v=26">
+<link rel="stylesheet" href="../app-shell.css?v=26">
+<link rel="stylesheet" href="../assistente.css?v=26">
+<link rel="stylesheet" href="../ferramentas.css?v=26">
 </head>
 <body class="app-shell">
 
@@ -89,6 +89,15 @@
         <div id="plano-corpo"></div>
         </div>
 
+        <!-- As contas que vencem. Só existe quando há alguma a vencer dentro
+        de sete dias ou em atraso — se estiver tudo pago, desaparece. Fica
+        acima de tudo o resto porque é o único sítio da app onde se perde
+        dinheiro por não olhar a tempo. -->
+        <div class="bloco bloco-contas" id="bloco-contas" hidden>
+        <h3 id="contas-titulo">A pagar</h3>
+        <div id="contas-corpo"></div>
+        </div>
+
       <button class="accao-grande" type="button" data-ir="apoios" style="background:linear-gradient(135deg,#3ecf8e,#2ba572);box-shadow:0 12px 30px rgba(62,207,142,.24)">
         <span class="ic">🎁</span>
         <span><b>Apoios que talvez não receba</b><span>Muita gente tem direito a três e recebe um</span></span>
@@ -115,6 +124,9 @@
       <div class="atalhos">
         <button class="atalho destaque" type="button" data-ir="wesley">
           <span class="ic">💬</span><b>Chat com o Wesley</b><small>Perguntas de dinheiro, respondidas</small>
+        </button>
+        <button class="atalho" type="button" data-ir="contas">
+          <span class="ic">🗓️</span><b>As minhas contas</b><small>O que vence e em que dia</small>
         </button>
         <button class="atalho" type="button" data-ir="mes">
           <span class="ic">📊</span><b>O meu mês</b><small>Movimentos e categorias</small>
@@ -293,6 +305,50 @@
         que você já lançou. Isto é educação financeira, não aconselhamento de
         investimento: não recomendo produtos nem digo onde pôr dinheiro.
       </p>
+    </div>
+  </section>
+
+  <!-- ============ CONTAS FIXAS ============ -->
+  <section class="ecra" id="ecra-contas">
+    <div class="wrap">
+      <h1 class="ecra-titulo">As minhas contas</h1>
+      <p class="ecra-sub">
+        O que se repete todos os meses, e em que dia vence. É o que evita
+        pagar multa e juros por esquecimento.
+      </p>
+
+      <div class="bloco">
+        <h3>Escrever uma conta</h3>
+        <div class="cf-sugs" id="contas-sugestoes"></div>
+        <form id="form-conta" novalidate>
+          <div class="field">
+            <label for="cf-nome">O que é</label>
+            <input id="cf-nome" type="text" placeholder="Luz" autocomplete="off" maxlength="40">
+          </div>
+          <div class="cf-dois">
+            <div class="field">
+              <label for="cf-dia">Vence no dia</label>
+              <input id="cf-dia" type="text" inputmode="numeric" placeholder="8" maxlength="2">
+            </div>
+            <div class="field">
+              <label for="cf-novo-valor">Costuma ser</label>
+              <input id="cf-novo-valor" type="text" inputmode="decimal" placeholder="0,00">
+            </div>
+          </div>
+          <button class="btn btn-gold" type="submit">Acrescentar</button>
+        </form>
+        <p class="cf-nota">
+          O valor é só um ponto de partida — a luz e a água mudam todos os
+          meses. Quando pagar, escreve o que pagou mesmo, e passa a ser esse
+          o valor que aparece da próxima vez.
+        </p>
+      </div>
+
+      <div class="bloco">
+        <h3>As contas deste mês</h3>
+        <p class="ecra-sub" id="contas-resumo"></p>
+        <div id="contas-lista"></div>
+      </div>
     </div>
   </section>
 
@@ -630,11 +686,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=25"></script>
-<script src="../site.js?v=25"></script>
-<script src="../app-financas.js?v=25"></script>
-<script src="../assistente.js?v=25"></script>
-<script src="../ferramentas.js?v=25"></script>
+<script src="../firebase-config.js?v=26"></script>
+<script src="../site.js?v=26"></script>
+<script src="../app-financas.js?v=26"></script>
+<script src="../assistente.js?v=26"></script>
+<script src="../ferramentas.js?v=26"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
@@ -650,6 +706,11 @@
     // como as pessoas esperam dentro de uma aplicação.
     history.replaceState({ ecra: nome }, '', '#' + nome);
   }
+
+  // O app-financas.js precisa de mandar mudar de ecrã (o bloco das contas
+  // fixas leva ao ecrã das contas). Quem manda nas abas é este ficheiro, por
+  // isso é ele que expõe a função — e não o contrário.
+  window.irEcra = ir;
 
   abas.forEach(a => a.addEventListener('click', () => ir(a.dataset.ecra)));
   document.querySelectorAll('[data-ir]').forEach(b =>

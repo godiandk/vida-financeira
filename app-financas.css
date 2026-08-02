@@ -392,3 +392,81 @@ ul.movs li:last-child{border-bottom:none}
 }
 .mini-btn:hover{background:rgba(217,178,110,.18)}
 .mini-btn.danger{border-color:rgba(224,113,92,.4);color:#f0a292}
+
+/* ============================================================
+   CONTAS FIXAS — o calendário do que vence
+   ============================================================ */
+.bloco-contas[hidden]{display:none}
+.bloco-contas{
+  border-color:rgba(217,178,110,.34);
+  background:linear-gradient(150deg,rgba(217,178,110,.075),rgba(217,178,110,.01));
+  margin-bottom:22px;
+}
+.contas-vazio{color:var(--cream-dim);font-size:.9rem;line-height:1.65;margin-bottom:16px}
+
+/* Uma linha por conta a vencer. */
+.conta-linha{border-bottom:1px solid rgba(217,178,110,.1);padding:12px 0}
+.conta-linha:last-of-type{border-bottom:none}
+.cf-topo{display:flex;align-items:center;gap:12px}
+.cf-ic{
+  width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:rgba(217,178,110,.1);border:1px solid rgba(217,178,110,.18);font-size:1.05rem;
+}
+.cf-meio{flex:1;min-width:0}
+.cf-meio b{display:block;font-size:.94rem;color:var(--cream);font-weight:700}
+.cf-meio small{display:block;font-size:.79rem;color:var(--cream-dim);margin-top:1px}
+
+/* Em atraso muda a cor do que vence, e mais nada. Não se pinta a linha toda
+   de vermelho: quem está em atraso já sabe, e um ecrã a gritar é um ecrã que
+   se fecha. */
+.conta-linha.atrasada .cf-meio small{color:#f0a292}
+.conta-linha.atrasada .cf-ic{border-color:rgba(224,113,92,.35)}
+
+.cf-bt{
+  flex:none;border:1px solid rgba(217,178,110,.4);background:transparent;
+  color:var(--gold-soft);border-radius:999px;padding:9px 16px;
+  font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;min-height:40px;
+}
+.cf-bt:active{transform:scale(.97)}
+.cf-bt.feito{border-color:rgba(62,207,142,.4);color:var(--up)}
+
+/* A caixa do valor, aberta por baixo da linha. */
+.cf-pagar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:12px 0 4px 50px}
+.cf-pagar label{
+  flex-basis:100%;font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--cream-dim);font-weight:700;
+}
+.cf-pagar input{
+  flex:1;min-width:110px;background:var(--ink);border:1px solid rgba(217,178,110,.28);
+  border-radius:12px;padding:13px 15px;color:var(--cream);font-family:inherit;font-size:1rem;
+}
+.cf-pagar input:focus{outline:none;border-color:var(--gold)}
+.cf-pagar .btn{flex:none;padding:13px 20px;font-size:.86rem}
+@media(max-width:400px){.cf-pagar{margin-left:0}.cf-pagar .btn{width:100%;justify-content:center}}
+
+.contas-nota{color:var(--cream-dim);font-size:.86rem;line-height:1.6;margin-top:14px}
+.contas-nota.aperto{color:#f0a292}
+
+.ligacao-simples{
+  background:none;border:none;color:var(--gold-soft);font-family:inherit;
+  font-size:.84rem;font-weight:700;text-decoration:underline;cursor:pointer;
+  padding:10px 0 2px;margin-top:6px;
+}
+
+/* ---------- o ecrã das contas ---------- */
+.cf-sugs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.cf-sug{
+  border:1px solid rgba(217,178,110,.26);background:transparent;color:var(--cream-dim);
+  border-radius:999px;padding:10px 15px;font-family:inherit;font-size:.83rem;
+  font-weight:600;cursor:pointer;min-height:40px;
+}
+.cf-sug:active{transform:scale(.97)}
+.cf-dois{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cf-nota{color:var(--cream-dim);font-size:.83rem;line-height:1.6;margin-top:14px}
+
+.conta-gerir{
+  display:flex;align-items:center;gap:12px;padding:13px 0;
+  border-bottom:1px solid rgba(217,178,110,.1);
+}
+.conta-gerir:last-child{border-bottom:none}
+.conta-gerir.paga{opacity:.55}
