@@ -29,6 +29,7 @@ const AGREGADO_CHAVE = 'vf:agregado';
 const BALANCO_CHAVE = 'vf:balanco';
 const PLANO_CHAVE = 'vf:plano';
 const CONTAS_CHAVE = 'vf:contasfixas';
+const ARRANQUE_CHAVE = 'vf:arranque';
 
 /* Quantos dias à frente se avisa. Sete porque é o horizonte em que ainda se
    consegue fazer alguma coisa — adiar uma compra, pedir um adiantamento,
@@ -292,6 +293,13 @@ let contasFixas = [];
 let contasPagas = {};
 let contaAberta = null;    // id da conta com o campo do valor à vista
 let contasEditando = false;// o ecrã de gestão está em modo de edição
+
+/* ---------- primeiro arranque ----------
+   `entra` e `essenciais` são o que a pessoa DISSE, não o que foi medido. Ficam
+   separados dos movimentos de propósito: assim que houver lançamentos a sério,
+   é por eles que a app se guia, e isto passa a ser só o ponto de partida. */
+let arranque = { feito: false, dispensado: false, entra: null, essenciais: null };
+let arranquePasso = 0;     // 0, 1, 2 = perguntas · 3 = a resposta
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -686,6 +694,17 @@ function carregarLocal() {
     };
   }
 
+  const arr = lerJSON(ARRANQUE_CHAVE, null);
+  if (arr) {
+    const e = Number(arr.entra), s = Number(arr.essenciais);
+    arranque = {
+      feito: !!arr.feito,
+      dispensado: !!arr.dispensado,
+      entra: (isFinite(e) && e > 0) ? e : null,
+      essenciais: (isFinite(s) && s >= 0) ? s : null
+    };
+  }
+
   /* Contas fixas. Cada campo é validado à entrada: o que vier torto é
      descartado, não corrigido às cegas. Uma conta com `dia` fora de 1..31 ou
      com valor negativo entrava aqui e só rebentava três ecrãs à frente. */
@@ -715,6 +734,16 @@ function carregarLocal() {
         }
       });
     }
+  }
+}
+
+function guardarArranque() {
+  try { localStorage.setItem(ARRANQUE_CHAVE, JSON.stringify(arranque)); }
+  catch (e) { /* sem localStorage a app funciona, só volta a perguntar */ }
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ arranque }, { merge: true })
+      .catch(() => { /* silencioso: já ficou gravado no telemóvel */ });
   }
 }
 
@@ -2906,6 +2935,209 @@ function actualizarParc(notaDivisao) {
 }
 
 /* ============================================================
+   PRIMEIRO ARRANQUE — duas perguntas e uma resposta
+
+   A app abria com três zeros e uma frase a dizer que não se lançou nada.
+   Um caderno em branco. Quem está com a corda ao pescoço não abre um caderno
+   em branco duas vezes.
+
+   Duas perguntas, e a resposta na terceira folha. Duas e não seis: cada
+   pergunta a mais é gente que desiste, e com estas duas já se consegue dizer
+   a coisa que interessa — quanto sobra por dia.
+
+   Regras que isto respeita:
+   - Nada do que aqui se escreve vira movimento sem a pessoa confirmar que já
+     aconteceu. Dizer "entram 900 por mês" não é dizer "recebi 900 hoje", e
+     gravar um lançamento que não houve é escrever ficção nos dados dela.
+   - O que ela disser fica marcado como dito, nunca como medido. Assim que
+     houver lançamentos a sério, são eles que mandam.
+   - Dá para saltar. Quem não quiser responder carrega uma vez e nunca mais vê
+     isto.
+   ============================================================ */
+function precisaArranque() {
+  return !arranque.feito && !arranque.dispensado && movimentos.length === 0;
+}
+
+function desenharArranque() {
+  const ecra = document.getElementById('ecra-arranque');
+  const corpo = document.getElementById('arranque-corpo');
+  if (!ecra || !corpo) return;
+
+  if (!precisaArranque()) { ecra.hidden = true; return; }
+  ecra.hidden = false;
+  corpo.innerHTML = '';
+
+  const passos = [
+    { chave: 'entra',
+      titulo: 'Quanto entra por mês?',
+      ajuda: 'Tudo o que entra em casa, de todas as pessoas: salário, apoios, pensões, biscates. Um número aproximado chega.' },
+    { chave: 'essenciais',
+      titulo: 'E quanto é o que não dá para não pagar?',
+      ajuda: 'Casa, comida, luz, água, transporte, remédios. Só isso — o resto fica de fora. Se não souber ao certo, escreva o que lhe parecer.' }
+  ];
+
+  /* ---- as duas perguntas ---- */
+  if (arranquePasso < passos.length) {
+    const passo = passos[arranquePasso];
+
+    const conta = document.createElement('p');
+    conta.className = 'arr-conta';
+    conta.textContent = 'Pergunta ' + (arranquePasso + 1) + ' de ' + passos.length;
+
+    const h = document.createElement('h2');
+    h.className = 'arr-titulo';
+    h.textContent = passo.titulo;
+
+    const aj = document.createElement('p');
+    aj.className = 'arr-ajuda';
+    aj.textContent = passo.ajuda;
+
+    const campo = document.createElement('div');
+    campo.className = 'arr-campo';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.inputMode = 'decimal';
+    inp.placeholder = '0,00';
+    inp.id = 'arr-valor';
+    const v = arranque[passo.chave];
+    if (v !== null && v !== undefined) inp.value = String(v).replace('.', ',');
+    campo.appendChild(inp);
+
+    const seguir = () => {
+      const n = parseFloat(String(inp.value).replace(',', '.'));
+      if (!isFinite(n) || n < 0) {
+        mostrarAviso('Escreva um número, mesmo que seja por alto.', 'erro');
+        inp.focus();
+        return;
+      }
+      arranque[passo.chave] = Math.round(n * 100) / 100;
+      arranquePasso++;
+      guardarArranque();
+      desenhar();
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); seguir(); } });
+
+    const bt = botao(arranquePasso === passos.length - 1 ? 'Ver o que sobra' : 'Seguinte',
+                     'btn btn-gold arr-bt', seguir);
+
+    corpo.append(conta, h, aj, campo, bt);
+
+    if (arranquePasso > 0) {
+      corpo.appendChild(botao('‹ Voltar', 'arr-voltar', () => {
+        arranquePasso--;
+        desenhar();
+      }));
+    } else {
+      corpo.appendChild(botao('Agora não', 'arr-voltar', () => {
+        arranque.dispensado = true;
+        guardarArranque();
+        desenhar();
+        abrirEcra('inicio');
+      }));
+    }
+
+    setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    return;
+  }
+
+  /* ---- a resposta ---- */
+  const entra = arranque.entra || 0;
+  const ess = arranque.essenciais || 0;
+  const sobra = Math.round((entra - ess) * 100) / 100;
+
+  const h = document.createElement('h2');
+  h.className = 'arr-titulo';
+
+  const grande = document.createElement('div');
+  grande.className = 'arr-numero' + (sobra <= 0 ? ' neg' : '');
+
+  const sub = document.createElement('p');
+  sub.className = 'arr-ajuda';
+
+  if (sobra > 0) {
+    const dias = diasNoMes(hoje.getFullYear(), hoje.getMonth());
+    h.textContent = 'Sobram-lhe';
+    grande.textContent = dinheiro(sobra) + ' por mês';
+    sub.textContent = 'São ' + dinheiro(sobra / dias) + ' por dia. É este o número que a app vai ' +
+      'seguir — e cada gasto que lançar vai dizer-lhe o que ainda resta.';
+  } else if (sobra === 0) {
+    h.textContent = 'Fica exactamente a zero';
+    grande.textContent = dinheiro(0);
+    sub.textContent = 'Entra o que sai. Não é falta de disciplina — é a conta que lhe está a ser feita. ' +
+      'A app vai ajudá-lo a ver onde é que ainda há folga, se houver.';
+  } else {
+    /* Aqui não se pede para poupar. Pedir a alguém que guarde dinheiro que não
+       existe é a maneira mais rápida de essa pessoa fechar a aplicação e não
+       voltar — e a culpa não é dela. */
+    h.textContent = 'Falta-lhe dinheiro todos os meses';
+    grande.textContent = dinheiro(sobra);
+    sub.textContent = 'Os essenciais são maiores do que o que entra. Isto não é falta de disciplina, ' +
+      'e a app não lhe vai pedir para poupar. O que vale a pena agora é ver os apoios a que ' +
+      'talvez tenha direito, e o que se pode negociar.';
+  }
+
+  corpo.append(h, grande, sub);
+
+  const acoes = document.createElement('div');
+  acoes.className = 'arr-accoes';
+
+  acoes.appendChild(botao('Escrever as contas que se repetem', 'btn btn-gold arr-bt', () => {
+    terminarArranque();
+    abrirEcra('contas');
+  }));
+
+  if (sobra < 0) {
+    acoes.appendChild(botao('Ver os apoios', 'btn btn-line arr-bt', () => {
+      terminarArranque();
+      abrirEcra('apoios');
+    }));
+  }
+
+  acoes.appendChild(botao('Começar a lançar gastos', 'btn btn-line arr-bt', () => {
+    terminarArranque();
+    abrirEcra('lancar');
+  }));
+
+  corpo.appendChild(acoes);
+}
+
+function terminarArranque() {
+  arranque.feito = true;
+  guardarArranque();
+  desenhar();
+}
+
+/* O que a pessoa disse no arranque, mostrado no Início enquanto não houver
+   lançamentos. Marcado como dito e não como medido — a diferença importa, e
+   a linha diz isso por palavras. */
+function desenharPartida(r) {
+  const bloco = document.getElementById('bloco-partida');
+  if (!bloco) return;
+
+  const semLancamentos = movimentos.length === 0;
+  const temResposta = arranque.feito && arranque.entra !== null && arranque.essenciais !== null;
+  if (!semLancamentos || !temResposta) { bloco.hidden = true; return; }
+
+  const sobra = Math.round((arranque.entra - arranque.essenciais) * 100) / 100;
+  bloco.hidden = false;
+  const corpo = document.getElementById('partida-corpo');
+  corpo.innerHTML = '';
+
+  const l1 = document.createElement('p');
+  l1.className = 'partida-num' + (sobra <= 0 ? ' neg' : '');
+  l1.textContent = sobra > 0 ? dinheiro(sobra) + ' por mês' : dinheiro(sobra);
+
+  const l2 = document.createElement('p');
+  l2.className = 'partida-nota';
+  l2.textContent = 'Pelo que me disse: entram ' + dinheiro(arranque.entra) +
+    ' e os essenciais são ' + dinheiro(arranque.essenciais) + '. ' +
+    'Ainda não é medido — lance um mês e passa a ser.';
+
+  corpo.append(l1, l2);
+  corpo.appendChild(botao('Lançar o primeiro gasto', 'btn btn-gold', () => abrirEcra('lancar')));
+}
+
+/* ============================================================
    CONTAS FIXAS — o calendário do que vence
 
    Porquê isto e não mais uma estatística: o dinheiro que uma pessoa pobre
@@ -3285,6 +3517,8 @@ function desenhar() {
   desenharCategorias(r);
   desenharReserva(r);
   desenharComprometido(r);
+  desenharArranque();
+  desenharPartida(r);
   desenharContasFixas(r);
   desenharGestaoContas();
   desenharParc();
@@ -3925,6 +4159,21 @@ function ligarNuvem() {
           }
         }
 
+        /* Arranque: se já foi feito num sítio, não se volta a perguntar no
+           outro. Só se aceita o que faz o estado avançar — nunca o contrário,
+           senão entrar noutro telemóvel ressuscitava as perguntas. */
+        const ar = dados.arranque;
+        if (ar && typeof ar === 'object') {
+          if (ar.feito) arranque.feito = true;
+          if (ar.dispensado) arranque.dispensado = true;
+          const e = Number(ar.entra), s = Number(ar.essenciais);
+          if (arranque.entra === null && isFinite(e) && e > 0) arranque.entra = e;
+          if (arranque.essenciais === null && isFinite(s) && s >= 0) arranque.essenciais = s;
+          guardarArranque();
+        } else if (arranque.feito || arranque.dispensado) {
+          guardarArranque();
+        }
+
         /* Contas fixas. Juntam-se pelo id e nunca se apagam: uma conta criada
            no telemóvel e outra criada no computador têm de sobreviver às
            duas. Quem já cá está ganha — trazer da nuvem um valor antigo por
@@ -4049,5 +4298,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   desenhar();
+
+  /* Quem chega de novo abre nas perguntas, não num ecrã de zeros. Depois do
+     `desenhar()` porque é ele que decide se o arranque ainda faz falta. */
+  if (precisaArranque()) abrirEcra('arranque');
+
   ligarNuvem();
 });

@@ -53,6 +53,11 @@ body.app-shell .app-float{display:none}
 /* ---------- ecrãs ---------- */
 .ecra{display:none}
 .ecra.activo{display:block;animation:ecraEntra .22s ease}
+/* Depois do `.activo` de propósito: os dois selectores pesam o mesmo, por isso
+   ganha o que vier por último. É o que faz o ecrã do primeiro arranque
+   desaparecer assim que deixa de ser preciso, mesmo que ainda esteja
+   marcado como activo. */
+.ecra[hidden]{display:none}
 @keyframes ecraEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .ecra > .wrap{padding-top:18px}
 

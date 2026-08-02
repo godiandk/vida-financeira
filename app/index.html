@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=28">
-<link rel="stylesheet" href="../app-financas.css?v=28">
-<link rel="stylesheet" href="../app-shell.css?v=28">
-<link rel="stylesheet" href="../assistente.css?v=28">
-<link rel="stylesheet" href="../ferramentas.css?v=28">
+<link rel="stylesheet" href="../estilo.css?v=29">
+<link rel="stylesheet" href="../app-financas.css?v=29">
+<link rel="stylesheet" href="../app-shell.css?v=29">
+<link rel="stylesheet" href="../assistente.css?v=29">
+<link rel="stylesheet" href="../ferramentas.css?v=29">
 </head>
 <body class="app-shell">
 
@@ -87,6 +87,13 @@
         <div class="bloco bloco-plano" id="bloco-plano" hidden>
         <h3 id="plano-titulo">O meu plano</h3>
         <div id="plano-corpo"></div>
+        </div>
+
+        <!-- O que a pessoa respondeu no arranque, enquanto não houver
+        lançamentos. Dito como dito, nunca como medido. -->
+        <div class="bloco bloco-partida" id="bloco-partida" hidden>
+        <h3>O seu ponto de partida</h3>
+        <div id="partida-corpo"></div>
         </div>
 
         <!-- As contas que vencem. Só existe quando há alguma a vencer dentro
@@ -305,6 +312,16 @@
         que você já lançou. Isto é educação financeira, não aconselhamento de
         investimento: não recomendo produtos nem digo onde pôr dinheiro.
       </p>
+    </div>
+  </section>
+
+  <!-- ============ PRIMEIRO ARRANQUE ============
+       Duas perguntas e uma resposta, em vez de abrir com três zeros. Só
+       existe enquanto não houver nenhum movimento lançado e a pessoa não
+       tiver dito que agora não. -->
+  <section class="ecra" id="ecra-arranque" hidden>
+    <div class="wrap">
+      <div class="arranque" id="arranque-corpo"></div>
     </div>
   </section>
 
@@ -686,11 +703,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=28"></script>
-<script src="../site.js?v=28"></script>
-<script src="../app-financas.js?v=28"></script>
-<script src="../assistente.js?v=28"></script>
-<script src="../ferramentas.js?v=28"></script>
+<script src="../firebase-config.js?v=29"></script>
+<script src="../site.js?v=29"></script>
+<script src="../app-financas.js?v=29"></script>
+<script src="../assistente.js?v=29"></script>
+<script src="../ferramentas.js?v=29"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v20';
+const VERSAO = 'vida-financeira-v21';
 
 const FICHEIROS = [
   './',
