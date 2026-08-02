@@ -929,4 +929,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   aplicarEstadoPremium();
+
+  /* O mês de experiência só se sabe depois de o Firebase responder, e isso
+     acontece depois de os ecrãs estarem desenhados. Sem voltar a aplicar o
+     estado aqui, quem acaba de criar conta vê os cadeados fechados apesar de
+     já ter acesso — e a primeira impressão de quem se inscreveu é a de que
+     não recebeu nada. */
+  window.addEventListener('vf:acesso-mudou', aplicarEstadoPremium);
 });

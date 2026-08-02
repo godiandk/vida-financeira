@@ -223,3 +223,89 @@ footer{border-top:1px solid rgba(217,178,110,.14);padding:44px 0 28px}
 .app-open-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:999px;background:linear-gradient(135deg,var(--gold-soft),var(--gold));color:var(--ink);font-weight:800;font-size:.95rem;text-decoration:none;box-shadow:0 10px 26px rgba(217,178,110,.3)}
 .app-or{display:flex;align-items:center;gap:12px;margin:18px 0 4px;color:var(--cream-dim);font-size:.74rem}
 .app-or::before,.app-or::after{content:"";flex:1;height:1px;background:rgba(217,178,110,.2)}
+
+/* ============================================================
+   Banner rotativo
+
+   Vive nas duas pontas: na página de entrada e dentro da aplicação. É onde
+   se diz o que a app faz — que dá para escrever "gastei 30 no continente" e
+   ficar lançado, que quem cria conta tem um mês aberto — porque ninguém
+   descobre isso sozinho a olhar para um formulário.
+
+   A altura do corpo é fixa de propósito. As mensagens não têm todas o mesmo
+   comprimento e, sem isto, a página saltava de sete em sete segundos por
+   baixo do dedo de quem está a ler outra coisa.
+   ============================================================ */
+.banner{
+  position:relative;
+  background:linear-gradient(135deg,rgba(217,178,110,.15),rgba(217,178,110,.03));
+  border:1px solid rgba(217,178,110,.28);
+  border-radius:20px;
+  padding:18px 20px 12px;
+}
+.bn-corpo{min-height:104px;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.bn-etiqueta{
+  font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);font-weight:800;
+}
+.bn-texto{color:var(--cream);font-size:.95rem;line-height:1.5;margin:0}
+/* É um <a> na página de entrada e um <button> dentro da aplicação: têm de
+   ficar iguais aos olhos de quem carrega. */
+.bn-accao{
+  display:inline-block;margin-top:2px;border:none;cursor:pointer;font-family:inherit;
+  color:var(--ink);background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  border-radius:999px;padding:7px 16px;font-size:.82rem;font-weight:800;
+  text-decoration:none;line-height:1.4;
+}
+.bn-accao:active{transform:translateY(1px)}
+
+/* Cada mudança entra a esbater. Como o corpo é reescrito de raiz, a animação
+   volta a correr sozinha em cada mensagem. */
+.bn-etiqueta,.bn-texto,.bn-accao{animation:bnEntra .34s ease}
+@keyframes bnEntra{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.bn-baixo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.bn-pontos{display:flex;align-items:center;gap:7px}
+.bn-ponto{
+  width:8px;height:8px;padding:0;border:none;border-radius:999px;cursor:pointer;
+  background:rgba(217,178,110,.3);transition:width .2s ease,background .2s ease;
+}
+.bn-ponto[aria-selected="true"]{width:20px;background:var(--gold)}
+.bn-fechar{
+  width:30px;height:30px;flex:none;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(217,178,110,.24);background:transparent;
+  color:var(--cream-dim);font-size:.85rem;line-height:1;
+}
+.bn-fechar:active{background:rgba(217,178,110,.12)}
+
+/* Na faixa da página de entrada, entre o herói e o resto. */
+.banner-faixa{padding:0 0 10px}
+
+/* Dentro da aplicação fica por cima dos ecrãs, à distância que os ecrãs já
+   guardam do topo (`.ecra > .wrap{padding-top:18px}`). A margem vai no próprio
+   banner e não no `.wrap` que o envolve: assim, quando ele está escondido, não
+   fica um espaço vazio a empurrar o resto para baixo. */
+.app-shell .banner{margin-top:18px}
+
+@media(max-width:560px){
+  .banner{padding:16px 16px 10px}
+  /* A mais alta das mensagens, medida em ecrãs de 360 a 430px. Menos do que
+     isto e a caixa mudava de tamanho de sete em sete segundos, empurrando a
+     página inteira para baixo e para cima. */
+  .bn-corpo{min-height:136px}
+  .bn-texto{font-size:.9rem}
+}
+
+/* Dentro da aplicação, o banner faz o papel do espaço que separava os ecrãs
+   da barra fixa de cima. Sem isto ficavam os dois — 64px de `section` mais os
+   190 do banner — e a saudação nascia a meio do ecrã.
+   A classe é posta pelo banner.js, e não por `:has()`, para nos telemóveis
+   mais velhos o resultado ser o mesmo e não um buraco. */
+body.app-shell.com-banner .ecra{padding-top:0}
+
+/* Quem pediu menos movimento ao sistema não leva animação nenhuma — e o
+   banner deixa de rodar sozinho (isso está no banner.js). */
+@media(prefers-reduced-motion:reduce){
+  .bn-etiqueta,.bn-texto,.bn-accao{animation:none}
+  .bn-ponto{transition:none}
+}

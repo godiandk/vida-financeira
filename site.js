@@ -78,6 +78,15 @@
 
     const doc = db.collection('perfis').doc(u.uid);
 
+    /* Guarda a cópia local e avisa o resto da página. O aviso é preciso porque
+       isto corre depois de os ecrãs estarem desenhados: sem ele, quem acabava
+       de criar conta via as ferramentas de assinatura trancadas, apesar de já
+       ter o mês, até recarregar a página. */
+    const fixarTeste = (inicio) => {
+      try { localStorage.setItem('vf:teste', JSON.stringify({ uid: u.uid, inicio: inicio })); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('vf:acesso-mudou')); } catch (e) {}
+    };
+
     doc.get().then(d => {
       const p = d.exists ? (d.data() || {}) : {};
       const campos = {
@@ -94,12 +103,20 @@
       const inicio = (typeof p.teste === 'string' && p.teste) ? p.teste : new Date().toISOString();
       if (!p.teste) campos.teste = inicio;
 
-      /* Cópia local para a aplicação saber a resposta sem internet. Quem manda
-         é a da nuvem — esta é reescrita por ela a cada arranque com sessão. */
-      try { localStorage.setItem('vf:teste', JSON.stringify({ uid: u.uid, inicio: inicio })); } catch (e) {}
-
+      fixarTeste(inicio);
       return doc.set(campos, { merge: true });
-    }).catch(() => {});   // sem ficha, a app funciona na mesma
+    }).catch(() => {
+      /* A leitura falhou — rede fraca, quase sempre. Sem isto ficava tudo por
+         fazer e quem criasse conta numa ligação má não recebia mês nenhum, o
+         que é castigar exactamente quem tem pior internet. Dá-se o mês já,
+         localmente, e não se escreve `teste` na nuvem: a data verdadeira é
+         estabelecida na primeira leitura que resultar, e essa manda. */
+      fixarTeste(new Date().toISOString());
+      doc.set({
+        email: u.email || '', nome: u.displayName || '',
+        visto: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+    });
   });
 })();
 

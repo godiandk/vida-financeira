@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=44">
-<link rel="stylesheet" href="../app-financas.css?v=44">
-<link rel="stylesheet" href="../app-shell.css?v=44">
-<link rel="stylesheet" href="../assistente.css?v=44">
-<link rel="stylesheet" href="../ferramentas.css?v=44">
+<link rel="stylesheet" href="../estilo.css?v=46">
+<link rel="stylesheet" href="../app-financas.css?v=46">
+<link rel="stylesheet" href="../app-shell.css?v=46">
+<link rel="stylesheet" href="../assistente.css?v=46">
+<link rel="stylesheet" href="../ferramentas.css?v=46">
 </head>
 <body class="app-shell">
 
@@ -34,6 +34,21 @@
 </div>
 
 <main>
+
+  <!-- Banner rotativo. Fica acima dos ecrãs, e não dentro de um deles: quem
+  chega sem nada lançado abre no chat, e um banner arrumado no Início nunca
+  chegava a ser visto por essa pessoa — que é precisamente quem ainda não sabe
+  que dá para escrever "gastei 30 no continente" nem que tem um mês aberto.
+  Nasce escondido: só o banner.js o mostra, e quem o fechou não o vê mais. -->
+  <div class="wrap banner-topo">
+    <aside class="banner" id="banner" hidden aria-label="O que a aplicação faz">
+      <div class="bn-corpo" id="banner-corpo"></div>
+      <div class="bn-baixo">
+        <div class="bn-pontos" id="banner-pontos" role="tablist" aria-label="Escolher mensagem"></div>
+        <button class="bn-fechar" id="banner-fechar" type="button" aria-label="Fechar os avisos">✕</button>
+      </div>
+    </aside>
+  </div>
 
   <!-- ============ INÍCIO ============ -->
   <section class="ecra activo" id="ecra-inicio">
@@ -818,15 +833,16 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=44"></script>
-<script src="../site.js?v=44"></script>
-<script src="../app-financas.js?v=44"></script>
-<script src="../excel.js?v=44"></script>
-<script src="../partilha.js?v=44"></script>
-<script src="../divida.js?v=44"></script>
-<script src="../interpretar.js?v=44"></script>
-<script src="../assistente.js?v=44"></script>
-<script src="../ferramentas.js?v=44"></script>
+<script src="../firebase-config.js?v=46"></script>
+<script src="../site.js?v=46"></script>
+<script src="../app-financas.js?v=46"></script>
+<script src="../excel.js?v=46"></script>
+<script src="../partilha.js?v=46"></script>
+<script src="../divida.js?v=46"></script>
+<script src="../interpretar.js?v=46"></script>
+<script src="../assistente.js?v=46"></script>
+<script src="../ferramentas.js?v=46"></script>
+<script src="../banner.js?v=46"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

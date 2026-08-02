@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=44">
+<link rel="stylesheet" href="estilo.css?v=46">
 <style>
 .hero{
   min-height:100vh;display:flex;align-items:center;
@@ -151,6 +151,21 @@
     </div>
   </section>
 
+  <!-- Banner rotativo. Diz o que a aplicação faz e o que se ganha por criar
+  conta — coisas que ninguém adivinha a olhar para um formulário. Nasce
+  escondido: só o banner.js o mostra, e quem o fechou uma vez não o vê mais. -->
+  <section class="banner-faixa">
+    <div class="wrap">
+      <aside class="banner" id="banner" hidden aria-label="O que a aplicação faz">
+        <div class="bn-corpo" id="banner-corpo"></div>
+        <div class="bn-baixo">
+          <div class="bn-pontos" id="banner-pontos" role="tablist" aria-label="Escolher mensagem"></div>
+          <button class="bn-fechar" id="banner-fechar" type="button" aria-label="Fechar os avisos">✕</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
   <section>
     <div class="wrap">
       <div class="eyebrow">O que faz</div>
@@ -240,7 +255,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=44"></script>
-<script src="site.js?v=44"></script>
+<script src="firebase-config.js?v=46"></script>
+<script src="site.js?v=46"></script>
+<script src="banner.js?v=46"></script>
 </body>
 </html>

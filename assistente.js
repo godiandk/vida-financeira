@@ -652,6 +652,16 @@ Pergunte à vontade.`, 'ele');
   const foraFoto = document.getElementById('foto-fora');
   if (foraFoto) foraFoto.addEventListener('click', () => window.limparFotoEmEspera());
 
+  /* Se o acesso chegar depois da página desenhada, o chat passa a poder
+     lançar sem se recarregar nada. */
+  window.addEventListener('vf:acesso-mudou', () => {
+    if (podeLancarPorTexto() && !window.__avisouAcesso) {
+      window.__avisouAcesso = true;
+      juntar('O seu **mês de experiência** está a contar. A partir de agora ' +
+        'escreva o que gastou e eu lanço por si.', 'ele');
+    }
+  });
+
   document.querySelectorAll('.assist-sug').forEach(b => {
     b.addEventListener('click', () => {
       juntar(b.textContent, 'eu');

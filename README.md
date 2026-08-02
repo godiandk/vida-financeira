@@ -26,6 +26,8 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `divida.js` — o que uma dívida custa, com as taxas de referência por país
 - `excel.js` — gera um ficheiro .xlsx à mão, sem bibliotecas
 - `partilha.js` — desenha o cartão que se manda para o grupo
+- `banner.js` — o banner rotativo que conta o que a aplicação faz e o mês
+  grátis de quem cria conta; cala-se para quem já tem chave
 - `ferramentas.js` — as calculadoras, a ajuda e o acesso de assinatura
 - `site.js` — menu, moeda por país, sessão e registo do service worker
 - `firebase-config.js` — ligação ao Firebase (**opcional**, ver abaixo)
