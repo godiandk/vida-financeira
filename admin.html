@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=22">
-<link rel="stylesheet" href="ferramentas.css?v=22">
+<link rel="stylesheet" href="estilo.css?v=23">
+<link rel="stylesheet" href="ferramentas.css?v=23">
 <style>
 main{padding-top:96px;padding-bottom:80px}
 .painel-grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
@@ -83,9 +83,26 @@ ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
 .sec.on{display:block;animation:secEntra .2s ease}
 @keyframes secEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 ul.admins{list-style:none;margin-top:16px}
-ul.admins li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(217,178,110,.1);font-size:.9rem}
+ul.admins li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid rgba(217,178,110,.1);font-size:.9rem}
+.c-info{min-width:0;flex:1}
+.c-info b{display:block;color:var(--cream);font-weight:700}
+.c-info span{display:block;color:var(--cream-dim);font-size:.8rem;overflow:hidden;text-overflow:ellipsis}
 ul.admins li:last-child{border-bottom:none}
-ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800}
+ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;flex:none}
+
+/* Botão pequeno. Estava a ser usado em todo o painel — Sair, Exportar, Copiar
+   chave, Dar acesso — sem existir em lado nenhum, por isso o navegador
+   desenhava-os cinzentos do sistema no meio de um painel escuro. */
+.mini-btn{
+  border:1px solid rgba(217,178,110,.35);background:transparent;color:var(--gold-soft);
+  border-radius:999px;padding:9px 15px;font-family:inherit;font-size:.8rem;
+  font-weight:700;cursor:pointer;min-height:38px;white-space:nowrap;flex:none;
+  transition:border-color .15s,color .15s;
+}
+.mini-btn:hover{border-color:var(--gold);color:var(--gold)}
+.mini-btn:active{transform:scale(.97)}
+.mini-btn.danger{border-color:rgba(232,106,106,.4);color:#e86a6a}
+.mini-btn.danger:hover{border-color:#e86a6a}
 </style>
 </head>
 <body>
@@ -154,7 +171,7 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
         <button type="button" class="chip" data-sec="gerar">🔑 Gerar chave</button>
         <button type="button" class="chip" data-sec="validar">✅ Validar chave</button>
         <button type="button" class="chip" data-sec="historico">📒 Histórico</button>
-        <button type="button" class="chip" data-sec="admins">👥 Administradores</button>
+        <button type="button" class="chip" data-sec="admins">👥 Utilizadores</button>
         <button type="button" class="chip" data-sec="conta">⚙️ Conta</button>
       </nav>
 
@@ -292,23 +309,26 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
 
       <!-- ---------- administradores ---------- -->
       <section class="sec" id="sec-admins">
-      <div class="cx">
-        <h3>Quem tem acesso ao painel</h3>
-        <p class="sub">
-          Acrescentar aqui dá acesso a gerar chaves e a ver o facturado.
-          A sua conta é a dona e não pode ser retirada.
-        </p>
-        <form id="form-admin" novalidate>
-          <div class="linha-chave">
-            <input id="novo-admin" type="email" placeholder="email da pessoa" autocomplete="off">
-            <button class="btn btn-gold" type="submit">Dar acesso</button>
+        <div class="cx">
+          <h3>Contas registadas</h3>
+          <p class="sub">
+            Quem criou conta no site. Dar acesso abre o painel a essa pessoa —
+            gerar chaves e ver o facturado. A sua conta é a dona e não se retira.
+          </p>
+          <p class="sub" id="contas-so-leitura" hidden>
+            Dar e retirar acesso é só do dono da conta principal. Aqui vê quem
+            já o tem.
+          </p>
+          <ul class="admins" id="lista-admins"></ul>
+          <div class="vazio" id="contas-vazio" hidden>
+            <span class="em">👤</span>
+            Ainda ninguém criou conta.
           </div>
-        </form>
-        <ul class="admins" id="lista-admins"></ul>
-        <p class="nota-fact" style="margin-top:12px">
-          Quem receber acesso precisa de ter conta criada com esse email.
-        </p>
-      </div>
+          <p class="nota-fact" style="margin-top:14px">
+            Esta lista tem apenas o nome e o email de cada conta. Os movimentos
+            das pessoas não são visíveis aqui, nem em sítio nenhum do painel.
+          </p>
+        </div>
       </section>
 
       <!-- ---------- conta ---------- -->
@@ -329,7 +349,7 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=22"></script>
-<script src="admin.js?v=22"></script>
+<script src="firebase-config.js?v=23"></script>
+<script src="admin.js?v=23"></script>
 </body>
 </html>

@@ -22,7 +22,6 @@ const PRECOS = {
 
 let vendas = [];
 let admin = null;
-let admins = [];
 
 /* O dono é sempre administrador e não se retira. É o que impede alguém —
    incluindo o próprio — de ficar de fora do painel por engano. */
@@ -76,52 +75,114 @@ function gravarVenda(v) {
   return db.collection('vendas').add(v);
 }
 
-/* ---------- administradores ----------
-   A lista vive em `config/admins`, no Firestore, para se poder mudar sem
-   tocar no código. As regras lêem esse mesmo documento, por isso é ele que
-   manda de verdade. */
-function carregarAdmins() {
-  if (!window.db) return Promise.resolve([DONO]);
-  return db.collection('config').doc('admins').get()
-    .then(d => {
-      const e = (d.exists && Array.isArray(d.data().emails)) ? d.data().emails : [];
-      return [DONO].concat(e.filter(x => x.toLowerCase() !== DONO)).filter((v, i, a) => a.indexOf(v) === i);
-    })
-    .catch(() => [DONO]);
+/* ---------- utilizadores e administradores ----------
+
+   Segue o padrão do godiandk/godiandk: cada administrador é um documento
+   `admins/{uid}`, não uma linha numa lista de emails. Assim as regras do
+   Firestore verificam com um `exists()` directo pelo uid de quem está a
+   pedir — mais simples e mais barato do que ler um documento e procurar
+   dentro de um array.
+
+   E dá-se acesso escolhendo de uma lista de contas reais, em vez de
+   escrever o email à mão: não há forma de dar acesso a uma conta que não
+   existe, nem de o perder num erro de escrita. */
+let contas = [];
+
+/* Só o dono dá e retira acesso — é o que as regras do Firestore permitem.
+   Sem isto, quem recebesse acesso podia retirá-lo a quem lho deu. Os outros
+   administradores vêem a lista, e os botões nem aparecem: mais vale não os
+   mostrar do que mostrá-los para falharem. */
+let souDono = false;
+
+/* Lê `snap.docs` em vez de `snap.forEach`: dá o mesmo, mas é um array, e assim
+   uma resposta inesperada devolve lista vazia em vez de rebentar. Isto corre
+   dentro do arranque do painel — se estoirasse aqui, levava atrás a facturação
+   e o histórico, que nada têm a ver com contas. */
+function docsDe(snap) {
+  return (snap && Array.isArray(snap.docs)) ? snap.docs : [];
 }
 
-function gravarAdmins(lista) {
-  const outros = lista.filter(x => x.toLowerCase() !== DONO);
-  return db.collection('config').doc('admins')
-           .set({ emails: outros, actualizado: new Date().toISOString() }, { merge: true });
+function carregarContas() {
+  if (!window.db) return Promise.resolve([]);
+  return Promise.all([
+    db.collection('perfis').get().catch(() => null),
+    db.collection('admins').get().catch(() => null)
+  ]).then(([perfis, adms]) => {
+    const eAdm = {};
+    docsDe(adms).forEach(d => { eAdm[d.id] = true; });
+    const arr = [];
+    docsDe(perfis).forEach(d => {
+      const p = d.data() || {};
+      arr.push({
+        uid: d.id,
+        email: p.email || '',
+        nome: p.nome || '',
+        visto: p.visto || '',
+        admin: !!eAdm[d.id] || (p.email || '').toLowerCase() === DONO,
+        dono: (p.email || '').toLowerCase() === DONO
+      });
+    });
+    // Dono primeiro, depois quem tem painel, depois os outros por ordem
+    // alfabética. Sem a primeira linha o dono caía no meio dos administradores
+    // conforme a letra do nome, e a lista deixava de se ler de cima para baixo.
+    arr.sort((a, b) => Number(b.dono)  - Number(a.dono)  ||
+                       Number(b.admin) - Number(a.admin) ||
+                       (a.nome || a.email).localeCompare(b.nome || b.email));
+    return arr;
+  });
 }
 
-function desenharAdmins() {
+function darAcesso(uid, email) {
+  return db.collection('admins').doc(uid).set({
+    email: email || '', desde: new Date().toISOString()
+  });
+}
+
+function tirarAcesso(uid) {
+  return db.collection('admins').doc(uid).delete();
+}
+
+function desenharContas() {
   const ul = document.getElementById('lista-admins');
+  const vazio = document.getElementById('contas-vazio');
   if (!ul) return;
   ul.innerHTML = '';
-  admins.forEach(em => {
-    const li = document.createElement('li');
-    const nome = document.createElement('span');
-    nome.textContent = em;
-    li.appendChild(nome);
+  if (vazio) vazio.hidden = contas.length > 0;
 
-    if (em.toLowerCase() === DONO) {
+  contas.forEach(c => {
+    const li = document.createElement('li');
+
+    const info = document.createElement('div');
+    info.className = 'c-info';
+    const nome = document.createElement('b');
+    nome.textContent = c.nome || '(sem nome)';
+    const em = document.createElement('span');
+    em.textContent = c.email || '—';
+    info.append(nome, em);
+    li.appendChild(info);
+
+    if (c.dono || !souDono) {
       const tag = document.createElement('span');
       tag.className = 'dono';
-      tag.textContent = 'dono';
+      tag.textContent = c.dono ? 'dono' : (c.admin ? 'painel' : '—');
       li.appendChild(tag);
     } else {
       const bt = document.createElement('button');
-      bt.className = 'mini-btn danger';
       bt.type = 'button';
-      bt.textContent = 'Retirar';
+      bt.className = 'mini-btn' + (c.admin ? ' danger' : '');
+      bt.textContent = c.admin ? 'Retirar acesso' : 'Dar acesso';
       bt.addEventListener('click', async () => {
-        if (!confirm('Retirar o acesso de ' + em + '?')) return;
-        admins = admins.filter(x => x !== em);
-        try { await gravarAdmins(admins); aviso('Acesso retirado.', 'ok'); }
-        catch (e) { aviso('Não foi possível gravar: ' + e.message, 'erro'); }
-        desenharAdmins();
+        const nome = c.nome || c.email;
+        if (!confirm(c.admin ? 'Retirar o acesso de ' + nome + '?'
+                             : 'Dar acesso ao painel a ' + nome + '?')) return;
+        try {
+          if (c.admin) { await tirarAcesso(c.uid); aviso('Acesso retirado.', 'ok'); }
+          else { await darAcesso(c.uid, c.email); aviso('Acesso dado a ' + nome + '.', 'ok'); }
+          c.admin = !c.admin;
+          desenharContas();
+        } catch (e) {
+          aviso('Não foi possível gravar: ' + e.message, 'erro');
+        }
       });
       li.appendChild(bt);
     }
@@ -350,6 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('sair').addEventListener('click', () => auth.signOut());
+  const sair2 = document.getElementById('sair2');
+  if (sair2) sair2.addEventListener('click', () => auth.signOut());
 
   /* ---------- gerar ---------- */
   document.getElementById('form-gerar').addEventListener('submit', async e => {
@@ -403,26 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open('https://wa.me/?text=' + t, '_blank');
   });
 
-  document.getElementById('form-admin').addEventListener('submit', async e => {
-    e.preventDefault();
-    const campo = document.getElementById('novo-admin');
-    const em = campo.value.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { aviso('Esse email não parece válido.', 'erro'); return; }
-    if (admins.map(x => x.toLowerCase()).includes(em)) { aviso('Essa conta já tem acesso.', 'info'); return; }
-    admins.push(em);
-    try {
-      await gravarAdmins(admins);
-      aviso('Acesso dado a ' + em + '. A pessoa precisa de ter conta criada com esse email.', 'ok');
-      campo.value = '';
-    } catch (err) {
-      admins = admins.filter(x => x !== em);
-      aviso('Não foi possível gravar: ' + err.message, 'erro');
-    }
-    desenharAdmins();
-  });
-
-  document.getElementById('sair2').addEventListener('click', () => auth.signOut());
-
   document.getElementById('procura').addEventListener('input', desenharLista);
   document.getElementById('exportar-vendas').addEventListener('click', exportarVendas);
 
@@ -430,10 +473,14 @@ document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async u => {
     let eAdmin = false;
     if (u) {
+      const email = (u.email || '').toLowerCase();
       const doFicheiro = Array.isArray(window.ADMIN_EMAILS) ? ADMIN_EMAILS : [];
-      const naNuvem = await carregarAdmins();
-      eAdmin = doFicheiro.concat(naNuvem).map(x => x.toLowerCase())
-                         .includes((u.email || '').toLowerCase());
+      eAdmin = email === DONO || doFicheiro.map(x => x.toLowerCase()).includes(email);
+      if (!eAdmin && window.db) {
+        // Documento próprio de cada administrador, como no godiandk/godiandk.
+        eAdmin = await db.collection('admins').doc(u.uid).get()
+                         .then(d => d.exists).catch(() => false);
+      }
     }
 
     if (!u) {
@@ -453,14 +500,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     admin = u;
+    souDono = (u.email || '').toLowerCase() === DONO;
+    const soLeitura = document.getElementById('contas-so-leitura');
+    if (soLeitura) soLeitura.hidden = souDono;
     zonaLogin.hidden = true;
     zonaPainel.hidden = false;
     document.getElementById('quem').textContent = u.email;
     const q2 = document.getElementById('quem2');
     if (q2) q2.textContent = u.email;
 
-    admins = await carregarAdmins();
-    desenharAdmins();
+    contas = await carregarContas().catch(() => []);
+    desenharContas();
 
     vendas = await carregarVendas();
     desenharFacturacao();

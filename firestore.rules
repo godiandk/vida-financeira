@@ -9,13 +9,15 @@ rules_version = '2';
 // — tem de estar aqui.
 //
 // Princípio: cada pessoa só chega aos seus próprios movimentos.
-// Não há administrador: ninguém vê o dinheiro de outra pessoa.
+// Há administradores, mas nenhum deles vê o dinheiro de ninguém: o
+// painel chega a `perfis` (nome e email) e a `vendas` (chaves emitidas),
+// e nunca a `utilizadores`, que é onde os movimentos vivem.
 // ============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function ehDono(uid) {
+    function ehDonoDoc(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
 
@@ -25,30 +27,23 @@ service cloud.firestore {
     // quem lá está. Sem sessão iniciada não se lê nem se escreve nada.
     // ----------------------------------------------------------
     match /utilizadores/{uid} {
-      allow read, write: if ehDono(uid);
+      allow read, write: if ehDonoDoc(uid);
 
       // Espaço para o futuro (metas, contas separadas, etc.): o que
       // estiver debaixo do documento da pessoa pertence à mesma pessoa.
       match /{sub=**} {
-        allow read, write: if ehDono(uid);
+        allow read, write: if ehDonoDoc(uid);
       }
     }
 
     // ----------------------------------------------------------
-    // vendas/{id} — as chaves de assinatura emitidas
+    // Quem administra
     //
-    // Só o administrador lê e escreve. Não guarda nada sobre quem usa
-    // a aplicação: os movimentos das pessoas continuam onde sempre
-    // estiveram, no dispositivo delas e na sua própria área privada.
-    //
-    // Esta lista de emails é a que manda, porque corre do lado do
-    // servidor. A lista igual no firebase-config.js serve apenas para a
-    // página saber o que mostrar — mudá-la no navegador não dá acesso a
-    // dado nenhum.
-    // ----------------------------------------------------------
     // O dono está escrito aqui e não se retira — é o que impede o painel de
-    // ficar sem ninguém. Os outros administradores vivem em config/admins,
-    // para se poderem acrescentar sem mexer nas regras.
+    // ficar sem ninguém. Os outros são um documento em admins/{uid}, como no
+    // godiandk/godiandk: assim a verificação é um exists() directo pelo uid
+    // de quem está a pedir, em vez de ler um documento e procurar num array.
+    // ----------------------------------------------------------
     function ehDono() {
       return request.auth != null
           && request.auth.token.email == 'wly.vianna@gmail.com';
@@ -57,24 +52,36 @@ service cloud.firestore {
     function ehAdmin() {
       return ehDono()
           || (request.auth != null
-              && exists(/databases/$(database)/documents/config/admins)
-              && request.auth.token.email
-                 in get(/databases/$(database)/documents/config/admins).data.emails);
-    }
-
-    match /vendas/{id} {
-      allow read, create, update, delete: if ehAdmin();
+              && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
 
     // ----------------------------------------------------------
-    // config/admins — quem mais tem acesso ao painel
-    //
-    // Qualquer administrador lê a lista, mas só o dono a altera. Sem isto,
-    // quem recebesse acesso podia retirá-lo a quem lho deu.
+    // admins/{uid} — quem tem acesso ao painel
+    // Qualquer administrador vê a lista; só o dono dá e retira acesso. Sem
+    // isso, quem recebesse acesso podia retirá-lo a quem lho deu.
     // ----------------------------------------------------------
-    match /config/{doc} {
+    match /admins/{uid} {
       allow read: if ehAdmin();
       allow write: if ehDono();
+    }
+
+    // ----------------------------------------------------------
+    // perfis/{uid} — nome e email de cada conta, e mais nada
+    //
+    // Existe para o painel poder listar contas reais e dar acesso com um
+    // toque. Cada pessoa escreve só a sua ficha. O dinheiro de ninguém passa
+    // por aqui: isso vive em utilizadores/{uid}, que o administrador não lê.
+    // ----------------------------------------------------------
+    match /perfis/{uid} {
+      allow read: if ehAdmin() || ehDonoDoc(uid);
+      allow write: if ehDonoDoc(uid);
+    }
+
+    // ----------------------------------------------------------
+    // vendas/{id} — as chaves de assinatura emitidas
+    // ----------------------------------------------------------
+    match /vendas/{id} {
+      allow read, create, update, delete: if ehAdmin();
     }
 
     // ----------------------------------------------------------

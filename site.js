@@ -60,6 +60,29 @@
   alvos.forEach(el => obs.observe(el));
 })();
 
+/* ---------- ficha da conta ----------
+
+   Guarda em `perfis/{uid}` apenas o nome e o email — nunca movimentos. É o
+   que permite ao painel listar as contas registadas e dar acesso com um
+   toque, em vez de obrigar a escrever o email à mão e correr o risco de o
+   dar a uma conta que não existe.
+
+   A separação é de propósito: o dinheiro das pessoas vive em
+   `utilizadores/{uid}`, e essa colecção o administrador não lê. A promessa
+   de que ninguém vê as contas de ninguém continua inteira. */
+(function ficha() {
+  if (typeof firebase === 'undefined' || !window.auth || !window.db) return;
+
+  auth.onAuthStateChanged(u => {
+    if (!u) return;
+    db.collection('perfis').doc(u.uid).set({
+      email: u.email || '',
+      nome: u.displayName || '',
+      visto: new Date().toISOString()
+    }, { merge: true }).catch(() => {});   // sem ficha, a app funciona na mesma
+  });
+})();
+
 /* ---------- "Entrar / Criar conta" passa a nome quando há sessão ----------
 
    Duas armadilhas, ambas já custaram caro:
