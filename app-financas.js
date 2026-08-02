@@ -31,6 +31,48 @@ const PLANO_CHAVE = 'vf:plano';
 const CONTAS_CHAVE = 'vf:contasfixas';
 const ARRANQUE_CHAVE = 'vf:arranque';
 
+/* ---------- o dinheiro extra do ano, por país ----------
+   Estava escrito "em junho e em novembro" em quatro sítios. É verdade em
+   Portugal e falso em todo o lado: no Brasil é um 13.º só, pago até 30 de
+   Novembro e até 20 de Dezembro, e vale um mês de salário e não dois.
+
+   `mesesAno` é quantos meses de rendimento esse dinheiro vale por ano — é o
+   que a conta da reserva usa. Dois em Portugal (férias + Natal), um no
+   Brasil (13.º).
+
+   Para as moedas de que não tenho resposta verificada, a pergunta faz-se sem
+   nomear meses nenhuns. Inventar um mês errado é pior do que não o dizer:
+   quem contasse com dinheiro num mês em que ele não entra ficava sem plano
+   e sem confiança na aplicação. */
+const SUBSIDIOS = {
+  EUR: {
+    pergunta: 'Recebe subsídio de férias e de Natal?',
+    quando: 'em junho e em novembro',
+    nome: 'subsídio de férias e de Natal',
+    metade: 'metade dos dois subsídios',
+    mesesAno: 2
+  },
+  BRL: {
+    pergunta: 'Recebe 13.º salário?',
+    quando: 'em novembro e em dezembro',
+    nome: '13.º salário',
+    metade: 'metade do 13.º',
+    mesesAno: 1
+  }
+};
+
+const SUBSIDIO_NEUTRO = {
+  pergunta: 'Recebe algum pagamento extra por ano (13.º, subsídio, prémio)?',
+  quando: 'nos meses em que esse dinheiro entra',
+  nome: 'pagamento extra do ano',
+  metade: 'metade desse pagamento',
+  mesesAno: 1
+};
+
+function subsidioPais() {
+  return SUBSIDIOS[moeda] || SUBSIDIO_NEUTRO;
+}
+
 /* Quantos dias à frente se avisa. Sete porque é o horizonte em que ainda se
    consegue fazer alguma coisa — adiar uma compra, pedir um adiantamento,
    cobrar quem deve. Avisar com um mês não muda nada; avisar no próprio dia
@@ -2437,7 +2479,7 @@ function desenharPlano(r) {
     /* Para um assalariado em Portugal é a pergunta que mais muda o plano
        de todas — dois meses por ano com dinheiro a mais decidem se há
        reserva ou não. */
-    planoPergunta(c, 5, ['Recebe subsídio de férias e de Natal?'], [
+    planoPergunta(c, 5, [subsidioPais().pergunta], [
       ['Sim', () => responderPlano('subsidios', 'sim'), 'sim'],
       ['Não', () => responderPlano('subsidios', 'nao'), 'nao'],
       ['Não sei', () => responderPlano('subsidios', 'nao-sei'), 'nao-sei']
@@ -2543,9 +2585,9 @@ function desenharPlanoDocumento(r, c) {
         : ('As despesas fixas maiores são ' + juntarFrase(pesos) + '. São as que têm tamanho para mudar alguma coisa.'));
     }
     if (resp.subsidios === 'sim') {
-      passos.push('Em junho e em novembro entra dinheiro a mais. É a única altura do ano em que dá para guardar, e a app pergunta-lhe nesse dia.');
+      passos.push(comMaiuscula(subsidioPais().quando) + ' entra dinheiro a mais. É a única altura do ano em que dá para guardar, e a app pergunta-lhe nesse dia.');
     } else if (resp.subsidios === 'nao-sei') {
-      passos.push('Se receber subsídio de férias e de Natal, esses são os dois meses do ano em que dá para guardar. Vale a pena confirmar no recibo.');
+      passos.push('Se receber ' + subsidioPais().nome + ', é aí que dá para guardar. Vale a pena confirmar no recibo.');
     }
     passos.push(temPrest
       ? 'Não parcelar mais nada. Cada prestação nova tira ao mês seguinte.'
@@ -2585,8 +2627,8 @@ function desenharPlanoDocumento(r, c) {
     ol.start = passos.length + 1;
     const li = document.createElement('li');
     li.textContent = resp.subsidios === 'sim'
-      ? 'Em junho e em novembro entra dinheiro a mais. Guardar metade é o que decide se chega a dezembro com reserva ou sem ela.'
-      : 'Se receber subsídio de férias e de Natal, junho e novembro são os dois meses em que dá para guardar mais. Vale a pena confirmar no recibo.';
+      ? comMaiuscula(subsidioPais().quando) + ' entra dinheiro a mais. Guardar metade é o que decide se chega ao fim do ano com reserva ou sem ela.'
+      : 'Se receber ' + subsidioPais().nome + ', é ' + subsidioPais().quando + ' que dá para guardar mais. Vale a pena confirmar no recibo.';
     ol.appendChild(li);
     c.appendChild(ol);
   }
@@ -2596,10 +2638,12 @@ function desenharPlanoDocumento(r, c) {
   if (PLANO_PARA[resp.para]) c.appendChild(p(PLANO_PARA[resp.para], 'res-nota'));
 
   const alvo = planoDegrau(r, resp.para);
-  /* Metade dos dois subsídios é, ao ano, cerca de um mês de rendimento —
-     espalhado por doze, dá isto. Conta simples e verificável; nada de
-     retorno projectado, que não existe. */
-  const extra = (resp.subsidios === 'sim' && r.R > 0) ? r.R / 12 : 0;
+  /* Metade do dinheiro extra do ano, espalhada por doze meses. Em Portugal
+     são dois subsídios, logo metade vale um mês de rendimento por ano; no
+     Brasil o 13.º é um só, logo vale meio. Conta simples e verificável; nada
+     de retorno projectado, que não existe. */
+  const sub = subsidioPais();
+  const extra = (resp.subsidios === 'sim' && r.R > 0) ? (r.R * sub.mesesAno / 2) / 12 : 0;
   const ritmo = mensal + extra;
 
   if (!alvo) {
@@ -2610,7 +2654,7 @@ function desenharPlanoDocumento(r, c) {
   } else {
     const falta = alvo.valor - r.reserva;
     const n = Math.ceil(falta / ritmo);
-    const comSub = extra > 0 ? ' mais metade dos dois subsídios' : '';
+    const comSub = extra > 0 ? ' mais ' + sub.metade : '';
     if (n > 60) {
       c.appendChild(p('A ' + dinheiro(mensal) + ' por mês' + comSub +
         ', chegar a ' + alvo.rotulo + ' (' + dinheiro(alvo.valor) +

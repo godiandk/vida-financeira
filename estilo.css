@@ -16,6 +16,19 @@
   --radius:18px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
+
+/* O atributo `hidden` passa a esconder mesmo. Sem esta linha não escondia: a
+   regra `[hidden]{display:none}` vem do navegador, e qualquer `display`
+   escrito numa classe nossa ganha-lhe. Bastava um `.cadeado{display:flex}`
+   para o `elemento.hidden = true` deixar de fazer efeito nenhum.
+
+   Isto já custou dois defeitos aqui — os atalhos do Início, e a chave de
+   assinatura que desbloqueava tudo menos o cadeado desenhado por cima. Um
+   `!important` numa linha fecha a porta aos restantes, em vez de os irmos
+   descobrindo um a um, sempre pela mesma via: alguém que pagou a ver o
+   contrário do que aconteceu. */
+[hidden]{display:none!important}
+
 html{scroll-behavior:smooth}
 body{
   background:var(--ink);

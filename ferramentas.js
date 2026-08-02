@@ -96,7 +96,7 @@ const AJUDA = {
     campos: [
       ['Entra por mês', 'O que entra num mês normal, <b>sem</b> contar subsídios.'],
       ['Essenciais por mês', 'O que não dá para deixar de pagar.'],
-      ['Subsídio, quando há (cada um)', 'Quanto recebe <b>de cada</b> subsídio. Em Portugal são dois: o de férias e o de Natal. <b>Se não recebe nenhum, escreva 0</b> — o plano faz-se à mesma.']
+      ['O pagamento extra do ano', 'Em Portugal são dois — férias e Natal — e escreve-se o valor de <b>cada um</b>; entram em Junho e Novembro. No Brasil é o <b>13.º inteiro</b>, que entra em Novembro e Dezembro. <b>Se não recebe nada disso, escreva 0</b> — o plano faz-se à mesma.']
     ],
     exemplo: 'Entram 1 000 € e os essenciais são 820 €: sobram 180 € por mês. Nos meses em que entra um subsídio sobra muito mais — e é aí que se junta a reserva do ano inteiro, não nos outros dez.'
   },
@@ -390,6 +390,36 @@ function desenharBotoesMeus() {
   });
 }
 
+/* ---------- o dinheiro extra do ano, por país ----------
+   O plano de 12 meses punha o subsídio em Junho e Novembro para toda a gente.
+   É Portugal. No Brasil o 13.º entra até 30 de Novembro e até 20 de Dezembro,
+   e é um só — não dois.
+
+   `guardaEmCada` é a fatia do que se escreveu no campo que fica guardada em
+   cada um desses meses. Em Portugal escreve-se o valor de CADA subsídio e
+   guarda-se metade de cada um: 0,5. No Brasil escreve-se o 13.º inteiro e
+   guarda-se metade dele, repartida pelos dois meses: 0,25 em cada. Nos dois
+   casos a regra é a mesma — guardar metade do que entra a mais. */
+const SUB_PAIS = {
+  EUR: { meses: [6, 11],  guardaEmCada: 0.5,
+         rotulo: 'Subsídio, quando há (cada um)' },
+  BRL: { meses: [11, 12], guardaEmCada: 0.25,
+         rotulo: '13.º salário (o total)' }
+};
+const SUB_NEUTRO = { meses: [11, 12], guardaEmCada: 0.25,
+                     rotulo: 'Pagamento extra do ano (o total)' };
+
+function subsidioDoPais() {
+  return SUB_PAIS[moedaActual()] || SUB_NEUTRO;
+}
+
+/* O rótulo do campo é escrito aqui e não no HTML porque muda com o país — e
+   porque este ecrã existe em duas páginas. */
+function rotularSubsidio() {
+  const lab = document.querySelector('label[for="a-extra"]');
+  if (lab) lab.textContent = subsidioDoPais().rotulo;
+}
+
 /* ---------- moeda ---------- */
 function moedaActual() {
   return localStorage.getItem('vf:moeda') || 'EUR';
@@ -637,12 +667,16 @@ function calcPlano12() {
   }
 
   const mensal = folga * 0.5;
+  const sub = subsidioDoPais();
   const corpo = [];
   let acumulado = 0;
   for (let m = 1; m <= 12; m++) {
     acumulado += mensal;
-    // Subsídios: em Portugal entram tipicamente em Junho e Novembro.
-    if ((m === 6 || m === 11) && extra > 0) acumulado += extra * 0.5;
+    /* Os meses do dinheiro extra mudam com o país. Estavam fixos em Junho e
+       Novembro, que é Portugal — no Brasil o 13.º entra em Novembro e
+       Dezembro. Um plano que põe dinheiro num mês em que ele não entra é um
+       plano que falha, e quem o seguisse não saberia porquê. */
+    if (sub.meses.indexOf(m) !== -1 && extra > 0) acumulado += extra * sub.guardaEmCada;
     corpo.push([mesNome(m), eur(acumulado)]);
   }
 
@@ -784,6 +818,7 @@ function abrirDesbloqueio() {
 
 document.addEventListener('DOMContentLoaded', () => {
   desenharAjuda();
+  rotularSubsidio();
   desenharDicasDeCampo();
   desenharBotoesMeus();
 
