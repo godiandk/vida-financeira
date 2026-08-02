@@ -253,6 +253,64 @@ document.addEventListener('DOMContentLoaded', () => {
   const zonaPainel = document.getElementById('zona-painel');
   const zonaOff = document.getElementById('zona-off');
 
+  /* ---------- pastilhas ---------- */
+  document.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === c));
+      document.querySelectorAll('.sec').forEach(s =>
+        s.classList.toggle('on', s.id === 'sec-' + c.dataset.sec));
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  /* A navegação por pastilhas e o validador são ligados antes de tudo o
+     resto. Nenhum deles precisa do Firebase — uma chave valida-se pela
+     própria forma — e sem isto o painel ficava preso na primeira secção
+     quando a ligação falhasse. */
+
+  /* ---------- validar uma chave ---------- */
+  document.getElementById('form-validar').addEventListener('submit', e => {
+    e.preventDefault();
+    const bruto = document.getElementById('v-chave').value;
+    const s = String(bruto || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const out = document.getElementById('v-out');
+    out.className = 'res mostrar';
+
+    const linha = (rot, val, forte) =>
+      '<div class="res-linha' + (forte ? ' destaque' : '') + '"><span>' + rot + '</span><b>' + val + '</b></div>';
+
+    if (!/^VF[0-9]{4}[A-Z0-9]{4}[0-9]$/.test(s)) {
+      out.innerHTML = linha('Chave', 'formato errado', true) +
+        '<p class="res-nota">Deve ter a forma VF-2708-XXXX-0. Confirme se foi copiada inteira.</p>';
+      return;
+    }
+    const corpo = s.slice(2, 10);
+    if (digito(corpo) !== Number(s.slice(10))) {
+      out.innerHTML = linha('Chave', 'inválida', true) +
+        '<p class="res-nota">O dígito de controlo não bate certo — esta chave não saiu daqui.</p>';
+      return;
+    }
+    const ano = 2000 + Number(s.slice(2, 4));
+    const mes = Number(s.slice(4, 6));
+    const expira = new Date(ano, mes, 1);
+    const activa = expira > new Date();
+    const dias = Math.ceil((expira - new Date()) / 86400000);
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                   'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const fim = new Date(expira.getTime() - 1);
+
+    const venda = vendas.find(v => (v.chave || '').replace(/[^A-Z0-9]/g, '') === s);
+    out.innerHTML =
+      linha('Chave', activa ? 'válida' : 'caducada', true) +
+      linha('Vale até', meses[fim.getMonth()] + ' de ' + fim.getFullYear()) +
+      (activa ? linha('Faltam', dias + (dias === 1 ? ' dia' : ' dias')) : '') +
+      (venda ? linha('Emitida a', new Date(venda.criada).toLocaleDateString('pt-PT')) +
+               (venda.cliente ? linha('Cliente', venda.cliente) : '') +
+               linha('Valor', venda.oferecida ? 'oferecida' : fmt(Number(venda.valor || 0), venda.moeda || 'EUR'))
+             : '<p class="res-nota">Não está no registo de vendas deste painel. Pode ter sido emitida noutro dispositivo.</p>');
+  });
+
+
   if (typeof firebase === 'undefined' || !window.auth || !window.db) {
     zonaLogin.hidden = true;
     zonaOff.hidden = false;
@@ -363,6 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
     desenharAdmins();
   });
 
+  document.getElementById('sair2').addEventListener('click', () => auth.signOut());
+
   document.getElementById('procura').addEventListener('input', desenharLista);
   document.getElementById('exportar-vendas').addEventListener('click', exportarVendas);
 
@@ -396,6 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
     zonaLogin.hidden = true;
     zonaPainel.hidden = false;
     document.getElementById('quem').textContent = u.email;
+    const q2 = document.getElementById('quem2');
+    if (q2) q2.textContent = u.email;
 
     admins = await carregarAdmins();
     desenharAdmins();

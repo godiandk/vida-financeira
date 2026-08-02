@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=20">
-<link rel="stylesheet" href="ferramentas.css?v=20">
+<link rel="stylesheet" href="estilo.css?v=21">
+<link rel="stylesheet" href="ferramentas.css?v=21">
 <style>
 main{padding-top:96px;padding-bottom:80px}
 .painel-grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
@@ -68,6 +68,20 @@ ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
 .check input{width:20px;height:20px;flex:none;accent-color:var(--gold)}
 .quem-linha{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
 .quem-linha span{color:var(--cream-dim);font-size:.86rem}
+
+/* Pastilhas: um painel comprido obriga a rolar à procura; assim cada
+   assunto tem o seu sítio e chega-se lá com um toque. */
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:24px}
+.chip{
+  border:1px solid rgba(217,178,110,.3);background:transparent;color:var(--cream-dim);
+  border-radius:999px;padding:11px 18px;font-family:inherit;font-size:.85rem;
+  font-weight:700;cursor:pointer;min-height:44px;white-space:nowrap;
+}
+.chip:active{transform:scale(.97)}
+.chip.on{background:linear-gradient(135deg,var(--gold-soft),var(--gold));color:var(--ink);border-color:transparent}
+.sec{display:none}
+.sec.on{display:block;animation:secEntra .2s ease}
+@keyframes secEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 ul.admins{list-style:none;margin-top:16px}
 ul.admins li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(217,178,110,.1);font-size:.9rem}
 ul.admins li:last-child{border-bottom:none}
@@ -134,9 +148,20 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
         </div>
       </div>
 
+      <!-- ---------- pastilhas ---------- -->
+      <nav class="chips" id="chips">
+        <button type="button" class="chip on" data-sec="faturamento">💰 Faturamento</button>
+        <button type="button" class="chip" data-sec="gerar">🔑 Gerar chave</button>
+        <button type="button" class="chip" data-sec="validar">✅ Validar chave</button>
+        <button type="button" class="chip" data-sec="historico">📒 Histórico</button>
+        <button type="button" class="chip" data-sec="admins">👥 Administradores</button>
+        <button type="button" class="chip" data-sec="conta">⚙️ Conta</button>
+      </nav>
+
       <div class="aviso" id="aviso" hidden></div>
 
-      <!-- facturação -->
+      <!-- ---------- faturamento ---------- -->
+      <section class="sec on" id="sec-faturamento">
       <div class="cx">
         <h3>Facturação</h3>
         <p class="sub">Só chaves pagas. As oferecidas ficam de fora, e é assim que deve ser.</p>
@@ -160,30 +185,10 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
         <p class="nota-fact" id="f-activas"></p>
         <p class="nota-fact" id="f-oferecidas"></p>
       </div>
+      </section>
 
-      <!-- administradores -->
-      <div class="cx">
-        <h3>Quem tem acesso ao painel</h3>
-        <p class="sub">
-          Acrescentar aqui dá acesso a gerar chaves e a ver o facturado.
-          A sua conta é a dona e não pode ser retirada.
-        </p>
-        <form id="form-admin" novalidate>
-          <div class="linha-chave">
-            <input id="novo-admin" type="email" placeholder="email da pessoa" autocomplete="off">
-            <button class="btn btn-gold" type="submit">Dar acesso</button>
-          </div>
-        </form>
-        <ul class="admins" id="lista-admins"></ul>
-        <p class="nota-fact" style="margin-top:12px">
-          Quem receber acesso precisa de ter conta criada com esse email.
-        </p>
-      </div>
-
-      <div class="painel-grid">
-
-        <!-- gerar chave -->
-        <div>
+      <!-- ---------- gerar ---------- -->
+      <section class="sec" id="sec-gerar">
           <div class="cx">
             <h3>Gerar chave</h3>
             <p class="sub">A validade vai escrita na chave — não se contorna a reinstalar a aplicação.</p>
@@ -244,10 +249,26 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
               </div>
             </div>
           </div>
-        </div>
+        
+      </section>
 
-        <!-- vendas -->
-        <div>
+      <!-- ---------- validar ---------- -->
+      <section class="sec" id="sec-validar">
+        <div class="cx">
+          <h3>Validar uma chave</h3>
+          <p class="sub">Escreva a chave para ver se é válida e até quando vale.</p>
+          <form id="form-validar" novalidate>
+            <div class="linha-chave">
+              <input id="v-chave" type="text" placeholder="VF-2708-XXXX-0" autocomplete="off" spellcheck="false" style="text-transform:uppercase;font-family:ui-monospace,monospace">
+              <button class="btn btn-gold" type="submit">Validar</button>
+            </div>
+          </form>
+          <div class="res" id="v-out"></div>
+        </div>
+      </section>
+
+      <!-- ---------- histórico ---------- -->
+      <section class="sec" id="sec-historico">
           <div class="cx">
             <h3>Chaves emitidas</h3>
             <p class="sub">As mais recentes primeiro. As caducadas ficam esbatidas.</p>
@@ -266,9 +287,40 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
               ⬇ Exportar para Excel (CSV)
             </button>
           </div>
-        </div>
+        
+      </section>
 
+      <!-- ---------- administradores ---------- -->
+      <section class="sec" id="sec-admins">
+      <div class="cx">
+        <h3>Quem tem acesso ao painel</h3>
+        <p class="sub">
+          Acrescentar aqui dá acesso a gerar chaves e a ver o facturado.
+          A sua conta é a dona e não pode ser retirada.
+        </p>
+        <form id="form-admin" novalidate>
+          <div class="linha-chave">
+            <input id="novo-admin" type="email" placeholder="email da pessoa" autocomplete="off">
+            <button class="btn btn-gold" type="submit">Dar acesso</button>
+          </div>
+        </form>
+        <ul class="admins" id="lista-admins"></ul>
+        <p class="nota-fact" style="margin-top:12px">
+          Quem receber acesso precisa de ter conta criada com esse email.
+        </p>
       </div>
+      </section>
+
+      <!-- ---------- conta ---------- -->
+      <section class="sec" id="sec-conta">
+        <div class="cx" style="max-width:520px">
+          <h3>A sua sessão</h3>
+          <p class="sub">Entrou como <b id="quem2"></b>.</p>
+          <a class="btn btn-line" href="conta.html" style="margin-bottom:10px">A minha conta no site</a>
+          <button class="btn btn-line" id="sair2" type="button">Terminar sessão</button>
+        </div>
+      </section>
+
     </div>
 
   </div>
@@ -277,7 +329,7 @@ ul.admins .dono{color:var(--gold);font-size:.68rem;text-transform:uppercase;lett
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=20"></script>
-<script src="admin.js?v=20"></script>
+<script src="firebase-config.js?v=21"></script>
+<script src="admin.js?v=21"></script>
 </body>
 </html>
