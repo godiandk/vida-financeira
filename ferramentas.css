@@ -137,6 +137,13 @@
   padding:22px 20px 24px;
   background:linear-gradient(to top,var(--ink-2) 55%,rgba(19,30,25,.86) 82%,transparent);
 }
+/* Sem esta linha a chave não desbloqueava nada à vista. O `aplicarEstadoPremium`
+   punha `hidden` no cadeado, mas o `display:flex` acima é uma regra do autor e
+   ganha ao `[hidden]{display:none}` que vem do navegador — o cadeado ficava
+   pintado por cima de uma ferramenta que já estava aberta. É o mesmo defeito
+   que já tinha aparecido no `.atalho`: pôr `display` numa classe torna o
+   atributo `hidden` inútil, e é preciso devolver-lho à mão. */
+.cadeado[hidden]{display:none}
 .cadeado .cad-ic{font-size:1.7rem;line-height:1}
 .cadeado b{color:var(--gold-soft);font-size:.9rem;letter-spacing:.06em;text-transform:uppercase}
 .cadeado .btn{padding:12px 26px;font-size:.88rem}
