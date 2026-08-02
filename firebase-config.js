@@ -45,6 +45,12 @@ const ADMIN_EMAILS = [
   'wly.vianna@gmail.com'
 ];
 
+// Um `const` no topo de um ficheiro NÃO fica em `window` — cria uma ligação
+// no âmbito global léxico, que é outra coisa. As páginas verificavam
+// `window.ADMIN_EMAILS`, isso dava sempre indefinido, e o botão do painel
+// nunca aparecia. Esta linha põe-no onde as páginas o procuram.
+window.ADMIN_EMAILS = ADMIN_EMAILS;
+
 // ------------------------------------------------------------
 // Daqui para baixo não é preciso mexer.
 //
