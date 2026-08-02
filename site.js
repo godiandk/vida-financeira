@@ -202,6 +202,19 @@ function raizDoSite() {
   }
 })();
 
+/* ---------- o mês do cartão de exemplo ----------
+   O exemplo da página inicial tinha a data escrita à mão e envelheceu. Num
+   telemóvel é a primeira coisa que aparece, antes do próprio título — ou
+   seja, a primeira impressão do site era um mês do ano passado. */
+(function mesDoExemplo() {
+  const el = document.getElementById('pv-mes');
+  if (!el) return;
+  const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const d = new Date();
+  el.textContent = meses[d.getMonth()] + ' ' + d.getFullYear();
+})();
+
 /* ---------- PWA ---------- */
 (function pwa() {
   if (!('serviceWorker' in navigator)) return;

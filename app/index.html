@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=24">
-<link rel="stylesheet" href="../app-financas.css?v=24">
-<link rel="stylesheet" href="../app-shell.css?v=24">
-<link rel="stylesheet" href="../assistente.css?v=24">
-<link rel="stylesheet" href="../ferramentas.css?v=24">
+<link rel="stylesheet" href="../estilo.css?v=25">
+<link rel="stylesheet" href="../app-financas.css?v=25">
+<link rel="stylesheet" href="../app-shell.css?v=25">
+<link rel="stylesheet" href="../assistente.css?v=25">
+<link rel="stylesheet" href="../ferramentas.css?v=25">
 </head>
 <body class="app-shell">
 
@@ -229,7 +229,13 @@
         <div class="vazio" id="vazio" hidden>
         <span class="em">🪶</span>
         Ainda não há movimentos neste mês.<br>
-        Lance o primeiro no formulário ao lado.
+        <!-- "no formulário ao lado" era verdade no computador, onde há duas
+             colunas. Num telemóvel não há lado nenhum: o formulário está
+             noutro separador. Mandar olhar para o lado é mandar procurar o
+             que não existe — passa a ser o próprio botão que leva lá. -->
+        <button class="btn btn-gold" type="button" data-ir="lancar" style="margin-top:14px">
+          Lançar o primeiro
+        </button>
         </div>
         </div>
         <div class="bloco">
@@ -624,11 +630,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=24"></script>
-<script src="../site.js?v=24"></script>
-<script src="../app-financas.js?v=24"></script>
-<script src="../assistente.js?v=24"></script>
-<script src="../ferramentas.js?v=24"></script>
+<script src="../firebase-config.js?v=25"></script>
+<script src="../site.js?v=25"></script>
+<script src="../app-financas.js?v=25"></script>
+<script src="../assistente.js?v=25"></script>
+<script src="../ferramentas.js?v=25"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
