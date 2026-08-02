@@ -491,6 +491,50 @@ function temPremium() {
   try { return lerChave(localStorage.getItem(CHAVE_PREMIUM)).ok; } catch (e) { return false; }
 }
 
+/* ============================================================
+   O mês de experiência
+
+   Quem cria conta tem trinta dias com tudo aberto. A conta é a identificação:
+   sem ela não há como distinguir uma pessoa de mil visitas do mesmo
+   navegador, e o mês grátis passava a ser infinito para toda a gente.
+
+   A data de início vive no Firestore, não aqui. Guardada só no telemóvel,
+   bastava limpar os dados do navegador para recomeçar — e quem soubesse isso
+   nunca pagava. Aqui fica uma cópia, para a aplicação saber a resposta sem
+   internet; quem manda é a que está na nuvem.
+   ============================================================ */
+const TESTE_CHAVE = 'vf:teste';
+const TESTE_DIAS = 30;
+
+function testeGuardado() {
+  try {
+    const t = JSON.parse(localStorage.getItem(TESTE_CHAVE) || 'null');
+    return (t && typeof t.inicio === 'string') ? t : null;
+  } catch (e) { return null; }
+}
+
+/* Devolve a data em que o mês acaba, ou null se não houver mês nenhum. */
+function testeAte() {
+  const t = testeGuardado();
+  if (!t) return null;
+  const d = new Date(t.inicio);
+  if (isNaN(d)) return null;
+  const fim = new Date(d.getTime());
+  fim.setDate(fim.getDate() + TESTE_DIAS);
+  return fim > new Date() ? fim : null;
+}
+
+function diasDeTeste() {
+  const fim = testeAte();
+  return fim ? Math.ceil((fim - new Date()) / 86400000) : 0;
+}
+
+/* A porta única. Tudo o que é de assinatura pergunta por aqui — assim há um
+   sítio só onde mudar as regras de acesso, em vez de as ter espalhadas. */
+function temAcessoTotal() {
+  return temPremium() || !!testeAte();
+}
+
 function validadeChave() {
   try {
     const r = lerChave(localStorage.getItem(CHAVE_PREMIUM));

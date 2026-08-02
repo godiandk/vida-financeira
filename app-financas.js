@@ -30,6 +30,7 @@ const BALANCO_CHAVE = 'vf:balanco';
 const PLANO_CHAVE = 'vf:plano';
 const CONTAS_CHAVE = 'vf:contasfixas';
 const ARRANQUE_CHAVE = 'vf:arranque';
+const RESERVA_INICIAL_CHAVE = 'vf:reservainicial';
 
 /* ---------- o dinheiro extra do ano, por país ----------
    Estava escrito "em junho e em novembro" em quatro sítios. É verdade em
@@ -342,6 +343,13 @@ let contasEditando = false;// o ecrã de gestão está em modo de edição
    é por eles que a app se guia, e isto passa a ser só o ponto de partida. */
 let arranque = { feito: false, dispensado: false, entra: null, essenciais: null };
 let arranquePasso = 0;     // 0, 1, 2 = perguntas · 3 = a resposta
+
+/* O que já estava guardado antes de a aplicação existir. "Tenho 1000 no
+   banco" não é uma entrada deste mês — é dinheiro que já lá estava. Somado à
+   reserva, mas fora dos movimentos: lançá-lo como movimento dizia que a
+   pessoa guardou mil euros hoje, e no fim do mês a app dava-lhe os parabéns
+   por uma coisa que não aconteceu. */
+let reservaInicial = 0;
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -736,6 +744,9 @@ function carregarLocal() {
     };
   }
 
+  const ri = Number(localStorage.getItem(RESERVA_INICIAL_CHAVE));
+  reservaInicial = (isFinite(ri) && ri > 0) ? Math.round(ri * 100) / 100 : 0;
+
   const arr = lerJSON(ARRANQUE_CHAVE, null);
   if (arr) {
     const e = Number(arr.entra), s = Number(arr.essenciais);
@@ -777,6 +788,18 @@ function carregarLocal() {
       });
     }
   }
+}
+
+/* Substitui, não soma: "tenho 1000" é o total de agora, não mais mil. */
+function definirReservaInicial(valor) {
+  const v = Number(valor);
+  reservaInicial = (isFinite(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
+  try { localStorage.setItem(RESERVA_INICIAL_CHAVE, String(reservaInicial)); } catch (e) {}
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ reservaInicial: reservaInicial }, { merge: true }).catch(() => {});
+  }
+  desenhar();
 }
 
 function guardarArranque() {
@@ -885,7 +908,11 @@ function calcular() {
   r.folga = (r.R !== null && r.E !== null) ? r.R - r.E : null;
 
   /* --- reserva acumulada, de sempre ------------------------------ */
-  r.reserva = Object.keys(meses).reduce((s, k) => s + meses[k].guardado, 0);
+  /* `reservaInicial` é o que já estava guardado antes de a app existir. Sem
+     esta parcela, quem escrevesse "tenho 1000 no banco" via a resposta certa
+     no chat e um zero no ecrã do Início — e um número que se contradiz a si
+     próprio põe em dúvida todos os outros. */
+  r.reserva = reservaInicial + Object.keys(meses).reduce((s, k) => s + meses[k].guardado, 0);
   r.reserva = Math.round(r.reserva * 100) / 100;
   r.mesesDeReserva = (!r.moedaMista && r.E && r.E > 0) ? r.reserva / r.E : null;
 
@@ -3674,7 +3701,7 @@ function prepararOutroRendimento() {
 }
 
 function reservaActual() {
-  return movimentos.reduce((s, m) => {
+  return reservaInicial + movimentos.reduce((s, m) => {
     if (m.tipo === 'saida' && m.categoria === 'reserva') return s + m.valor;
     if (m.tipo === 'entrada' && m.categoria === 'reserva-tirei') return s - m.valor;
     return s;
@@ -4206,6 +4233,12 @@ function ligarNuvem() {
         /* Arranque: se já foi feito num sítio, não se volta a perguntar no
            outro. Só se aceita o que faz o estado avançar — nunca o contrário,
            senão entrar noutro telemóvel ressuscitava as perguntas. */
+        const rn = Number(dados.reservaInicial);
+        if (isFinite(rn) && rn > 0 && rn !== reservaInicial) {
+          reservaInicial = Math.round(rn * 100) / 100;
+          try { localStorage.setItem(RESERVA_INICIAL_CHAVE, String(reservaInicial)); } catch (e) {}
+        }
+
         const ar = dados.arranque;
         if (ar && typeof ar === 'object') {
           if (ar.feito) arranque.feito = true;

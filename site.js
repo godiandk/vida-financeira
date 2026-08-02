@@ -75,11 +75,42 @@
 
   auth.onAuthStateChanged(u => {
     if (!u) return;
-    db.collection('perfis').doc(u.uid).set({
-      email: u.email || '',
-      nome: u.displayName || '',
-      visto: new Date().toISOString()
-    }, { merge: true }).catch(() => {});   // sem ficha, a app funciona na mesma
+
+    const doc = db.collection('perfis').doc(u.uid);
+
+    doc.get().then(d => {
+      const p = d.exists ? (d.data() || {}) : {};
+      const campos = {
+        email: u.email || '',
+        nome: u.displayName || '',
+        visto: new Date().toISOString()
+      };
+
+      /* O mês de experiência começa na primeira vez que esta conta aparece, e
+         a data fica na nuvem. Se vivesse só no telemóvel, limpar os dados do
+         navegador dava um mês novo — e quem soubesse disso nunca pagava.
+         `teste` só se escreve quando ainda não existe: escrevê-lo sempre
+         renovava o mês a cada sessão, que é o mesmo defeito ao contrário. */
+      const inicio = (typeof p.teste === 'string' && p.teste) ? p.teste : new Date().toISOString();
+      if (!p.teste) campos.teste = inicio;
+
+      /* Cópia local para a aplicação saber a resposta sem internet. Quem manda
+         é a da nuvem — esta é reescrita por ela a cada arranque com sessão. */
+      try { localStorage.setItem('vf:teste', JSON.stringify({ uid: u.uid, inicio: inicio })); } catch (e) {}
+
+      return doc.set(campos, { merge: true });
+    }).catch(() => {});   // sem ficha, a app funciona na mesma
+  });
+})();
+
+/* Sem sessão não há mês de experiência: a conta é a identificação, e sem ela
+   o mês grátis era infinito para quem limpasse o navegador. Apagar a cópia
+   local ao sair fecha essa porta. */
+(function limparTesteAoSair() {
+  if (typeof firebase === 'undefined' || !window.auth) return;
+  auth.onAuthStateChanged(u => {
+    if (u) return;
+    try { localStorage.removeItem('vf:teste'); } catch (e) {}
   });
 })();
 

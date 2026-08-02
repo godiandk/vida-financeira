@@ -330,6 +330,95 @@ function responder(texto) {
   return out || respostaGenerica(d);
 }
 
+/* ============================================================
+   Escrever e ficar lançado
+
+   A pessoa escreve "acabei de gastar 30 no continente" e o movimento fica
+   feito. O `interpretar.js` lê a frase; aqui decide-se o que fazer com ela.
+
+   Lança-se já, sem perguntar "é isto?". Uma confirmação a cada frase é uma
+   fricção a cada frase, e a fricção é o que faz alguém deixar de lançar ao
+   fim de três dias — que é o problema que isto veio resolver. Em troca, o que
+   ficou lançado aparece escrito, com um botão para apagar ao lado.
+   Reversível vale mais do que cauteloso.
+   ============================================================ */
+
+/* Os ids do que se lançou na última frase, para o botão de apagar saber o que
+   apagar sem tocar em mais nada. */
+let ultimoLote = null;
+
+function podeLancarPorTexto() {
+  return typeof temAcessoTotal === 'function' ? temAcessoTotal() : false;
+}
+
+function dinCurto(v) {
+  return typeof dinheiro === 'function' ? dinheiro(v) : String(v);
+}
+
+function nomeCategoria(tipo, id) {
+  if (typeof catInfo !== 'function') return id;
+  const c = catInfo(tipo, id);
+  return c.emoji + ' ' + c.nome;
+}
+
+/* Faz o que o leitor percebeu, e devolve o texto da resposta. */
+function executarLeitura(r) {
+  if (r.tipo === 'saldo') {
+    if (typeof definirReservaInicial !== 'function') return null;
+    definirReservaInicial(r.valor);
+    ultimoLote = null;
+    return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado. Passa a contar na sua reserva.\n\n' +
+           'Não lancei isto como entrada — não é dinheiro que recebeu hoje, é dinheiro que já tinha.';
+  }
+
+  if (typeof lancar !== 'function') return null;
+
+  const criados = [];
+  r.lancamentos.forEach(l => {
+    const dados = {
+      tipo: l.tipo, valor: l.valor, categoria: l.categoria,
+      descricao: l.descricao,
+      data: (typeof isoLocal === 'function') ? isoLocal(l.data) : l.data.toISOString().slice(0, 10)
+    };
+    if (l.parcelas >= 2 && l.tipo === 'saida' && typeof lancarParcelado === 'function') {
+      lancarParcelado(dados, l.parcelas).forEach(m => criados.push(m));
+    } else {
+      criados.push(lancar(dados));
+    }
+  });
+
+  ultimoLote = criados.map(m => m.id);
+  if (typeof desenhar === 'function') desenhar();
+
+  const linhas = r.lancamentos.map(l => {
+    const sinal = l.tipo === 'entrada' ? '+' : '−';
+    const parc = l.parcelas >= 2 ? ' · ' + l.parcelas + ' prestações' : '';
+    return '**' + sinal + ' ' + dinCurto(l.valor) + '** · ' + nomeCategoria(l.tipo, l.categoria) +
+           (l.descricao ? ' · ' + l.descricao : '') + parc;
+  });
+
+  const hoje = new Date();
+  const d = r.lancamentos[0].data;
+  const mesmoDia = d.getDate() === hoje.getDate() && d.getMonth() === hoje.getMonth() &&
+                   d.getFullYear() === hoje.getFullYear();
+  const quando = mesmoDia ? '' : '\n\nCom a data de ' + d.getDate() + '/' + (d.getMonth() + 1) + '.';
+
+  return (criados.length === 1 ? 'Lançado:' : 'Lançados:') + '\n\n' + linhas.join('\n') + quando;
+}
+
+function apagarUltimoLote() {
+  if (!ultimoLote || !ultimoLote.length || typeof movimentos === 'undefined') return false;
+  const ids = {};
+  ultimoLote.forEach(id => { ids[id] = true; });
+  const antes = movimentos.length;
+  movimentos = movimentos.filter(m => !ids[m.id]);
+  if (movimentos.length === antes) return false;
+  if (typeof guardar === 'function') guardar();
+  if (typeof desenhar === 'function') desenhar();
+  ultimoLote = null;
+  return true;
+}
+
 /* ---------- desenhar o chat ---------- */
 function assistMarkdown(txt) {
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -370,13 +459,59 @@ ${d.nMovs > 0 ? `Já vi os seus números: ${d.R ? `entra cerca de ${dinAssist(d.
 
 Pergunte à vontade.`, 'ele');
 
+  /* Uma resposta com um botão por baixo. Só o de apagar precisa disto, e não
+     valia um sistema de botões para um caso — mas vale um sítio só. */
+  function juntarComAccao(texto, rotulo, aoClicar) {
+    const li = bolha(texto, 'ele');
+    const zona = li.querySelector('.msg-txt');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'msg-accao';
+    b.textContent = rotulo;
+    b.addEventListener('click', () => {
+      if (aoClicar()) {
+        b.disabled = true;
+        b.textContent = 'Apagado';
+      }
+    });
+    zona.appendChild(b);
+    fio.appendChild(li);
+    fio.scrollTop = fio.scrollHeight;
+  }
+
+  function tratar(t) {
+    /* Primeiro tenta ler-se como movimento. Só se não for é que segue para as
+       respostas escritas — assim "gastei 30 no continente" nunca é confundido
+       com uma pergunta sobre mercearia. */
+    const r = (typeof interpretar === 'function') ? interpretar(t) : { ok: false };
+
+    if (r.ok) {
+      if (!podeLancarPorTexto()) {
+        juntar('Percebi o que escreveu — e é isto que a **Vida Financeira** faz por si: ' +
+          'escreve, e fica lançado.\n\n' +
+          '**Crie conta e tem um mês inteiro, de graça.** Sem cartão, sem nada. ' +
+          'Depois desse mês, são 9,89 € por ano.\n\n' +
+          'Enquanto isso pode lançar à mão no ➕ Lançar, que é grátis para sempre.', 'ele');
+        return;
+      }
+      const resposta = executarLeitura(r);
+      if (resposta) {
+        if (r.tipo === 'saldo') juntar(resposta, 'ele');
+        else juntarComAccao(resposta, 'Apagar isto', apagarUltimoLote);
+        return;
+      }
+    }
+
+    juntar(responder(t), 'ele');
+  }
+
   form.addEventListener('submit', e => {
     e.preventDefault();
     const t = campo.value.trim();
     if (!t) return;
     juntar(t, 'eu');
     campo.value = '';
-    setTimeout(() => juntar(responder(t), 'ele'), 340);
+    setTimeout(() => tratar(t), 340);
   });
 
   document.querySelectorAll('.assist-sug').forEach(b => {
