@@ -149,3 +149,26 @@ body.app-shell .app-float{display:none}
   .atalhos{grid-template-columns:repeat(4,1fr)}
   .ecra > .wrap{padding-top:26px}
 }
+
+/* A foto na barra de separadores, no lugar do ícone — é o que faz o chat
+   parecer uma pessoa e não uma funcionalidade. */
+.aba-chat .ic{
+  width:26px;height:26px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;margin:0 auto;
+  border:1.5px solid transparent;
+}
+.aba-chat .ic img{width:100%;height:100%;object-fit:cover;display:block}
+.aba-chat[aria-selected="true"] .ic{border-color:var(--gold)}
+
+/* Botão de conta na barra de cima: quando há sessão mostra a inicial, e
+   nunca o nome — o nome transbordava para fora do ecrã. */
+.topo-bt.tem-conta{
+  background:linear-gradient(160deg,var(--gold-soft),var(--gold));
+  color:var(--ink);border-color:transparent;
+  font-family:'Playfair Display',serif;font-weight:800;font-size:1rem;
+}
+.topo-bt{overflow:hidden;white-space:nowrap}
+
+@media(min-width:900px){
+  .aba-chat .ic{width:24px;height:24px}
+}

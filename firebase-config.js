@@ -35,6 +35,17 @@ const firebaseConfig = {
 };
 
 // ------------------------------------------------------------
+// Quem entra no painel de administração (admin.html).
+//
+// Isto é só o que a página mostra. Quem protege mesmo os dados são as regras
+// do Firestore, que verificam o mesmo email do lado do servidor — mudar esta
+// lista no navegador não dá acesso a nada.
+// ------------------------------------------------------------
+const ADMIN_EMAILS = [
+  'wly.vianna@gmail.com'
+];
+
+// ------------------------------------------------------------
 // Daqui para baixo não é preciso mexer.
 //
 // Enquanto a configuração acima estiver por preencher, não chamamos o

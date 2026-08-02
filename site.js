@@ -60,30 +60,52 @@
   alvos.forEach(el => obs.observe(el));
 })();
 
-/* ---------- "Entrar / Criar conta" passa a nome quando há sessão ---------- */
+/* ---------- "Entrar / Criar conta" passa a nome quando há sessão ----------
+
+   Duas armadilhas, ambas já custaram caro:
+
+   1. Dentro da aplicação (/app/) este link é um botão redondo de 38px na
+      barra de cima. Enfiar-lhe o nome completo lá dentro fazia o texto
+      transbordar para fora do ecrã. Nesse formato mostra-se só a inicial.
+
+   2. O endereço não pode ser escrito à mão: `conta.html` a partir de /app/
+      resolve para /app/conta.html, que não existe — e o clique dava 404. */
 (function navConta() {
   const link = document.getElementById('nav-conta');
   if (!link || typeof firebase === 'undefined' || !window.auth) return;
 
+  const compacto = link.classList.contains('topo-bt');
+  const destino = (typeof raizDoSite === 'function' ? raizDoSite() : './') + 'conta.html';
+  link.href = destino;
+
   auth.onAuthStateChanged(u => {
+    link.href = destino;
+
     if (!u) {
-      link.textContent = 'Entrar / Criar conta';
-      link.className = link.className.replace('nav-account', '').trim();
-      link.href = 'conta.html';
+      link.classList.remove('nav-account');
+      link.textContent = compacto ? '👤' : 'Entrar / Criar conta';
+      link.setAttribute('aria-label', 'Entrar ou criar conta');
       return;
     }
+
     const nome = u.displayName || (u.email || '').split('@')[0] || 'A minha conta';
-    link.href = 'conta.html';
-    link.classList.add('nav-account');
+    const inicial = nome.charAt(0).toUpperCase();
+    link.setAttribute('aria-label', 'A conta de ' + nome);
     link.textContent = '';
 
+    if (compacto) {
+      // Só a inicial: é o que cabe num botão redondo sem rebentar a barra.
+      link.classList.add('tem-conta');
+      link.textContent = inicial;
+      return;
+    }
+
+    link.classList.add('nav-account');
     const av = document.createElement('span');
     av.className = 'nav-avatar';
-    av.textContent = nome.charAt(0).toUpperCase();
-
+    av.textContent = inicial;
     const txt = document.createElement('span');
     txt.textContent = nome;
-
     link.append(av, txt);
   });
 })();

@@ -35,6 +35,27 @@ service cloud.firestore {
     }
 
     // ----------------------------------------------------------
+    // vendas/{id} — as chaves de assinatura emitidas
+    //
+    // Só o administrador lê e escreve. Não guarda nada sobre quem usa
+    // a aplicação: os movimentos das pessoas continuam onde sempre
+    // estiveram, no dispositivo delas e na sua própria área privada.
+    //
+    // Esta lista de emails é a que manda, porque corre do lado do
+    // servidor. A lista igual no firebase-config.js serve apenas para a
+    // página saber o que mostrar — mudá-la no navegador não dá acesso a
+    // dado nenhum.
+    // ----------------------------------------------------------
+    function ehAdmin() {
+      return request.auth != null
+          && request.auth.token.email in ['wly.vianna@gmail.com'];
+    }
+
+    match /vendas/{id} {
+      allow read, create, update, delete: if ehAdmin();
+    }
+
+    // ----------------------------------------------------------
     // Tudo o resto fica fechado. Se um dia acrescentarmos uma
     // colecção nova, ela não funciona até se escrever a regra —
     // e isso é de propósito.

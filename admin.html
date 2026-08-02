@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — Vida Financeira</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d1512">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css?v=18">
+<link rel="stylesheet" href="ferramentas.css?v=18">
+<style>
+main{padding-top:96px;padding-bottom:80px}
+.painel-grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
+@media(max-width:980px){.painel-grid{grid-template-columns:1fr}}
+
+.cx{background:var(--ink-2);border:1px solid rgba(217,178,110,.18);border-radius:var(--radius);padding:26px 24px;margin-bottom:22px}
+.cx h3{font-size:1.1rem;color:var(--gold-soft);margin-bottom:6px}
+.cx .sub{color:var(--cream-dim);font-size:.86rem;margin-bottom:18px}
+.cx .btn{width:100%;justify-content:center}
+
+/* ---------- números da facturação ---------- */
+.fact{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:640px){.fact{grid-template-columns:1fr}}
+.fact div{background:var(--ink);border:1px solid rgba(217,178,110,.16);border-radius:14px;padding:16px 18px}
+.fact .rot{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--cream-dim);font-weight:700}
+.fact .val{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--gold-soft);line-height:1.25;margin:5px 0 2px}
+.fact .val .zero{color:var(--cream-dim);font-family:'Manrope',sans-serif;font-size:1rem}
+.fact .n{font-size:.78rem;color:var(--cream-dim)}
+.nota-fact{color:var(--cream-dim);font-size:.83rem;margin-bottom:6px}
+
+/* ---------- chave gerada ---------- */
+.chave-box{
+  background:linear-gradient(150deg,rgba(62,207,142,.14),rgba(62,207,142,.03));
+  border:1px solid rgba(62,207,142,.45);border-radius:16px;
+  padding:20px;margin-top:18px;text-align:center;
+}
+.chave-box[hidden]{display:none}
+.chave-box code{
+  display:block;font-family:ui-monospace,monospace;font-size:1.35rem;
+  letter-spacing:.12em;color:var(--up);margin-bottom:14px;word-break:break-all;
+}
+.chave-acoes{display:flex;gap:9px}
+.chave-acoes .btn{flex:1;padding:12px;font-size:.84rem}
+
+/* ---------- lista de vendas ---------- */
+.procura{margin-bottom:14px}
+ul.vendas{list-style:none;max-height:60vh;overflow-y:auto}
+.venda{border-bottom:1px solid rgba(217,178,110,.1);padding:14px 2px}
+.venda:last-child{border-bottom:none}
+.venda.morta{opacity:.5}
+.v-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.v-topo code{font-family:ui-monospace,monospace;font-size:.92rem;letter-spacing:.06em;color:var(--gold-soft)}
+.v-estado{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--up)}
+.venda.morta .v-estado{color:var(--cream-dim)}
+.v-meta{font-size:.82rem;color:var(--cream-dim)}
+.v-meta b{color:var(--cream)}
+.v-meta b.ofer{color:var(--gold)}
+.v-nota{font-size:.8rem;color:var(--cream-dim);font-style:italic;margin-top:3px}
+.venda .mini-btn{margin-top:8px}
+
+.linha-dois{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.linha-dois{grid-template-columns:1fr}}
+.check{display:flex;align-items:center;gap:10px;margin:14px 0 6px;color:var(--cream-dim);font-size:.88rem;cursor:pointer}
+.check input{width:20px;height:20px;flex:none;accent-color:var(--gold)}
+.quem-linha{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.quem-linha span{color:var(--cream-dim);font-size:.86rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">
+      <img class="logo-mark" src="img/logo-marca.png" alt="">
+      <div class="logo-name">VIDA<small>FINANCEIRA</small></div>
+    </a>
+    <div class="nav-right">
+      <a class="btn btn-line" href="index.html">Ir ao site</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <!-- ---------- Firebase por configurar ---------- -->
+    <div id="zona-off" hidden>
+      <div class="cx" style="max-width:520px;margin:0 auto">
+        <h3>Painel indisponível</h3>
+        <p class="sub">
+          A ligação ao Firebase ainda não está configurada. O painel precisa
+          dela para guardar as vendas e para saber quem tem acesso.
+        </p>
+        <a class="btn btn-gold" href="index.html">Voltar ao site</a>
+      </div>
+    </div>
+
+    <!-- ---------- entrar ---------- -->
+    <div id="zona-login">
+      <div class="cx" style="max-width:440px;margin:0 auto">
+        <h3>Painel de administração</h3>
+        <p class="sub">Entre com a conta de administrador.</p>
+        <form id="form-login" novalidate>
+          <div class="field">
+            <label for="a-email">Email</label>
+            <input id="a-email" type="email" autocomplete="email" placeholder="o.seu@email.com">
+          </div>
+          <div class="field">
+            <label for="a-pass">Palavra-passe</label>
+            <input id="a-pass" type="password" autocomplete="current-password">
+          </div>
+          <button class="btn btn-gold" type="submit">Entrar</button>
+        </form>
+        <div class="aviso" id="login-msg" hidden></div>
+      </div>
+    </div>
+
+    <!-- ---------- painel ---------- -->
+    <div id="zona-painel" hidden>
+
+      <div class="quem-linha">
+        <h1 style="font-family:'Playfair Display',serif;font-size:1.6rem">Painel</h1>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span id="quem"></span>
+          <button class="mini-btn" id="sair" type="button">Sair</button>
+        </div>
+      </div>
+
+      <div class="aviso" id="aviso" hidden></div>
+
+      <!-- facturação -->
+      <div class="cx">
+        <h3>Facturação</h3>
+        <p class="sub">Só chaves pagas. As oferecidas ficam de fora, e é assim que deve ser.</p>
+        <div class="fact">
+          <div>
+            <div class="rot">Este mês</div>
+            <div class="val" id="f-mes">—</div>
+            <div class="n" id="f-n-mes"></div>
+          </div>
+          <div>
+            <div class="rot">Este ano</div>
+            <div class="val" id="f-ano">—</div>
+            <div class="n" id="f-n-ano"></div>
+          </div>
+          <div>
+            <div class="rot">Desde sempre</div>
+            <div class="val" id="f-total">—</div>
+            <div class="n" id="f-n-total"></div>
+          </div>
+        </div>
+        <p class="nota-fact" id="f-activas"></p>
+        <p class="nota-fact" id="f-oferecidas"></p>
+      </div>
+
+      <div class="painel-grid">
+
+        <!-- gerar chave -->
+        <div>
+          <div class="cx">
+            <h3>Gerar chave</h3>
+            <p class="sub">A validade vai escrita na chave — não se contorna a reinstalar a aplicação.</p>
+
+            <form id="form-gerar" novalidate>
+              <div class="linha-dois">
+                <div class="field">
+                  <label for="g-meses">Vale (meses)</label>
+                  <input id="g-meses" type="text" inputmode="numeric" value="12">
+                </div>
+                <div class="field">
+                  <label for="g-valor">Valor</label>
+                  <input id="g-valor" type="text" inputmode="decimal">
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="g-moeda">Moeda e país</label>
+                <select id="g-moeda"></select>
+              </div>
+
+              <div class="field">
+                <label for="g-cliente">Cliente <span style="text-transform:none;letter-spacing:0">(nome, email ou telefone)</span></label>
+                <input id="g-cliente" type="text" autocomplete="off" placeholder="opcional, mas ajuda a encontrar depois">
+              </div>
+
+              <div class="linha-dois">
+                <div class="field">
+                  <label for="g-meio">Como pagou</label>
+                  <select id="g-meio">
+                    <option>MB Way</option>
+                    <option>Transferência</option>
+                    <option>PIX</option>
+                    <option>Dinheiro</option>
+                    <option>PayPal</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="g-nota">Nota</label>
+                  <input id="g-nota" type="text" autocomplete="off" placeholder="opcional">
+                </div>
+              </div>
+
+              <label class="check">
+                <input id="g-oferecida" type="checkbox">
+                Oferecida — não entra no facturado
+              </label>
+
+              <button class="btn btn-gold" type="submit">Gerar chave</button>
+            </form>
+
+            <div class="chave-box" id="chave-gerada" hidden>
+              <code id="chave-txt"></code>
+              <div class="chave-acoes">
+                <button class="btn btn-line" id="copiar-gerada" type="button">Copiar</button>
+                <button class="btn btn-gold" id="whatsapp-gerada" type="button">Enviar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- vendas -->
+        <div>
+          <div class="cx">
+            <h3>Chaves emitidas</h3>
+            <p class="sub">As mais recentes primeiro. As caducadas ficam esbatidas.</p>
+
+            <div class="field procura">
+              <input id="procura" type="search" placeholder="Procurar por chave, cliente ou nota…" autocomplete="off">
+            </div>
+
+            <ul class="vendas" id="lista-vendas"></ul>
+            <div class="vazio" id="vendas-vazio" hidden>
+              <span class="em">🔑</span>
+              Ainda não há chaves emitidas.
+            </div>
+
+            <button class="mini-btn" id="exportar-vendas" type="button" style="margin-top:16px">
+              ⬇ Exportar para Excel (CSV)
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=18"></script>
+<script src="admin.js?v=18"></script>
+</body>
+</html>
