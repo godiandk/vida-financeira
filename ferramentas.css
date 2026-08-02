@@ -174,3 +174,48 @@
   .painel-desbloq{padding:24px 20px}
   .preco-val{font-size:2.2rem}
 }
+
+/* ============================================================
+   AJUDA — "como se preenche", dentro de cada ferramenta
+   ============================================================ */
+.ajuda{
+  border:1px solid rgba(217,178,110,.2);border-radius:14px;
+  background:rgba(217,178,110,.045);margin:0 0 20px;
+}
+.ajuda summary{
+  cursor:pointer;list-style:none;padding:13px 16px;
+  font-size:.85rem;font-weight:700;color:var(--gold-soft);
+  display:flex;align-items:center;gap:9px;min-height:46px;
+  -webkit-tap-highlight-color:transparent;
+}
+.ajuda summary::-webkit-details-marker{display:none}
+/* A seta é desenhada aqui porque o triângulo do sistema é minúsculo e num
+   telemóvel não se percebe que aquilo abre. Triângulo e não chevron: o "›"
+   rodado assentava na linha de base torto, e ficava um risco em vez de uma
+   seta. */
+.ajuda summary::before{
+  content:"▾";font-size:.95rem;line-height:1;color:var(--gold);
+  transition:transform .18s;flex:none;
+}
+.ajuda[open] summary::before{transform:rotate(180deg)}
+.ajuda summary:hover{color:var(--gold)}
+
+.ajuda ul{list-style:none;margin:0;padding:0 16px 4px}
+.ajuda li{
+  color:var(--cream-dim);font-size:.87rem;line-height:1.65;
+  padding:9px 0;border-top:1px solid rgba(217,178,110,.1);
+}
+.ajuda li b{color:var(--cream);font-weight:700}
+
+.ajuda-ex{
+  margin:6px 16px 16px;padding:14px 16px;
+  background:rgba(217,178,110,.07);border-left:3px solid var(--gold);
+  border-radius:0 10px 10px 0;
+  color:var(--cream-dim);font-size:.87rem;line-height:1.7;
+}
+.ajuda-ex b{color:var(--gold-soft);font-weight:700}
+
+/* Numa ferramenta fechada a ajuda continua a abrir. É de propósito: é ela
+   que diz o que está do outro lado do cadeado, e ninguém paga por uma coisa
+   que não percebe para que serve. */
+.ferramenta.trancada .ajuda{opacity:1;filter:none;pointer-events:auto}

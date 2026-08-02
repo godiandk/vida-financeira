@@ -16,6 +16,156 @@
    cadeado. Um cadeado a sério exigiria servidor e custo fixo mensal.
    ============================================================ */
 
+/* ============================================================
+   AJUDA — para que serve cada ferramenta e como se preenche
+
+   Uma calculadora que não se percebe é uma calculadora que não se usa. Os
+   subtítulos que aqui estavam explicavam o método — "medida em meses de
+   despesa essencial, que é a única unidade que diz alguma coisa" — e não
+   serviam de nada a quem nunca ouviu falar disto. E rótulos como "Juro anual
+   (%)" não dizem onde é que a pessoa vai buscar esse número.
+
+   Três regras ao escrever isto:
+   - Uma situação da vida, não uma definição. "A loja diz 12x sem juros" em
+     vez de "calcula o encargo implícito do crédito".
+   - Dizer sempre o que fazer quando não se sabe um número. "Se não souber,
+     escreva 0" tira do caminho a pessoa que ia fechar a página ali.
+   - Um exemplo com contas feitas, para se poder seguir com o dedo. Os
+     números foram conferidos contra as fórmulas deste ficheiro — se uma
+     mudar, o exemplo tem de mudar com ela.
+
+   Vive aqui e não no HTML porque as três ferramentas de assinatura existem
+   em duas páginas (ferramentas.html e /app/). Escrito uma vez, aparece nas
+   duas e não pode divergir.
+   ============================================================ */
+const AJUDA = {
+  p: {
+    para: 'Vai pondo um bocadinho de lado todos os meses e quer ver quanto tem daqui a uns anos.',
+    campos: [
+      ['Guardo por mês', 'Quanto consegue pôr de lado por mês. Se são vinte, escreva 20.'],
+      ['Durante (anos)', 'Quantos anos pensa fazer isso.'],
+      ['Rende por ano (%)', 'Quanto o banco lhe paga por ter lá o dinheiro parado. Vem no papel da conta-poupança. <b>Se não souber, ou se guarda o dinheiro em casa, escreva 0</b> — a conta faz-se na mesma.']
+    ],
+    exemplo: 'Vinte euros por mês durante cinco anos dá <b>1 200 €</b> — é o seu dinheiro, sem mais nada. Se estiver num sítio que renda 2% ao ano, dá <b>1 260,95 €</b>. Os <b>60,95 €</b> a mais não saíram do seu bolso.'
+  },
+  r: {
+    para: 'Toda a gente diz para ter um dinheiro guardado para o que der e vier. Isto diz de quanto precisa, e quanto tempo demora a juntá-lo.',
+    campos: [
+      ['Essenciais por mês', 'Só o que não dá para deixar de pagar: casa, comida, luz, água, transporte, remédios. O resto não entra aqui.'],
+      ['Quero (meses)', 'Quantos meses quer aguentar se o dinheiro deixasse de entrar. <b>Comece por 1.</b> Três é o que se costuma dizer, mas um mês já muda a vida a quem não tem nenhum.'],
+      ['Já tenho', 'O que já está de lado. Se não é nada, escreva 0.'],
+      ['Guardo por mês', 'Quanto consegue pôr de lado por mês.']
+    ],
+    exemplo: 'Se os essenciais são 600 € e quer três meses, a reserva é <b>1 800 €</b>. A 50 € por mês, demora <b>36 meses</b>. Se isso parecer longe de mais, escreva 1 mês em vez de 3: são 600 €, e chega lá num ano.'
+  },
+  q: {
+    para: 'A loja diz «12x sem juros». Isto mostra se é mesmo sem juros.',
+    campos: [
+      ['Preço a pronto', 'O preço se pagasse tudo de uma vez, hoje. É o que responderem se perguntar «quanto é a pronto?».'],
+      ['Em quantas vezes', 'Em quantas prestações fica dividido.'],
+      ['Valor de cada prestação', 'Quanto paga em cada mês.']
+    ],
+    exemplo: 'Uma máquina de lavar: <b>480 €</b> a pronto, ou <b>12 prestações de 45,90 €</b>. As doze prestações somam <b>550,80 €</b>. Paga <b>70,80 € a mais</b> — e isso é juro, mesmo que a loja diga que não há.'
+  },
+  d: {
+    para: 'Tem mais do que uma dívida e não sabe qual pagar primeiro.',
+    campos: [
+      ['Dívida 1, 2 e 3', 'Quanto <b>ainda falta pagar</b> em cada uma — não o que pediu emprestado no princípio. Se só tem duas dívidas, deixe a terceira em 0.'],
+      ['Juro anual (%)', 'Quanto cada dívida cobra por ano. Está no contrato ou no extracto, às vezes com o nome <b>TAEG</b>. <b>Se não souber, escreva 0</b> — a ferramenta responde à mesma, só deixa de poder dizer qual sai mais cara.']
+    ],
+    exemplo: 'Uma dívida de 300 € que cobra 18% ao ano, e outra de 1 200 € que cobra 9%. A de 1 200 € é maior, mas a de 300 € é a que sai mais cara por cada euro — e é a que se despacha mais depressa.'
+  },
+  e: {
+    para: 'Saber que fatia do dinheiro que entra em casa fica presa só no tecto.',
+    campos: [
+      ['Entra em casa por mês', 'Tudo o que entra, de <b>todas as pessoas</b> da casa: salários, apoios, pensões, biscates.'],
+      ['Renda ou prestação', 'O que paga por mês pela casa. Só isso — a luz e a água não entram aqui.']
+    ],
+    exemplo: 'Entram 1 000 € e a renda é 450 €. São <b>45%</b>: quase metade do que entra fica na casa antes de se comprar comida.'
+  },
+  h: {
+    para: 'Uma coisa pequena que se repete muitas vezes. Ver quanto dá ao fim de um ano.',
+    campos: [
+      ['Custa de cada vez', 'O preço de uma vez só.'],
+      ['Vezes por semana', 'Quantas vezes numa semana normal. Não escolha a pior semana nem a melhor.']
+    ],
+    exemplo: 'Um café de <b>1,20 €</b>, dez vezes por semana, dá <b>624 € por ano</b>. Isto não é para deixar de tomar café — é só para o número deixar de ser invisível.'
+  },
+  a: {
+    para: 'Ver o ano inteiro à frente, mês a mês, com os subsídios no mês em que entram mesmo.',
+    campos: [
+      ['Entra por mês', 'O que entra num mês normal, <b>sem</b> contar subsídios.'],
+      ['Essenciais por mês', 'O que não dá para deixar de pagar.'],
+      ['Subsídio, quando há (cada um)', 'Quanto recebe <b>de cada</b> subsídio. Em Portugal são dois: o de férias e o de Natal. <b>Se não recebe nenhum, escreva 0</b> — o plano faz-se à mesma.']
+    ],
+    exemplo: 'Entram 1 000 € e os essenciais são 820 €: sobram 180 € por mês. Nos meses em que entra um subsídio sobra muito mais — e é aí que se junta a reserva do ano inteiro, não nos outros dez.'
+  },
+  c: {
+    para: 'Tem duas hipóteses à frente e quer ver qual delas dá mais ao fim de uns anos.',
+    campos: [
+      ['A · por mês  e  B · por mês', 'Quanto punha de lado em cada uma das duas hipóteses.'],
+      ['A · rende (%)  e  B · rende (%)', 'Quanto cada uma paga por ano. <b>Se não souber, escreva 0 nas duas</b>: fica a comparar só o que consegue guardar, que é o que costuma pesar mais.'],
+      ['Durante (anos)', 'Quantos anos quer olhar à frente.']
+    ],
+    exemplo: '50 € por mês num sítio que rende 2%, ou 80 € por mês num que rende 1%? Ao fim de dez anos: <b>6 635,98 €</b> contra <b>10 091,99 €</b>. Quanto se guarda pesou muito mais do que quanto rendeu.'
+  },
+  i: {
+    para: 'Ver quantos anos faltariam, ao ritmo de hoje, para poder viver sem depender do salário.',
+    campos: [
+      ['Gasto por mês', 'Tudo o que gasta num mês, essencial e não essencial.'],
+      ['Poupo por mês', 'O que sobra e fica guardado.'],
+      ['Tenho hoje', 'Tudo o que já tem de lado, somado.'],
+      ['Rende por ano (%)', 'Quanto o dinheiro guardado rende por ano. <b>Se não souber, escreva 0.</b>']
+    ],
+    exemplo: 'Este número costuma dar muitos anos, e não é para desanimar ninguém: serve para ver o efeito de mudar uma coisa de cada vez. <b>Não é uma previsão</b> — é a conta feita com os números que escreveu, e a vida não anda em linha recta.'
+  }
+};
+
+/* Desenha a ajuda dentro de cada ferramenta, por cima dos campos. Fechada:
+   quem já sabe usar não a vê, quem não sabe abre-a com um toque. É um
+   <details> do próprio navegador — abre sem JavaScript nenhum, os leitores de
+   ecrã lêem-no como o que é, e não precisa de código meu para funcionar. */
+function desenharAjuda() {
+  Object.keys(AJUDA).forEach(pre => {
+    const btn = document.getElementById(pre + '-calc');
+    if (!btn) return;
+    const ferr = btn.closest('.ferramenta');
+    const campos = ferr && ferr.querySelector('.campos');
+    if (!ferr || !campos || ferr.querySelector('.ajuda')) return;
+
+    const a = AJUDA[pre];
+
+    /* O "para que serve" toma o lugar do subtítulo — é o mesmo sítio, e a
+       frase que lá estava descrevia o método em vez de dizer para quem é. */
+    const sub = ferr.querySelector('.sub');
+    if (sub && a.para) sub.textContent = a.para;
+
+    const d = document.createElement('details');
+    d.className = 'ajuda';
+
+    const s = document.createElement('summary');
+    s.textContent = 'Como se preenche — com um exemplo';
+    d.appendChild(s);
+
+    const ul = document.createElement('ul');
+    a.campos.forEach(([rot, txt]) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<b>' + rot + '</b> — ' + txt;
+      ul.appendChild(li);
+    });
+    d.appendChild(ul);
+
+    if (a.exemplo) {
+      const ex = document.createElement('p');
+      ex.className = 'ajuda-ex';
+      ex.innerHTML = a.exemplo;
+      d.appendChild(ex);
+    }
+
+    campos.parentNode.insertBefore(d, campos);
+  });
+}
+
 /* ---------- moeda ---------- */
 function moedaActual() {
   return localStorage.getItem('vf:moeda') || 'EUR';
@@ -409,6 +559,8 @@ function abrirDesbloqueio() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  desenharAjuda();
+
   Object.entries(CALCULOS).forEach(([pre, fn]) => {
     const btn = document.getElementById(pre + '-calc');
     if (btn) btn.addEventListener('click', fn);
