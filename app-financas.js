@@ -151,8 +151,27 @@ const PADRAO_ESS = {
   lazer: false, 'outros-s': false
 };
 
-const MESES = ['janeiro','fevereiro','março','abril','maio','junho',
-               'julho','agosto','setembro','outubro','novembro','dezembro'];
+/* O nome do mês na língua da aplicação. O navegador já sabe escrevê-los nas
+   quatro — não vale a pena ter quarenta e oito nomes escritos à mão para
+   depois um deles ficar errado. */
+const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho',
+                  'julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function localDaLingua() {
+  const l = (typeof idioma === 'function') ? idioma() : 'pt';
+  return l === 'en' ? 'en-GB' : l === 'es' ? 'es-ES' : l === 'br' ? 'pt-BR' : 'pt-PT';
+}
+
+const MESES = new Proxy({}, {
+  get(_, i) {
+    const n = Number(i);
+    if (!isFinite(n)) return undefined;
+    try {
+      const nome = new Date(2020, n, 1).toLocaleDateString(localDaLingua(), { month: 'long' });
+      return nome.charAt(0).toLowerCase() + nome.slice(1);
+    } catch (e) { return MESES_PT[n]; }
+  }
+});
 
 /* ---------- etiquetas de lançamento rápido ----------
    Uma etiqueta é um par (categoria, descrição). Nunca tem valor: o valor
@@ -411,20 +430,22 @@ let dividaTotal = null;  /* { valor, em } — quanto se deve hoje, dito pela pes
 
 /* Como se chama a outra pessoa, para a app falar como se fala em casa. */
 function nomeDoParceiro() {
-  if (lar.comQuem === 'esposa') return 'a sua esposa';
-  if (lar.comQuem === 'marido') return 'o seu marido';
-  if (lar.comQuem === 'companheiro') return 'a outra pessoa';
+  if (lar.comQuem === 'esposa') return T('arr.quem.esposa');
+  if (lar.comQuem === 'marido') return T('arr.quem.marido');
+  if (lar.comQuem === 'companheiro') return T('arr.quem.outro');
   return '';
 }
 
-function nomeDaCarteira(id) {
-  if (id === 'emergencia') return 'Emergência';
+/* `l` serve para o chat pedir o nome na língua da conversa, que pode não ser
+   a da aplicação. Sem ele, uma resposta em inglês trazia "na conta" lá dentro. */
+function nomeDaCarteira(id, l) {
+  if (id === 'emergencia') return T('inicio.emergencia', null, l);
   if (id === 'parceiro') {
-    if (lar.comQuem === 'esposa') return 'Conta dela';
-    if (lar.comQuem === 'marido') return 'Conta dele';
-    return 'A outra conta';
+    if (lar.comQuem === 'esposa') return T('inicio.contadela', null, l);
+    if (lar.comQuem === 'marido') return T('inicio.contadele', null, l);
+    return T('inicio.outraconta', null, l);
   }
-  return temParceiro() ? 'A minha conta' : 'Na conta';
+  return temParceiro() ? T('inicio.minhaconta', null, l) : T('inicio.naconta', null, l);
 }
 
 function temParceiro() {
@@ -553,7 +574,8 @@ function mesExtenso(chave, curto) {
   const ano = parseInt(chave.slice(0, 4), 10);
   const mes = parseInt(chave.slice(5, 7), 10) - 1;
   if (curto && ano === hoje.getFullYear()) return MESES[mes];
-  return MESES[mes] + ' de ' + ano;
+  const de = (typeof idioma === 'function' && idioma() === 'en') ? ' ' : ' de ';
+  return MESES[mes] + de + ano;
 }
 
 function comMaiuscula(t) {
@@ -1598,8 +1620,7 @@ function desenharTopo(r) {
        que entradas é normal antes de entrar o ordenado, mas um número grande
        e vermelho lê-se como uma dívida — e quem o lê assim vem perguntar
        porque é que a aplicação lhe inventou um saldo negativo. */
-    elSub.textContent = 'Saiu mais ' + dinheiro(Math.abs(v.livre)) +
-      ' do que entrou este mês. Não é uma dívida.';
+    elSub.textContent = T('inicio.naodivida', { v: dinheiro(Math.abs(v.livre)) });
   } else {
     elLivre.textContent = dinheiro(v.livre);
     elLivre.classList.remove('neg');
@@ -1692,7 +1713,7 @@ function desenharSaldoConta() {
     tot.className = 'lc-linha lc-total';
     const nome = document.createElement('span');
     nome.className = 'lc-nome';
-    nome.textContent = 'Ao todo';
+    nome.textContent = T('inicio.aotodo');
     const val = document.createElement('b');
     const t = saldoDeTudo();
     val.className = 'lc-val' + (t < 0 ? ' neg' : '');
@@ -1708,7 +1729,7 @@ function desenharSaldoConta() {
     dv.className = 'lc-linha lc-divida';
     const nome = document.createElement('span');
     nome.className = 'lc-nome';
-    nome.textContent = 'Devemos';
+    nome.textContent = T('inicio.devemos');
     const val = document.createElement('b');
     val.className = 'lc-val neg';
     val.textContent = dinheiro(dividaTotal.valor);
@@ -1769,12 +1790,12 @@ function desenharConferir(r) {
   if (!conferirAberto) {
     const t = document.createElement('p');
     t.className = 'cf-pergunta';
-    t.textContent = 'Mês novo. Estes números batem certo com o seu banco?';
+    t.textContent = T('conferir.pergunta');
 
     const acoes = document.createElement('div');
     acoes.className = 'res-acoes';
-    acoes.appendChild(botao('Está certo', 'mini-btn', marcarConferido));
-    acoes.appendChild(botao('Quero acertar', 'mini-btn', () => { conferirAberto = true; desenhar(); }));
+    acoes.appendChild(botao(T('conferir.certo'), 'mini-btn', marcarConferido));
+    acoes.appendChild(botao(T('conferir.acertar'), 'mini-btn', () => { conferirAberto = true; desenhar(); }));
 
     el.append(t, acoes);
     return;
@@ -1783,7 +1804,7 @@ function desenharConferir(r) {
   /* ---- os campos ---- */
   const t = document.createElement('p');
   t.className = 'cf-pergunta';
-  t.textContent = 'Escreva o que está lá hoje. O que deixar em branco fica como está.';
+  t.textContent = T('conferir.escreva');
   el.appendChild(t);
 
   const campos = [];
@@ -1805,7 +1826,7 @@ function desenharConferir(r) {
     const linha = document.createElement('div');
     linha.className = 'field';
     const lab = document.createElement('label');
-    lab.textContent = 'Quanto devem';
+    lab.textContent = T('conferir.quantodevem');
     const inp = document.createElement('input');
     inp.type = 'text';
     inp.inputMode = 'decimal';
@@ -1817,7 +1838,7 @@ function desenharConferir(r) {
 
   const acoes = document.createElement('div');
   acoes.className = 'res-acoes';
-  acoes.appendChild(botao('Guardar', 'mini-btn mini-btn-sim', () => {
+  acoes.appendChild(botao(T('conferir.guardar'), 'mini-btn mini-btn-sim', () => {
     let mexeu = 0;
     campos.forEach(c => {
       const cru = String(c.inp.value).trim();
@@ -1829,16 +1850,14 @@ function desenharConferir(r) {
       mexeu++;
     });
     marcarConferido();
-    mostrarAviso(mexeu ? 'Acertado. Os números do mês passam a ser estes.'
-                       : 'Não mudou nada — fica tudo como estava.', mexeu ? 'ok' : 'info');
+    mostrarAviso(mexeu ? T('conferir.feito') : T('conferir.nada'), mexeu ? 'ok' : 'info');
   }));
-  acoes.appendChild(botao('Deixa estar', 'mini-btn', marcarConferido));
+  acoes.appendChild(botao(T('conferir.deixa'), 'mini-btn', marcarConferido));
   el.appendChild(acoes);
 
   const nota = document.createElement('p');
   nota.className = 'cf-nota';
-  nota.textContent = 'Isto acerta o saldo, não apaga nem inventa lançamentos. ' +
-    'Se faltar um gasto, lance-o em ➕ Lançar ou diga-mo no chat.';
+  nota.textContent = T('conferir.nota');
   el.appendChild(nota);
 }
 
@@ -2019,7 +2038,7 @@ function desenharLista(r) {
     /* `3/12` e mais nada. É informação, não é comentário: sem cor, sem
        ícone, sem "faltam nove". */
     if (m.parc) legenda += ' · ' + m.parc.n + '/' + m.parc.de;
-    legenda += ' · ' + d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+    legenda += ' · ' + d.toLocaleDateString(localDaLingua(), { day: '2-digit', month: 'short' });
     if (m.tipo === 'saida' && m.categoria !== 'reserva' && !ehEssencial(m)) legenda += ' · dá para adiar';
     sp.textContent = legenda;
     txt.append(b, sp);
@@ -3496,59 +3515,19 @@ function actualizarParc(notaDivisao) {
    começar. Cada um muda o que a app põe à frente, e nada mais — não há aqui
    nenhum produto a ser recomendado a ninguém. */
 const PLANOS = [
-  { id: 'respirar', nome: 'Chegar ao fim do mês',
-    ajuda: 'Primeiro parar de afundar. A app põe à frente o que sai e onde dá para cortar.' },
-  { id: 'reserva', nome: 'Juntar uma reserva',
-    ajuda: 'As contas estão a dar. Agora é juntar dinheiro para os imprevistos não virarem dívida.' },
-  { id: 'divida', nome: 'Sair das dívidas',
-    ajuda: 'Há prestações a pagar. A app põe à frente o que custam e quanto falta.' }
+  { id: 'respirar', nome: () => T('plano.respirar'), ajuda: () => T('plano.respirar.a') },
+  { id: 'reserva', nome: () => T('plano.reserva'), ajuda: () => T('plano.reserva.a') },
+  { id: 'divida', nome: () => T('plano.divida'), ajuda: () => T('plano.divida.a') }
 ];
 
 function nomeDoPlano(id) {
   const p = PLANOS.filter(x => x.id === id)[0];
-  return p ? p.nome : '';
+  return p ? p.nome() : '';
 }
 
 /* As perguntas, por ordem. `tipo` decide o que se desenha: um campo de número
    ou botões. `sePrecisa` é o que faz a pergunta do parceiro não aparecer a
    quem vive sozinho. */
-function passosDoArranque() {
-  const passos = [
-    { chave: 'entra', tipo: 'valor', obrigatoria: true,
-      titulo: 'Quanto entra por mês?',
-      ajuda: 'Tudo o que entra em casa, de todas as pessoas: salário, apoios, pensões, biscates. Um número aproximado chega.' },
-    { chave: 'essenciais', tipo: 'valor', obrigatoria: true,
-      titulo: 'E quanto é o que não dá para não pagar?',
-      ajuda: 'Casa, comida, luz, água, transporte, remédios. Só isso — o resto fica de fora. Se não souber ao certo, escreva o que lhe parecer.' },
-    { chave: 'comQuem', tipo: 'escolha',
-      titulo: 'Vive sozinho ou com alguém?',
-      ajuda: 'Isto serve para eu saber de quem é o dinheiro quando me disser "ela gastou 40 no mercado". Nada mais.',
-      opcoes: [
-        { id: 'so', nome: 'Sozinho(a)' },
-        { id: 'esposa', nome: 'Com a minha esposa' },
-        { id: 'marido', nome: 'Com o meu marido' },
-        { id: 'companheiro', nome: 'Com outra pessoa' }
-      ] },
-    { chave: 'saldoMinha', tipo: 'valor',
-      titulo: 'Quanto tem na sua conta agora?',
-      ajuda: 'O que está lá hoje. É este o número que passa a aparecer no Início — e a partir daqui sou eu que o mantenho certo.' },
-    { chave: 'saldoParceiro', tipo: 'valor',
-      sePrecisa: () => temParceiro(),
-      titulo: () => 'E quanto tem ' + nomeDoParceiro() + ' na conta dela?',
-      ajuda: 'Se não souber, salte. Dá para dizer mais tarde ao chat: "ela tem 800 na conta dela".' },
-    { chave: 'saldoEmergencia', tipo: 'valor',
-      titulo: 'E de lado, para emergências?',
-      ajuda: 'Dinheiro que não é para gastar este mês: poupança, pé-de-meia, o que estiver guardado. Se não houver nada, escreva 0.' },
-    { chave: 'divida', tipo: 'valor',
-      titulo: 'Quanto devem hoje, ao todo?',
-      ajuda: 'Cartões, crédito, prestações, dinheiro pedido a alguém. Somado. Se não dever nada, escreva 0 — é uma boa notícia e vale a pena vê-la escrita.' },
-    { chave: 'plano', tipo: 'escolha',
-      titulo: 'E o que quer fazer primeiro?',
-      ajuda: 'Pode mudar quando quiser. Serve só para eu saber o que lhe pôr à frente.',
-      opcoes: PLANOS.map(pl => ({ id: pl.id, nome: pl.nome, ajuda: pl.ajuda })) }
-  ];
-  return passos.filter(x => !x.sePrecisa || x.sePrecisa());
-}
 /* Um número respondido, ou `null` para "não sei". Zero é uma resposta — quem
    escreve 0 na dívida está a dizer que não deve nada, e isso não é o mesmo que
    não ter respondido. */
@@ -3562,16 +3541,44 @@ function precisaArranque() {
   return !arranque.feito && !arranque.dispensado && movimentos.length === 0;
 }
 
-/* O rodapé é sempre o mesmo: voltar atrás, ou sair de vez. Sair tem de estar
-   à vista em todas as folhas — a alternativa é alguém ficar preso num
-   formulário que não quer responder. */
+function passosDoArranque() {
+  const passos = [
+    { chave: 'entra', tipo: 'valor', obrigatoria: true,
+      titulo: () => T('arr.q.entra'), ajuda: () => T('arr.a.entra') },
+    { chave: 'essenciais', tipo: 'valor', obrigatoria: true,
+      titulo: () => T('arr.q.essenciais'), ajuda: () => T('arr.a.essenciais') },
+    { chave: 'comQuem', tipo: 'escolha',
+      titulo: () => T('arr.q.comquem'), ajuda: () => T('arr.a.comquem'),
+      opcoes: [
+        { id: 'so', nome: () => T('arr.o.so') },
+        { id: 'esposa', nome: () => T('arr.o.esposa') },
+        { id: 'marido', nome: () => T('arr.o.marido') },
+        { id: 'companheiro', nome: () => T('arr.o.companheiro') }
+      ] },
+    { chave: 'saldoMinha', tipo: 'valor',
+      titulo: () => T('arr.q.minha'), ajuda: () => T('arr.a.minha') },
+    { chave: 'saldoParceiro', tipo: 'valor',
+      sePrecisa: () => temParceiro(),
+      titulo: () => T('arr.q.parceiro', { quem: nomeDoParceiro() }),
+      ajuda: () => T('arr.a.parceiro') },
+    { chave: 'saldoEmergencia', tipo: 'valor',
+      titulo: () => T('arr.q.emergencia'), ajuda: () => T('arr.a.emergencia') },
+    { chave: 'divida', tipo: 'valor',
+      titulo: () => T('arr.q.divida'), ajuda: () => T('arr.a.divida') },
+    { chave: 'plano', tipo: 'escolha',
+      titulo: () => T('arr.q.plano'), ajuda: () => T('arr.a.plano'),
+      opcoes: PLANOS.map(pl => ({ id: pl.id, nome: pl.nome, ajuda: pl.ajuda })) }
+  ];
+  return passos.filter(x => !x.sePrecisa || x.sePrecisa());
+}
+
 function rodapeDoArranque(passos) {
   const zona = document.createElement('div');
   zona.className = 'arr-rodape';
   if (arranquePasso > 0) {
-    zona.appendChild(botao('‹ Voltar', 'arr-voltar', () => { arranquePasso--; desenhar(); }));
+    zona.appendChild(botao(T('arr.voltar'), 'arr-voltar', () => { arranquePasso--; desenhar(); }));
   }
-  zona.appendChild(botao('Agora não', 'arr-voltar', () => {
+  zona.appendChild(botao(T('arr.agoranao'), 'arr-voltar', () => {
     arranque.dispensado = true;
     guardarArranque();
     desenhar();
@@ -3611,7 +3618,7 @@ function desenharArranque() {
 
     const conta = document.createElement('p');
     conta.className = 'arr-conta';
-    conta.textContent = 'Pergunta ' + (arranquePasso + 1) + ' de ' + passos.length;
+    conta.textContent = T('arr.pergunta', { i: arranquePasso + 1, n: passos.length });
 
     const h = document.createElement('h2');
     h.className = 'arr-titulo';
@@ -3639,11 +3646,11 @@ function desenharArranque() {
         b.type = 'button';
         b.className = 'arr-opcao' + (arranque[passo.chave] === op.id ? ' escolhida' : '');
         const n = document.createElement('b');
-        n.textContent = op.nome;
+        n.textContent = (typeof op.nome === 'function') ? op.nome() : op.nome;
         b.appendChild(n);
         if (op.ajuda) {
           const a = document.createElement('small');
-          a.textContent = op.ajuda;
+          a.textContent = (typeof op.ajuda === 'function') ? op.ajuda() : op.ajuda;
           b.appendChild(a);
         }
         b.addEventListener('click', () => {
@@ -3679,7 +3686,7 @@ function desenharArranque() {
       if (!cru && !passo.obrigatoria) { arranque[passo.chave] = null; avancar(); return; }
       const n = parseFloat(cru.replace(',', '.'));
       if (!isFinite(n) || n < 0) {
-        mostrarAviso('Escreva um número, mesmo que seja por alto.', 'erro');
+        mostrarAviso(T('arr.escrevanumero'), 'erro');
         inp.focus();
         return;
       }
@@ -3689,11 +3696,11 @@ function desenharArranque() {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); seguir(); } });
 
     corpo.appendChild(campo);
-    corpo.appendChild(botao(arranquePasso === passos.length - 1 ? 'Ver as minhas contas' : 'Seguinte',
+    corpo.appendChild(botao(arranquePasso === passos.length - 1 ? T('arr.ver') : T('arr.seguinte'),
                             'btn btn-gold arr-bt', seguir));
 
     if (!passo.obrigatoria) {
-      corpo.appendChild(botao('Não sei — saltar', 'arr-saltar', () => {
+      corpo.appendChild(botao(T('arr.naosei'), 'arr-saltar', () => {
         arranque[passo.chave] = null;
         avancar();
       }));
@@ -3783,15 +3790,14 @@ function avisoSemConta() {
 
   zona.className = 'arr-semconta';
   const t = document.createElement('p');
-  t.textContent = 'Isto ficou guardado só neste telemóvel. Se limpar o navegador ' +
-    'ou trocar de aparelho, perde-se.';
+  t.textContent = T('arr.semconta');
   const a = document.createElement('a');
   /* Classe própria e não `arr-bt`: essa é a dos botões que fazem avançar o
      arranque, e uma ligação que sai da aplicação não pode estar no mesmo
      saco de quem carrega no primeiro botão que vê. */
   a.className = 'btn btn-line arr-bt-conta';
   a.href = (typeof raizDoSite === 'function' ? raizDoSite() : '../') + 'conta.html';
-  a.textContent = 'Criar conta e guardar isto';
+  a.textContent = T('arr.criarconta');
   zona.append(t, a);
   return zona;
 }

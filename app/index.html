@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=53">
-<link rel="stylesheet" href="../app-financas.css?v=53">
-<link rel="stylesheet" href="../app-shell.css?v=53">
-<link rel="stylesheet" href="../assistente.css?v=53">
-<link rel="stylesheet" href="../ferramentas.css?v=53">
+<link rel="stylesheet" href="../estilo.css?v=54">
+<link rel="stylesheet" href="../app-financas.css?v=54">
+<link rel="stylesheet" href="../app-shell.css?v=54">
+<link rel="stylesheet" href="../assistente.css?v=54">
+<link rel="stylesheet" href="../ferramentas.css?v=54">
 </head>
 <body class="app-shell">
 
@@ -55,7 +55,7 @@
     <div class="wrap">
       <div class="saudacao">
         <h2 id="saudacao-titulo">Olá 👋</h2>
-        <p id="saudacao-sub">Isto é o seu mês. Lance o que gastou e o resto faz-se sozinho.</p>
+        <p id="saudacao-sub" data-t="inicio.sub">Isto é o seu mês. Lance o que gastou e o resto faz-se sozinho.</p>
       </div>
 
         <div class="mes-bar">
@@ -76,7 +76,7 @@
         <div class="balanco-linha" id="balanco-linha" hidden></div>
         <div class="resumo">
         <div class="card saldo">
-        <div class="rot">Livre até ao fim do mês</div>
+        <div class="rot" data-t="inicio.livre">Livre até ao fim do mês</div>
         <div class="val" id="v-livre">—</div>
         <div class="sub" id="v-livre-sub"></div>
         <div class="sub" id="v-livre-comp" hidden></div>
@@ -89,11 +89,11 @@
         </div>
         <div class="resumo-dois">
         <div class="card">
-        <div class="rot">Guardei este mês</div>
+        <div class="rot" data-t="inicio.guardei">Guardei este mês</div>
         <div class="val" id="v-guardado">—</div>
         </div>
         <div class="card">
-        <div class="rot">Reserva</div>
+        <div class="rot" data-t="inicio.reserva">Reserva</div>
         <div class="val" id="v-reserva-meses">—</div>
         <div class="sub" id="v-reserva-eur"></div>
         </div>
@@ -161,27 +161,27 @@
       pelo script la em baixo, para nao haver dois de nada. -->
       <div class="gavetas" id="gavetas">
         <details class="gaveta" id="gaveta-lancar">
-          <summary><span class="gv-nome">Lançar um gasto ou uma entrada</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.lancar">Lançar um gasto ou uma entrada</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-lancar"></div>
         </details>
         <details class="gaveta" id="gaveta-mes" open>
-          <summary><span class="gv-nome">O meu mês, movimento a movimento</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.mes">O meu mês, movimento a movimento</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-mes"></div>
         </details>
         <details class="gaveta" id="gaveta-contas">
-          <summary><span class="gv-nome">As contas que se repetem</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.contas">As contas que se repetem</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-contas"></div>
         </details>
         <details class="gaveta" id="gaveta-divida">
-          <summary><span class="gv-nome">O que a dívida custa</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.divida">O que a dívida custa</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-divida"></div>
         </details>
         <details class="gaveta" id="gaveta-apoios">
-          <summary><span class="gv-nome">Apoios que talvez não receba</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.apoios">Apoios que talvez não receba</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-apoios"></div>
         </details>
         <details class="gaveta" id="gaveta-mais">
-          <summary><span class="gv-nome">Ferramentas e calculadoras</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <summary><span class="gv-nome" data-t="gaveta.mais">Ferramentas e calculadoras</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-mais"></div>
         </details>
       </div>
@@ -378,7 +378,7 @@
       <form class="assist-form" id="assist-form" novalidate>
         <label class="assist-foto" for="assist-ficheiro" aria-label="Tirar fotografia">📷</label>
         <input id="assist-ficheiro" type="file" accept="image/*" capture="environment" hidden>
-        <input id="assist-campo" type="text" placeholder="Gastei 30 euros no mercado…" autocomplete="off">
+        <input id="assist-campo" type="text" placeholder="Gastei 30 euros no mercado…" data-t-ph="chat.placeholder" autocomplete="off">
         <button type="submit" aria-label="Enviar">↑</button>
       </form>
 
@@ -810,6 +810,15 @@
       </div>
 
       <div class="eyebrow" style="margin-top:38px">Mais</div>
+      <!-- Escolher a lingua. Fica nas Ferramentas e nao no arranque: uma
+      pergunta de lingua a' entrada e' uma barreira, e a app ja' adivinha
+      sozinha pelo telemovel e pela moeda. Quem quiser outra, muda aqui. -->
+      <div class="bloco" id="bloco-lingua">
+        <h3 data-t="lingua.titulo">Língua</h3>
+        <div class="lingua-opcoes" id="lingua-opcoes"></div>
+        <p class="cf-nota" data-t="lingua.ajuda">Escrevo-lhe nesta língua. No chat respondo sempre na língua em que me escrever.</p>
+      </div>
+
       <div class="atalhos">
         <button class="atalho" type="button" data-ir="apoios"><span class="ic">🎁</span><b>Apoios</b><small>O que talvez não receba</small></button>
         <a class="atalho" href="../metodo.html"><span class="ic">📗</span><b>Método</b><small>Reserva com salário baixo</small></a>
@@ -865,40 +874,41 @@
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
   <button class="aba" role="tab" data-ecra="wesley" aria-selected="false">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 4z"/></svg>
-    <small>Escrever</small>
+    <small data-t="abas.escrever">Escrever</small>
   </button>
   <button class="aba" role="tab" data-ecra="inicio" aria-selected="true">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z"/></svg>
-    <small>Início</small>
+    <small data-t="abas.inicio">Início</small>
   </button>
   <button class="aba" role="tab" data-ecra="lancar" aria-selected="false">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg>
-    <small>Lançar</small>
+    <small data-t="abas.lancar">Lançar</small>
   </button>
   <button class="aba" role="tab" data-ecra="mes" aria-selected="false">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9m5 11V4.5m5 15.5v-8m5 8V7"/></svg>
-    <small>Mês</small>
+    <small data-t="abas.mes">Mês</small>
   </button>
   <button class="aba" role="tab" data-ecra="mais" aria-selected="false">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h15M4.5 5.5v13M19.5 5.5v13M4.5 18.5h15M9 5.5v13M14.5 5.5v13"/></svg>
-    <small>Ferramentas</small>
+    <small data-t="abas.mais">Ferramentas</small>
   </button>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=53"></script>
-<script src="../site.js?v=53"></script>
-<script src="../app-financas.js?v=53"></script>
-<script src="../excel.js?v=53"></script>
-<script src="../partilha.js?v=53"></script>
-<script src="../divida.js?v=53"></script>
-<script src="../interpretar.js?v=53"></script>
-<script src="../talao.js?v=53"></script>
-<script src="../assistente.js?v=53"></script>
-<script src="../ferramentas.js?v=53"></script>
-<script src="../banner.js?v=53"></script>
+<script src="../firebase-config.js?v=54"></script>
+<script src="../site.js?v=54"></script>
+<script src="../app-financas.js?v=54"></script>
+<script src="../excel.js?v=54"></script>
+<script src="../partilha.js?v=54"></script>
+<script src="../divida.js?v=54"></script>
+<script src="../idiomas.js?v=54"></script>
+<script src="../interpretar.js?v=54"></script>
+<script src="../talao.js?v=54"></script>
+<script src="../assistente.js?v=54"></script>
+<script src="../ferramentas.js?v=54"></script>
+<script src="../banner.js?v=54"></script>
 <script>
 /* ============================================================
    TUDO NUMA PAGINA
@@ -1030,7 +1040,9 @@
 (function saudar(){
   const h = new Date().getHours();
   const t = document.getElementById('saudacao-titulo');
-  if (t) t.textContent = (h < 6 ? 'Boa noite' : h < 13 ? 'Bom dia' : h < 20 ? 'Boa tarde' : 'Boa noite') + ' 👋';
+  if (!t) return;
+  const q = h < 6 ? 'noite' : h < 13 ? 'manha' : h < 20 ? 'tarde' : 'noite';
+  t.textContent = (typeof T === 'function' ? T('ola.' + q) : 'Olá') + ' 👋';
 })();
 
 /* Apoios: trocar de país. Dois blocos, um visível. */

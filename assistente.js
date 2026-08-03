@@ -314,14 +314,16 @@ Escreva com as suas palavras. Percebo se escrever torto.`;
 
 /* ---------- escolher a resposta ---------- */
 function responder(texto) {
-  const t = String(texto || '').toLowerCase().trim();
+  /* Nome curto que nao pode ser `t`: essa e' a funcao que traz as frases
+     traduzidas, e uma variavel local com o mesmo nome tapava-a. */
+  const q = String(texto || '').toLowerCase().trim();
   const d = dadosAssistente();
-  if (!t) return respostaGenerica(d);
+  if (!q) return respostaGenerica(d);
 
   let melhor = null, pontosMax = 0;
   RESPOSTAS.forEach(r => {
     let pontos = 0;
-    r.chaves.forEach(c => { if (t.includes(c)) pontos += c.length; });
+    r.chaves.forEach(c => { if (q.includes(c)) pontos += c.length; });
     if (pontos > pontosMax) { pontosMax = pontos; melhor = r; }
   });
 
@@ -355,13 +357,45 @@ function dinCurto(v) {
   return typeof dinheiro === 'function' ? dinheiro(v) : String(v);
 }
 
+/* O nome da categoria na língua da conversa. Sem isto ficava "Added: − 30,00 €
+   · 📦 Outros" — metade inglês, metade português, dentro da mesma linha. */
 function nomeCategoria(tipo, id) {
   if (typeof catInfo !== 'function') return id;
   const c = catInfo(tipo, id);
-  return c.emoji + ' ' + c.nome;
+  const traduzido = (typeof T === 'function') ? T('cat.' + id, null, L()) : null;
+  return c.emoji + ' ' + (traduzido && traduzido !== 'cat.' + id ? traduzido : c.nome);
 }
 
 /* Faz o que o leitor percebeu, e devolve o texto da resposta. */
+/* ------------------------------------------------------------
+   A língua desta conversa
+
+   Responde-se na língua da mensagem, não na da aplicação. Quem tem o
+   telemóvel em português mas escreve em espanhol recebe espanhol de volta —
+   e é isso que faz a diferença entre uma app que percebe e uma app que fala
+   consigo.
+
+   Fica guardada entre mensagens porque uma resposta longa vem muitas vezes
+   depois de um "sim" ou de um toque num botão, e "sim" não tem língua. */
+let linguaDaConversa = null;
+
+function L() {
+  return linguaDaConversa || (typeof idioma === 'function' ? idioma() : 'pt');
+}
+
+function t(chave, vars) {
+  return (typeof T === 'function') ? T(chave, vars, L()) : chave;
+}
+
+function fixarLingua(texto) {
+  if (typeof idiomaDaMensagem !== 'function') return;
+  /* Mensagens de duas ou três palavras não chegam para decidir uma língua —
+     e trocar de língua a meio de uma conversa por causa de um "ok" é pior do
+     que ficar na anterior. */
+  if (String(texto || '').trim().split(/\s+/).length < 3 && linguaDaConversa) return;
+  linguaDaConversa = idiomaDaMensagem(texto);
+}
+
 function executarLeitura(r) {
   if (r.tipo === 'saldo') {
     ultimoLote = null;
@@ -372,8 +406,7 @@ function executarLeitura(r) {
     if (r.onde === 'reserva') {
       if (typeof definirReservaInicial !== 'function') return null;
       definirReservaInicial(r.valor);
-      return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado, na conta de emergência.\n\n' +
-             'Não lancei isto como entrada — não é dinheiro que recebeu hoje, é dinheiro que já tinha.';
+      return t('chat.reservaposta', { v: dinCurto(r.valor) }) + '\n\n' + t('chat.reservaexplica');
     }
 
     /* "no banco", "na conta", ou sem dizer onde: é o dinheiro de viver, e
@@ -414,9 +447,9 @@ function executarLeitura(r) {
   const d = r.lancamentos[0].data;
   const mesmoDia = d.getDate() === hoje.getDate() && d.getMonth() === hoje.getMonth() &&
                    d.getFullYear() === hoje.getFullYear();
-  const quando = mesmoDia ? '' : '\n\nCom a data de ' + d.getDate() + '/' + (d.getMonth() + 1) + '.';
+  const quando = mesmoDia ? '' : '\n\n' + t('chat.comdata', { d: d.getDate() + '/' + (d.getMonth() + 1) });
 
-  return (criados.length === 1 ? 'Lançado:' : 'Lançados:') + '\n\n' + linhas.join('\n') + quando;
+  return (criados.length === 1 ? t('chat.lancado') : t('chat.lancados')) + '\n\n' + linhas.join('\n') + quando;
 }
 
 /* ------------------------------------------------------------
@@ -448,27 +481,17 @@ function mesEstaNegativo() {
 function avisoDoNegativo() {
   if (jaExpliqueiONegativo || !mesEstaNegativo()) return '';
   jaExpliqueiONegativo = true;
-  return '\n\nE já agora, sobre o número vermelho lá em cima: **não é uma dívida.** ' +
-    'É só quanto saiu a mais do que entrou **neste mês** — que é o normal antes de ' +
-    'entrar o ordenado. O seu dinheiro é o que está em "Na conta".';
+  return '\n\n' + t('chat.avisonegativo');
 }
 
 function explicarONegativo() {
   jaExpliqueiONegativo = true;
   const agora = (typeof saldoAgora === 'function') ? saldoAgora() : null;
-  let t = 'Tem razão em estranhar, e a culpa é da etiqueta.\n\n' +
-    'Aquele número vermelho **não é o seu saldo** e não é uma dívida. É a conta ' +
-    '**deste mês**: o que saiu menos o que entrou. Enquanto não entrar o ordenado, ' +
-    'ele fica negativo — e continuaria negativo mesmo que tivesse um milhão no banco.';
-
-  if (agora !== null) {
-    t += '\n\nO seu dinheiro é o outro: **' + dinCurto(agora) + ' na conta**, ' +
-      'na linha logo por baixo.';
-  } else {
-    t += '\n\n**Diga-me quanto tem na conta** — "tenho 1000 no banco" — e eu ponho ' +
-      'esse número no Início e mantenho-o certo a partir daí.';
-  }
-  return t;
+  let txt = t('chat.negativotitulo') + '\n\n' + t('chat.negativoexplica');
+  txt += '\n\n' + (agora !== null
+    ? t('chat.negativotem', { v: dinCurto(agora) })
+    : t('chat.negativopede'));
+  return txt;
 }
 
 /* ============================================================
@@ -687,7 +710,7 @@ Pergunte à vontade.`, 'ele');
   }
 
   function juntarComAccao(texto, rotulo, aoClicar) {
-    juntarBotoes(texto, [{ rotulo: rotulo, aoClicar: () => aoClicar() ? 'Apagado' : false }]);
+    juntarBotoes(texto, [{ rotulo: rotulo, aoClicar: () => aoClicar() ? t('chat.apagado') : false }]);
   }
 
   /* Uma bolha que se reescreve no lugar. Quatro megabytes numa rede fraca são
@@ -716,21 +739,19 @@ Pergunte à vontade.`, 'ele');
       const vivas = (typeof CARTEIRAS !== 'undefined')
         ? CARTEIRAS.filter(id => carteiras[id]) : [];
       if (!vivas.length) {
-        juntar('Ainda não sei quanto tem na conta — só sei o que me foi lançado.\n\n' +
-          '**Diga-me o número** ("tenho 1000 no banco") e a partir daí mantenho-o ' +
-          'certo sozinho: desconto o que gastar e somo o que entrar.', 'ele');
+        juntar(t('chat.naosei') + '\n\n' + t('chat.digameonumero'), 'ele');
         return true;
       }
       if (vivas.length === 1) {
-        juntar('Tem **' + dinCurto(saldoDaCarteira(vivas[0])) + '** — ' +
-          nomeDaCarteira(vivas[0]).toLowerCase() + '.' + avisoDoNegativo(), 'ele');
+        juntar(t('chat.temna', { v: dinCurto(saldoDaCarteira(vivas[0])),
+          onde: nomeDaCarteira(vivas[0], L()).toLowerCase() }) + avisoDoNegativo(), 'ele');
         return true;
       }
-      const linhas = vivas.map(id => '· ' + nomeDaCarteira(id) + ': **' +
+      const linhas = vivas.map(id => '· ' + nomeDaCarteira(id, L()) + ': **' +
         dinCurto(saldoDaCarteira(id)) + '**');
-      juntar('Ao todo, **' + dinCurto(saldoDeTudo()) + '**:\n\n' + linhas.join('\n') +
+      juntar(t('chat.aotodo', { v: dinCurto(saldoDeTudo()) }) + '\n\n' + linhas.join('\n') +
         (dividaTotal && dividaTotal.valor > 0
-          ? '\n\nE devem **' + dinCurto(dividaTotal.valor) + '**.' : '') +
+          ? '\n\n' + t('chat.edevem', { v: dinCurto(dividaTotal.valor) }) : '') +
         avisoDoNegativo(), 'ele');
       return true;
     }
@@ -738,10 +759,7 @@ Pergunte à vontade.`, 'ele');
     if (pedido.pedido === 'queixa-saldo') { juntar(explicarONegativo(), 'ele'); return true; }
 
     if (pedido.pedido === 'queixa') {
-      juntar('Diga-me o que está errado e eu arranjo.\n\n' +
-        'Se for um valor: **"o último foi 50, não 500"**.\n' +
-        'Se for o saldo: **"tenho 1000 no banco"**.\n' +
-        'Se for um lançamento a mais, escreva **"apaga o último"**.', 'ele');
+      juntar(t('chat.oquestaerrado') + '\n\n' + t('chat.comodizer'), 'ele');
       return true;
     }
 
@@ -749,8 +767,7 @@ Pergunte à vontade.`, 'ele');
        Dizer a alguém "aquele vermelho não é uma dívida" e cobrar por isso
        seria mesquinho. */
     if (!podeLancarPorTexto()) {
-      juntar('Percebi o que quer corrigir — e é isso que a **Vida Financeira** faz por si.\n\n' +
-        '**Crie conta e tem um mês inteiro, de graça.** Sem cartão, sem nada.', 'ele');
+      juntar(t('chat.corrigirsemconta') + '\n\n' + t('chat.semcontames'), 'ele');
       return true;
     }
 
@@ -761,20 +778,20 @@ Pergunte à vontade.`, 'ele');
 
   function corrigirUltimo(valor) {
     if (typeof movimentos === 'undefined' || !movimentos.length) {
-      juntar('Ainda não há nenhum lançamento para corrigir.', 'ele');
+      juntar(t('chat.semlancamento'), 'ele');
       return;
     }
     const m = movimentos[movimentos.length - 1];
     const antes = m.valor;
     if (Math.abs(antes - valor) < 0.005) {
-      juntar('O último já está em **' + dinCurto(valor) + '**. Não mexi em nada.', 'ele');
+      juntar(t('chat.jaesta', { v: dinCurto(valor) }), 'ele');
       return;
     }
     m.valor = Math.round(valor * 100) / 100;
     if (typeof guardar === 'function') guardar();
     if (typeof desenhar === 'function') desenhar();
-    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(m.valor) + '**' +
-      (m.descricao ? ' · ' + m.descricao : '') + '.', 'ele');
+    juntar(t('chat.corrigidoult', { a: dinCurto(antes), b: dinCurto(m.valor),
+      desc: m.descricao ? ' · ' + m.descricao : '' }), 'ele');
   }
 
   /* Dizer o saldo certo é sempre aceite. O que muda é o que se faz com a
@@ -786,7 +803,7 @@ Pergunte à vontade.`, 'ele');
   function corrigirSaldo(pedido) {
     if (pedido.onde === 'reserva' && typeof definirReservaInicial === 'function') {
       definirReservaInicial(pedido.valor);
-      juntar('Corrigido: tem **' + dinCurto(pedido.valor) + '** de lado.', 'ele');
+      juntar(t('chat.reservaposta', { v: dinCurto(pedido.valor) }), 'ele');
       return;
     }
     dizerSaldoDaConta(pedido.valor);
@@ -799,36 +816,35 @@ Pergunte à vontade.`, 'ele');
   function dizerSaldoDaConta(novo, qual) {
     if (typeof definirCarteira !== 'function') { juntar(explicarONegativo(), 'ele'); return; }
     const id = (qual === 'parceiro' || qual === 'emergencia') ? qual : 'minha';
-    const como = (typeof nomeDaCarteira === 'function') ? nomeDaCarteira(id).toLowerCase() : 'na conta';
+    const como = (typeof nomeDaCarteira === 'function')
+      ? nomeDaCarteira(id, L()).toLowerCase() : t('inicio.naconta').toLowerCase();
 
     const antes = (typeof saldoDaCarteira === 'function') ? saldoDaCarteira(id) : null;
     definirCarteira(id, novo);
 
     if (antes === null) {
-      juntar('Fico a saber: **' + dinCurto(novo) + '** — ' + como + '.\n\n' +
-        'Já está no seu Início. A partir daqui vou eu descontando o que ' +
-        'gastar e somando o que entrar — não precisa de o escrever outra vez.' +
-        avisoDoNegativo(), 'ele');
+      juntar(t('chat.saldoposto', { v: dinCurto(novo), onde: como }) + '\n\n' +
+        t('chat.saldoexplica') + avisoDoNegativo(), 'ele');
       return;
     }
 
     const dif = Math.round((novo - antes) * 100) / 100;
     if (Math.abs(dif) < 0.005) {
-      juntar('Já estava em **' + dinCurto(novo) + '**. Não mexi em nada.', 'ele');
+      juntar(t('chat.jaestava', { v: dinCurto(novo) }), 'ele');
       return;
     }
 
     const falta = dif > 0;
-    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(novo) + '** — ' + como + '.', 'ele');
+    juntar(t('chat.corrigido', { a: dinCurto(antes), b: dinCurto(novo), onde: como }), 'ele');
 
-    juntarBotoes('Há **' + dinCurto(Math.abs(dif)) + '** de diferença que nunca foi lançado — ' +
-      (falta ? 'dinheiro que entrou' : 'dinheiro que saiu') + ' sem eu saber.\n\n' +
-      'Quer que eu registe isso no mês, para as contas baterem certo?',
+    juntarBotoes(t('chat.diferenca', { v: dinCurto(Math.abs(dif)),
+        qual: falta ? t('chat.entrou') : t('chat.saiu') }) + '\n\n' + t('chat.registar'),
       [
-        { rotulo: 'Sim, regista', tom: 'sim', aoClicar: () => { lancarAcerto(dif, id); return 'Registado'; } },
-        { rotulo: 'Não, deixa', aoClicar: () => {
-            juntar('Fica só o saldo corrigido, então. O mês continua como estava.', 'ele');
-            return 'Ficou como estava';
+        { rotulo: t('chat.simregista'), tom: 'sim',
+          aoClicar: () => { lancarAcerto(dif, id); return t('chat.registado'); } },
+        { rotulo: t('chat.naodeixa'), aoClicar: () => {
+            juntar(t('chat.sosaldo'), 'ele');
+            return t('chat.ficoucomoestava');
           } }
       ]);
   }
@@ -855,29 +871,27 @@ Pergunte à vontade.`, 'ele');
     if (typeof guardar === 'function') guardar();
     if (typeof desenhar === 'function') desenhar();
     ultimoLote = [m.id];
-    juntarComAccao('Registado no mês: **' + (dif > 0 ? '+ ' : '− ') + dinCurto(Math.abs(dif)) +
-      '** · ⚖️ Acerto de saldo.\n\nO saldo continua em ' +
-      dinCurto((typeof saldoDaCarteira === 'function' ? saldoDaCarteira(id || 'minha') : 0)) + '.',
-      'Apagar isto', apagarUltimoLote);
+    juntarComAccao(
+      t('chat.acertofeito', { s: dif > 0 ? '+' : '−', v: dinCurto(Math.abs(dif)) }) + '\n\n' +
+      t('chat.acertosaldo', {
+        v: dinCurto((typeof saldoDaCarteira === 'function' ? saldoDaCarteira(id || 'minha') : 0)) }),
+      t('chat.apagar'), apagarUltimoLote);
   }
 
-  function tratar(t) {
+  function tratar(escrito) {
     /* Um pedido sobre o que já lá está manda em tudo o resto. */
-    const pedido = (typeof entenderPedido === 'function') ? entenderPedido(t) : null;
+    const pedido = (typeof entenderPedido === 'function') ? entenderPedido(escrito) : null;
     if (pedido && tratarPedido(pedido)) return;
 
     /* Depois tenta ler-se como movimento. Só se não for é que segue para as
        respostas escritas — assim "gastei 30 no continente" nunca é confundido
        com uma pergunta sobre mercearia. */
-    const r = (typeof interpretar === 'function') ? interpretar(t) : { ok: false };
+    const r = (typeof interpretar === 'function') ? interpretar(escrito) : { ok: false };
 
     if (r.ok) {
       if (!podeLancarPorTexto()) {
-        juntar('Percebi o que escreveu — e é isto que a **Vida Financeira** faz por si: ' +
-          'escreve, e fica lançado.\n\n' +
-          '**Crie conta e tem um mês inteiro, de graça.** Sem cartão, sem nada. ' +
-          'Depois desse mês, são 9,89 € por ano.\n\n' +
-          'Enquanto isso pode lançar à mão no ➕ Lançar, que é grátis para sempre.', 'ele');
+        juntar(t('chat.semconta') + '\n\n' + t('chat.semcontames') + '\n\n' +
+          t('chat.semcontamao'), 'ele');
         return;
       }
       if (r.tipo === 'saldo' && r.onde !== 'reserva') { dizerSaldoDaConta(r.valor, r.conta); return; }
@@ -890,11 +904,11 @@ Pergunte à vontade.`, 'ele');
            deste lote — é o que a pessoa acabou de fotografar. */
         let comFoto = '';
         if (fotoEmEspera && ultimoLote && ultimoLote.length) {
-          if (guardarFoto(ultimoLote[0], fotoEmEspera)) comFoto = '\n\nCom a fotografia agarrada.';
-          else comFoto = '\n\nNão coube a fotografia — o movimento ficou lançado à mesma.';
+          comFoto = '\n\n' + (guardarFoto(ultimoLote[0], fotoEmEspera)
+            ? t('chat.comfoto') : t('chat.semfoto'));
           limparFotoEmEspera();
         }
-        juntarComAccao(resposta + comFoto, 'Apagar isto', apagarUltimoLote);
+        juntarComAccao(resposta + comFoto, t('chat.apagar'), apagarUltimoLote);
         return;
       }
     }
@@ -902,19 +916,20 @@ Pergunte à vontade.`, 'ele');
     /* A calculadora vem antes das respostas escritas: quem pergunta
        "12x de 45,90 ou 480 a pronto?" quer o número, não um texto sobre
        crédito. É grátis — fazer uma conta a alguém não se cobra. */
-    const c = (typeof calculadora === 'function') ? calculadora(t) : { ok: false };
+    const c = (typeof calculadora === 'function') ? calculadora(escrito) : { ok: false };
     if (c.ok) { juntar(c.resposta, 'ele'); return; }
 
-    juntar(responder(t), 'ele');
+    juntar(responder(escrito), 'ele');
   }
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const t = campo.value.trim();
-    if (!t) return;
-    juntar(t, 'eu');
+    const escrito = campo.value.trim();
+    if (!escrito) return;
+    fixarLingua(escrito);
+    juntar(escrito, 'eu');
     campo.value = '';
-    setTimeout(() => tratar(t), 340);
+    setTimeout(() => tratar(escrito), 340);
   });
 
   /* ---------- a fotografia ---------- */
@@ -935,8 +950,7 @@ Pergunte à vontade.`, 'ele');
       if (!f) return;
       if (!podeLancarPorTexto()) {
         campoFicheiro.value = '';
-        juntar('Guardar a fotografia do talão faz parte da assinatura.\n\n' +
-          '**Crie conta e tem um mês inteiro, de graça.**', 'ele');
+        juntar(t('talao.assinatura') + '\n\n' + t('chat.semcontames'), 'ele');
         return;
       }
       try {
@@ -949,10 +963,7 @@ Pergunte à vontade.`, 'ele');
         const paraLer = await imagemGrande(f);
 
         if (typeof ocrPodeCorrer !== 'function' || !ocrPodeCorrer()) {
-          juntar('Guardei a fotografia.\n\nEste telemóvel não me deixa ler o talão ' +
-            'sozinho. **Escreva quanto foi** — por exemplo, "gastei 30 euros no mercado ' +
-            'Continente" — e eu ' +
-            'lanço com o talão agarrado.', 'ele');
+          juntar(t('talao.semmotor'), 'ele');
           return;
         }
 
@@ -962,23 +973,19 @@ Pergunte à vontade.`, 'ele');
            segunda vez já não há megabytes nenhuns. */
         if (leitorJaCa()) { lerOTalao(paraLer); return; }
 
-        juntarBotoes('Guardei a fotografia. **Quer que eu tente ler o talão?**\n\n' +
-          'Da primeira vez tenho de descarregar o leitor: cerca de ' +
-          (typeof OCR_MEGAS === 'number' ? OCR_MEGAS.toString().replace('.', ',') : '4,3') +
-          ' MB, **uma vez só**. Depois disso funciona sem internet, e a fotografia ' +
-          'nunca sai do seu telemóvel — quem lê é o próprio aparelho.',
+        const mb = (typeof OCR_MEGAS === 'number' ? OCR_MEGAS : 4.3);
+        juntarBotoes(t('talao.perguntar') + '\n\n' +
+          t('talao.megas', { mb: L() === 'en' ? mb.toString() : mb.toString().replace('.', ',') }),
           [
-            { rotulo: 'Ler o talão', tom: 'sim', aoClicar: () => { lerOTalao(paraLer); return 'A ler…'; } },
-            { rotulo: 'Escrevo eu', aoClicar: () => {
-                juntar('Está bem. **Escreva quanto foi** — por exemplo, "gastei 30 euros no ' +
-                  'mercado Continente" — ' +
-                  'e eu lanço com o talão agarrado.', 'ele');
-                return 'Escreve você';
+            { rotulo: t('talao.ler'), tom: 'sim', aoClicar: () => { lerOTalao(paraLer); return t('talao.aler'); } },
+            { rotulo: t('talao.escrevoeu'), aoClicar: () => {
+                juntar(t('talao.estabem'), 'ele');
+                return t('talao.escreveuvoce');
               } }
           ]);
       } catch (err) {
         campoFicheiro.value = '';
-        juntar('Não consegui abrir essa imagem. Tente outra vez.', 'ele');
+        juntar(t('talao.naoabriu'), 'ele');
       }
     });
   }
@@ -988,19 +995,19 @@ Pergunte à vontade.`, 'ele');
   /* Nomes por extenso do que o motor anda a fazer. O que ele diz em inglês
      ("loading language traineddata") não diz nada a ninguém. */
   const OCR_PASSOS = {
-    'loading tesseract core': 'A descarregar o leitor',
-    'initializing tesseract': 'A preparar o leitor',
-    'loading language traineddata': 'A descarregar o português',
-    'initializing api': 'Quase pronto',
-    'recognizing text': 'A ler o talão'
+    'loading tesseract core': 'ocr.descarregar',
+    'initializing tesseract': 'ocr.preparar',
+    'loading language traineddata': 'ocr.portugues',
+    'initializing api': 'ocr.quase',
+    'recognizing text': 'ocr.aler'
   };
 
   async function lerOTalao(imagem) {
-    const vivo = juntarVivo('A preparar…');
+    const vivo = juntarVivo(t('talao.apreparar'));
     let ultimo = '';
     try {
       const texto = await ocrLer(imagem, ({ passo, parte }) => {
-        const nome = OCR_PASSOS[passo] || 'A trabalhar';
+        const nome = OCR_PASSOS[passo] ? t(OCR_PASSOS[passo]) : t('talao.apreparar');
         const pct = Math.round((parte || 0) * 100);
         const linha = nome + (pct > 0 && pct < 100 ? ' — ' + pct + '%' : '…');
         if (linha !== ultimo) { ultimo = linha; vivo.escrever(linha); }
@@ -1010,16 +1017,13 @@ Pergunte à vontade.`, 'ele');
       vivo.apagar();
 
       if (!r.ok) {
-        juntar('Li a fotografia mas **não encontrei lá o total**. Acontece com talões ' +
-          'amarrotados ou com pouca luz.\n\nTire outra com o talão esticado e a foto ' +
-          'direita — ou **escreva quanto foi** e eu lanço na mesma, com este talão agarrado.', 'ele');
+        juntar(t('talao.semtotal') + '\n\n' + t('talao.tireoutra'), 'ele');
         return;
       }
       propor(r);
     } catch (e) {
       vivo.apagar();
-      juntar('Não consegui descarregar o leitor — talvez a internet tenha falhado a meio.\n\n' +
-        'Pode tentar outra vez, ou **escrever quanto foi** que eu lanço com o talão agarrado.', 'ele');
+      juntar(t('talao.falhou') + '\n\n' + t('talao.tenteoutra'), 'ele');
     }
   }
 
@@ -1033,16 +1037,17 @@ Pergunte à vontade.`, 'ele');
 
     const certo = r.confianca === 'alta';
     const texto = certo
-      ? ('Li o talão: **' + dinCurto(r.valor) + '**' + onde + quando + '.\n\nLanço assim?')
-      : ('Acho que li **' + dinCurto(r.valor) + '**' + onde + quando + ' — mas **não tenho a ' +
-         'certeza**, o talão está difícil de ler.\n\nSe o valor estiver certo eu lanço; ' +
-         'se não estiver, escreva-o e eu corrijo.');
+      ? (t('talao.li', { v: dinCurto(r.valor), onde: onde, quando: quando }) + '\n\n' +
+         t('talao.lancoassim'))
+      : (t('talao.achoqueli', { v: dinCurto(r.valor), onde: onde, quando: quando }) + '\n\n' +
+         t('talao.severdadeiro'));
 
     juntarBotoes(texto, [
-      { rotulo: 'Sim, lança', tom: 'sim', aoClicar: () => { lancarTalao(r); return 'Lançado'; } },
-      { rotulo: 'Não, escrevo eu', aoClicar: () => {
-          juntar('Certo. **Escreva quanto foi** e eu lanço com o talão agarrado.', 'ele');
-          return 'Escreve você';
+      { rotulo: t('talao.simlanca'), tom: 'sim',
+        aoClicar: () => { lancarTalao(r); return t('chat.lancado').replace(':', ''); } },
+      { rotulo: t('talao.naoescrevo'), aoClicar: () => {
+          juntar(t('talao.certo'), 'ele');
+          return t('talao.escreveuvoce');
         } }
     ]);
   }
@@ -1064,12 +1069,11 @@ Pergunte à vontade.`, 'ele');
 
     let comFoto = '';
     if (fotoEmEspera && ultimoLote && ultimoLote.length) {
-      comFoto = guardarFoto(ultimoLote[0], fotoEmEspera)
-        ? '\n\nCom a fotografia agarrada.'
-        : '\n\nNão coube a fotografia — o movimento ficou lançado à mesma.';
+      comFoto = '\n\n' + (guardarFoto(ultimoLote[0], fotoEmEspera)
+        ? t('chat.comfoto') : t('chat.semfoto'));
       limparFotoEmEspera();
     }
-    juntarComAccao(resposta + comFoto, 'Apagar isto', apagarUltimoLote);
+    juntarComAccao(resposta + comFoto, t('chat.apagar'), apagarUltimoLote);
   }
 
   const foraFoto = document.getElementById('foto-fora');

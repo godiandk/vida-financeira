@@ -94,9 +94,20 @@ mesmo. Não há um modo de língua a escolher em lado nenhum: escreve-se como sa
 Os números seguem a convenção de cada sítio: `1.500,00` e `1,500.00` querem
 dizer o mesmo e são lidos como o mesmo.
 
+E **responde** nas quatro. A língua é a da mensagem, não a da aplicação: quem
+tem o telemóvel em português mas escreve em espanhol recebe espanhol de volta.
+A interface segue a língua do aparelho, e muda-se à mão nas Ferramentas.
+
+São quatro saídas e não três porque o português de Portugal e o do Brasil são
+a mesma língua e não são o mesmo texto — "telemóvel" e "celular", "ecrã" e
+"tela". Escrever "telemóvel" a um brasileiro não o impede de perceber; marca-o
+como estrangeiro na sua própria aplicação de contas. O `br` só escreve o que é
+mesmo diferente e o resto cai no `pt`.
+
 **O que ainda está só em português** são as respostas longas — os textos de
-ajuda sobre reservas, dívidas e apoios. O chat percebe as quatro línguas e faz
-o trabalho; explicar em quatro línguas é o passo seguinte.
+ajuda sobre reservas, dívidas e apoios — e as páginas do site fora da
+aplicação. O trabalho do dia-a-dia está nas quatro; explicar em quatro é o
+passo seguinte.
 
 ## As carteiras
 

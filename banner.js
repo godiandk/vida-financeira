@@ -75,6 +75,12 @@ function bannerDias() {
 
 /* As mensagens são montadas com o estado real: o que a pessoa já tem muda o
    que faz sentido dizer-lhe. */
+/* O banner fala a língua da aplicação. Não a da mensagem, porque aqui não há
+   mensagem nenhuma — é a app a dirigir-se a quem está a olhar. */
+function bt(chave, vars) {
+  return (typeof T === 'function') ? T(chave, vars) : chave;
+}
+
 function bannerMensagens() {
   const temChave = bannerTemChave();
   const dias = bannerDias();
@@ -87,17 +93,15 @@ function bannerMensagens() {
     /* Quem já pagou não leva anúncios. Fica só o que lhe é útil. */
   } else if (dias > 0) {
     m.push({
-      etiqueta: 'O seu mês',
-      texto: dias === 1
-        ? 'Último dia do seu mês de experiência. Depois disto, são 9,89 € por ano.'
-        : 'Está no seu mês de experiência — faltam ' + dias + ' dias, com tudo aberto.',
+      etiqueta: bt('bn.mes.t'),
+      texto: dias === 1 ? bt('bn.mes.1') : bt('bn.mes.n', { d: dias }),
       accao: null
     });
   } else {
     m.push({
-      etiqueta: 'Um mês grátis',
-      texto: 'Crie conta e tem um mês inteiro com tudo aberto. Sem cartão, sem compromisso.',
-      accao: { texto: 'Criar conta', href: 'conta.html' }
+      etiqueta: bt('bn.gratis.t'),
+      texto: bt('bn.gratis'),
+      accao: { texto: bt('bn.gratis.b'), href: 'conta.html' }
     });
   }
 
@@ -110,41 +114,17 @@ function bannerMensagens() {
     ? { texto: texto, ecra: ecra }
     : { texto: texto, href: 'app/#' + ecra };
 
-  m.push({
-    etiqueta: 'Escreva, e fica lançado',
-    texto: '«Gastei 30 euros no mercado Continente» — e o movimento fica feito, com o valor, a categoria e a loja. Escreva o tipo de sítio e o nome: mercado, farmácia, bomba de gasolina.',
-    accao: leva('Experimentar', 'wesley')
-  });
-
-  m.push({
-    etiqueta: 'Fotografe o talão',
-    texto: 'Tire uma fotografia ao talão e eu leio o total, a loja e o dia. A leitura é feita dentro do seu telemóvel — a fotografia não sai daqui.',
-    accao: leva('Experimentar', 'wesley')
-  });
-
-  m.push({
-    etiqueta: 'Contas na hora',
-    texto: 'Na loja, pergunte «12x de 45,90 ou 480 a pronto?». A resposta vem antes de assinar — e é grátis.',
-    accao: leva('Abrir o chat', 'wesley')
-  });
-
-  m.push({
-    etiqueta: 'O que vence esta semana',
-    texto: 'Escreva as contas que se repetem e a app avisa antes de vencerem. Multa por esquecimento é dinheiro que já era seu.',
-    accao: leva('Ver as contas', 'contas')
-  });
-
-  m.push({
-    etiqueta: 'O preço da dívida',
-    texto: 'Quanto é que aquela prestação custa mesmo, e quanto tempo falta. Com as taxas do seu país, e com a fonte à vista.',
-    accao: leva('Ver a conta', 'divida')
-  });
-
-  m.push({
-    etiqueta: 'Fica tudo consigo',
-    texto: 'Os movimentos ficam no seu telemóvel e funcionam sem internet. Com conta, aparecem também no computador.',
-    accao: null
-  });
+  m.push({ etiqueta: bt('bn.escrever.t'), texto: bt('bn.escrever'),
+           accao: leva(bt('bn.experimentar'), 'wesley') });
+  m.push({ etiqueta: bt('bn.talao.t'), texto: bt('bn.talao'),
+           accao: leva(bt('bn.experimentar'), 'wesley') });
+  m.push({ etiqueta: bt('bn.contas.t'), texto: bt('bn.contas'),
+           accao: leva(bt('bn.chat'), 'wesley') });
+  m.push({ etiqueta: bt('bn.vence.t'), texto: bt('bn.vence'),
+           accao: leva(bt('bn.vercontas'), 'contas') });
+  m.push({ etiqueta: bt('bn.divida.t'), texto: bt('bn.divida'),
+           accao: leva(bt('bn.verconta'), 'divida') });
+  m.push({ etiqueta: bt('bn.seu.t'), texto: bt('bn.seu'), accao: null });
 
   return m;
 }
@@ -354,6 +334,13 @@ function bannerLigar() {
 
   /* Se o acesso mudar (alguém acabou de criar conta, ou escreveu a chave), as
      mensagens deixam de fazer sentido — refazem-se. */
+  /* Mudar de língua refaz as mensagens: um banner meio em inglês e meio em
+     português é pior do que qualquer um dos dois. */
+  window.addEventListener('vf:lingua-mudou', () => {
+    bannerAviso = bannerMensagens();
+    bannerDesenhar();
+  });
+
   window.addEventListener('vf:acesso-mudou', () => {
     const antes = bannerAviso.length;
     bannerAviso = bannerMensagens();

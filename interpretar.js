@@ -143,7 +143,8 @@ const LOJAS = [
   // ---- mercado ----
   { k: ['continente','pingo doce','lidl','aldi','minipreco','intermarche','auchan','jumbo','mercadona','recheio','makro','spar','meu super','froiz','apolonia'], cat: 'mercado', pais: 'pt' },
   { k: ['carrefour','assai','atacadao','pao de acucar','extra','big','sam s club','sams club','mercado livre','oxxo','tenda','sonda','condor','angeloni','zaffari','supermercado','mercadinho','sacolao','feira','quitanda','acougue'], cat: 'mercado', pais: 'br' },
-  { k: ['mercado','supermercado','minimercado','mercearia','talho','peixaria','padaria','hipermercado'], cat: 'mercado' },
+  { k: ['mercado','supermercado','minimercado','mercearia','talho','peixaria','padaria','hipermercado',
+        'market','supermarket','grocery','groceries','bakery','butcher','corner shop','tesco','asda','walmart'], cat: 'mercado' },
 
   // ---- contas e serviços ----
   { k: ['edp','galp energia','endesa','iberdrola','goldenergy','repsol luz','epal','aguas de','indaqua'], cat: 'contas', pais: 'pt' },
@@ -155,14 +156,17 @@ const LOJAS = [
   // ---- transporte ----
   { k: ['bp','cepsa','prio','repsol','galp'], cat: 'transporte', pais: 'pt' },
   { k: ['ipiranga','shell','petrobras','br mania','posto'], cat: 'transporte', pais: 'br' },
-  { k: ['uber','bolt','99','taxi','metro','autocarro','onibus','comboio','cp ','carris','passe','bilhete','gasolina','gasoleo','diesel','combustivel','etanol','alcool','portagem','pedagio','estacionamento','oficina','pneu','bomba','abasteci','abastecer'], cat: 'transporte' },
+  { k: ['uber','bolt','99','taxi','metro','autocarro','onibus','comboio','cp ','carris','passe','bilhete','gasolina','gasoleo','diesel','combustivel','etanol','alcool','portagem','pedagio','estacionamento','oficina','pneu','bomba','abasteci','abastecer',
+        'gas station','petrol','petrol station','fuel','parking','toll','bus','train','tube','gasolinera'], cat: 'transporte' },
 
   // ---- saúde ----
-  { k: ['farmacia','drogaria','drogasil','droga raia','pacheco','wells','continente saude'], cat: 'saude' },
+  { k: ['farmacia','drogaria','drogasil','droga raia','pacheco','wells','continente saude',
+        'pharmacy','chemist','drugstore','boots'], cat: 'saude' },
   { k: ['medico','dentista','consulta','analises','exame','hospital','clinica','remedio','remedios','comprimidos','oculos'], cat: 'saude' },
 
   // ---- casa ----
-  { k: ['renda','aluguel','aluguer','prestacao da casa','credito habitacao','senhorio','imobiliaria'], cat: 'casa' },
+  { k: ['renda','aluguel','aluguer','prestacao da casa','credito habitacao','senhorio','imobiliaria',
+        'rent','mortgage','landlord','alquiler','hipoteca'], cat: 'casa' },
   { k: ['ikea','leroy','aki','maxmat','obi','telhanorte','tok stok'], cat: 'casa' },
 
   // ---- educação ----
