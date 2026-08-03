@@ -37,6 +37,94 @@ service cloud.firestore {
     }
 
     // ----------------------------------------------------------
+    // lares/{id} — a casa partilhada por um casal
+    //
+    // Um casal tem duas contas e umas contas de casa só. O documento da casa é
+    // onde os movimentos vivem quando ela existe; quem lá está escrito chega a
+    // ele, e mais ninguém.
+    //
+    // A pertença NÃO é uma lista dentro do documento, e a razão é uma limitação
+    // real: quem está a entrar ainda não é membro, logo não pode ler o
+    // documento para se acrescentar à lista — e um `arrayUnion` não é visível
+    // às regras, que ficariam sem poder verificar o que está a ser escrito.
+    //
+    // Por isso cada membro é um documento seu em `lares/{id}/membros/{uid}`.
+    // Entrar é criar o próprio, apresentando um convite válido. Sair é apagar
+    // o próprio, e mais ninguém o pode fazer por si.
+    // ----------------------------------------------------------
+    function souDaCasa(larId) {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/lares/$(larId)/membros/$(request.auth.uid));
+    }
+
+    // O convite tem de existir, ser desta casa, não ter sido usado e não ter
+    // passado das 24 horas. Sem isto, quem descobrisse o id de uma casa
+    // entrava nela.
+    function conviteVale(larId, codigo) {
+      return codigo is string
+          && exists(/databases/$(database)/documents/convites/$(codigo))
+          && get(/databases/$(database)/documents/convites/$(codigo)).data.lar == larId
+          && get(/databases/$(database)/documents/convites/$(codigo)).data.usado == false
+          && get(/databases/$(database)/documents/convites/$(codigo)).data.expira > request.time.toMillis();
+    }
+
+    match /lares/{larId} {
+      allow read, write: if souDaCasa(larId);
+      // Criar uma casa é um acto de quem já tem sessão, e quem a cria fica
+      // escrito como dono — é isso que lhe permite ser o primeiro membro, sem
+      // ter um convite para si próprio.
+      allow create: if request.auth != null
+                    && request.resource.data.dono == request.auth.uid;
+
+      match /membros/{uid} {
+        // Os membros vêem-se uns aos outros: é o que permite mostrar quem
+        // está na casa, e dar por alguém que não devia estar.
+        allow read: if souDaCasa(larId);
+
+        // Entrar: só a si próprio, e só de duas maneiras — sendo quem criou a
+        // casa, ou apresentando um convite que vale.
+        allow create: if request.auth != null
+                      && request.auth.uid == uid
+                      && (
+                           get(/databases/$(database)/documents/lares/$(larId)).data.dono == request.auth.uid
+                        || conviteVale(larId, request.resource.data.convite)
+                         );
+
+        // Sair: só a si próprio. Ninguém expulsa ninguém — quem quiser acabar
+        // com a partilha sai da sua ponta, e leva os movimentos consigo.
+        allow delete: if request.auth != null && request.auth.uid == uid;
+        allow update: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // convites/{codigo} — o convite para entrar numa casa
+    //
+    // Vale 24 horas e uma vez. O código é o id do documento, e é preciso
+    // sabê-lo por inteiro para lá chegar: são oito caracteres de um alfabeto
+    // de trinta e dois, o que dá mais de mil milhões de milhões de hipóteses.
+    // ----------------------------------------------------------
+    match /convites/{codigo} {
+      // Quem recebeu o código tem de o poder ler para saber de que casa é.
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.de == request.auth.uid
+                    && request.resource.data.usado == false;
+
+      // A única alteração que se aceita é marcá-lo como usado, e só enquanto
+      // ele ainda vale. Um convite usado nunca volta a servir.
+      allow update: if request.auth != null
+                    && resource.data.usado == false
+                    && request.resource.data.usado == true
+                    && request.time.toMillis() < resource.data.expira
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usado', 'usadoPor']);
+
+      // Quem o criou pode desfazê-lo antes de alguém o usar.
+      allow delete: if request.auth != null && resource.data.de == request.auth.uid;
+    }
+
+    // ----------------------------------------------------------
     // Quem administra
     //
     // O dono está escrito aqui e não se retira — é o que impede o painel de

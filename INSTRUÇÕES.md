@@ -57,9 +57,19 @@ fica aberta a toda a gente, ou fechada a toda a gente.
    `firestore.rules` desta pasta.
 3. Clique em **Publicar**.
 
-As regras dizem uma coisa só: cada pessoa lê e escreve apenas o documento
-`utilizadores/{a sua conta}`. Ninguém vê o dinheiro de outra pessoa — nem o
-dono do site.
+As regras dizem duas coisas. A primeira: cada pessoa lê e escreve apenas o
+documento `utilizadores/{a sua conta}`. Ninguém vê o dinheiro de outra pessoa
+— nem o dono do site.
+
+A segunda é a **casa partilhada**: um casal pode ligar as duas contas com um
+código, e aí os movimentos passam a viver em `lares/{id}`, onde só entra quem
+tem lá um documento de membro. Entrar exige um convite válido de 24 horas;
+sair é apagar o próprio documento, e ninguém o pode fazer por outra pessoa.
+
+> **Sempre que estas regras mudarem no repositório, tem de as republicar
+> aqui.** O Firestore recusa tudo o que não tiver regra escrita — por isso
+> uma funcionalidade nova simplesmente não funciona até as regras subirem, e
+> não dá erro nenhum que explique porquê.
 
 ## Passo 4 — Publicar o site
 
