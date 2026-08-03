@@ -23,6 +23,8 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `interpretar.js` — lê o que a pessoa escreve ("gastei 30 no continente") e
   faz as contas do chat ("12x de 45,90 ou 480 a pronto?")
 - `assistente.js` — o chat: lança, calcula e responde
+- `respostas.js` — as respostas longas do chat nas quatro línguas (a reserva,
+  a dívida, os apoios, por onde começar); só é carregado pela aplicação
 - `divida.js` — o que uma dívida custa, com as taxas de referência por país
 - `excel.js` — gera um ficheiro .xlsx à mão, sem bibliotecas
 - `partilha.js` — desenha o cartão que se manda para o grupo
@@ -126,10 +128,34 @@ a mesma língua e não são o mesmo texto — "telemóvel" e "celular", "ecrã" 
 como estrangeiro na sua própria aplicação de contas. O `br` só escreve o que é
 mesmo diferente e o resto cai no `pt`.
 
-**O que ainda está só em português** são as respostas longas — os textos de
-ajuda sobre reservas, dívidas e apoios — e as páginas do site fora da
-aplicação. O trabalho do dia-a-dia está nas quatro; explicar em quatro é o
-passo seguinte.
+E **explica** nas quatro. As respostas longas — a reserva, a dívida, os
+apoios, por onde começar, e a própria apresentação do chat — estão nas quatro
+línguas, no `respostas.js`. Não é tradução à letra: onde há ajuda gratuita
+para dívidas não é a mesma entidade em Portugal, no Brasil ou em Espanha, e
+traduzir o nome de uma lei portuguesa seria dar a alguém uma morada que não
+existe. Também o dinheiro muda de pontuação — `1.500,00 €` e `€1,500.00` são o
+mesmo número e nenhum deles se lê bem a quem não cresceu com ele.
+
+Isto vive em ficheiro próprio e não no `idiomas.js` porque o `idiomas.js` é
+carregado pela página de entrada e pelas ferramentas, que não têm chat. Quem
+abre a página inicial com dados contados não tem de descarregar ensaios que
+não vai ler.
+
+**O que ainda está só em português** são as páginas do site fora da aplicação
+— `index.html`, `metodo.html`, `sobre.html`. O trabalho do dia-a-dia e as
+explicações estão nas quatro.
+
+Dois testes guardam isto:
+
+```
+node teste-idiomas.mjs    # as quatro línguas têm as mesmas frases e os mesmos buracos
+node teste-chat.mjs       # e o chat vai buscar a frase certa, na língua de quem escreveu
+```
+
+O primeiro apanha a chave que só existe em português; o segundo apanha a chave
+mal escrita no código, que o primeiro não vê. Nenhuma das duas falhas dá erro
+no navegador — aparecem no telemóvel de alguém como um texto na língua errada
+ou uma palavra crua a meio de uma conversa sobre a renda.
 
 ## As carteiras
 

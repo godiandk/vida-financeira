@@ -73,9 +73,15 @@ function dadosAssistente() {
   };
 }
 
-function dinAssist(v) {
+/* O dinheiro escreve-se à maneira de quem está a ler. O valor é o mesmo e a
+   moeda é a mesma; muda a pontuação — `1.500,00 €` e `€1,500.00` são o mesmo
+   número, e cada um deles é ilegível a quem não cresceu com ele. */
+const LOCAIS = { pt: 'pt-PT', br: 'pt-BR', es: 'es-ES', en: 'en-GB' };
+
+function dinAssist(v, l) {
   const d = dadosAssistente();
-  return new Intl.NumberFormat('pt-PT', {
+  const local = LOCAIS[l || (typeof idioma === 'function' ? idioma() : 'pt')] || 'pt-PT';
+  return new Intl.NumberFormat(local, {
     style: 'currency', currency: d.moeda, minimumFractionDigits: 2
   }).format(isFinite(v) ? v : 0);
 }
@@ -86,6 +92,22 @@ function dinAssist(v) {
    Cada entrada: palavras que a fazem disparar, e uma função que devolve o
    texto já com os números da pessoa. Devolver `null` significa "esta não
    serve para o estado actual", e a seguinte é tentada.
+
+   ---- As palavras são das quatro línguas, na mesma lista ----
+
+   Não há uma lista por língua, e não é preguiça. Quem escreve "no me sobra
+   nada" e quem escreve "there's nothing left" está a fazer a mesma pergunta,
+   e quem emigrou escreve metade numa língua e metade noutra sem dar por isso
+   — "não sobra nothing at the end do mês" é uma frase real. Uma lista só
+   apanha-as a todas; listas separadas obrigariam a acertar primeiro na língua
+   para depois acertar na pergunta, e errar a primeira estragava a segunda.
+
+   ---- O texto vem do `respostas.js` ----
+
+   Aqui fica a decisão — qual das respostas serve, e com que números. As
+   palavras estão no `respostas.js`, nas quatro línguas. É a mesma divisão do
+   resto da aplicação: a lógica num sítio, o que se diz noutro, e nunca as
+   duas coisas na mesma linha.
    ============================================================ */
 const RESPOSTAS = [
 
@@ -94,20 +116,16 @@ const RESPOSTAS = [
     id: 'sem-folga',
     chaves: ['não sobra', 'nao sobra', 'não consigo poupar', 'nao consigo poupar',
              'não tenho dinheiro', 'nao tenho dinheiro', 'não dá', 'nao da',
-             'estou apertado', 'no vermelho', 'não chega', 'nao chega'],
-    resp(d) {
+             'estou apertado', 'no vermelho', 'não chega', 'nao chega',
+             'no sobra', 'no me sobra', 'no llego', 'no me llega', 'no consigo ahorrar',
+             'no tengo dinero', 'estoy apretado', 'no alcanza',
+             'nothing left', 'no money left', 'cannot save', "can't save",
+             'not enough', 'broke', 'skint', 'end of the month'],
+    resp(d, l) {
       const base = d.aperto === true
-        ? `Fiz as contas com o que lançou: entra cerca de ${dinAssist(d.R)} por mês e o essencial leva ${dinAssist(d.E)}. Não sobra. `
+        ? T('resp.semfolga.contas', { R: dinAssist(d.R, l), E: dinAssist(d.E, l) }, l)
         : '';
-      return base + `Vou dizer-lhe uma coisa que ninguém diz: **se as contas não fecham, o problema não é a sua disciplina.** Não há método de orçamento que resolva a falta de dinheiro. Eu passei por isto, e o que me tirou de lá não foi apertar mais o cinto — foi mexer em três coisas, por esta ordem de dificuldade:
-
-**1. Apoios a que tem direito e não está a receber.** É espantosamente comum, e é o único que dá dinheiro esta semana sem trabalhar mais uma hora. Toque em **Apoios** aqui em baixo e responda a quatro perguntas.
-
-**2. Custos fixos, sobretudo a habitação.** Uma renda ${dinAssist(80)} mais barata vale mais do que dois anos a poupar no supermercado. É duro e é lento, mas é o que muda a conta de vez.
-
-**3. Rendimento.** Horas, formação paga, mudar de entidade, um trabalho ao lado. É o mais lento dos três — e o único que resolve para sempre.
-
-Enquanto não houver folga, o objectivo não é poupar. É **acabar o mês sem dívida nova.** Isso já é ganhar.`;
+      return base + T('resp.semfolga', { v80: dinAssist(80, l) }, l);
     }
   },
 
@@ -116,21 +134,14 @@ Enquanto não houver folga, o objectivo não é poupar. É **acabar o mês sem d
     id: 'subsidios',
     chaves: ['subsídio', 'subsidio', 'rsi', 'rendimento social', 'apoio', 'apoios',
              'abono', 'bolsa família', 'bolsa familia', 'segurança social',
-             'seguranca social', 'estado', 'ajuda do governo', 'benefício', 'beneficio'],
-    resp() {
-      return `Quem vive de apoios tem um problema que quase nenhum conselho financeiro trata: **o dinheiro chega em datas fixas e não aumenta**. Isso muda tudo — e, ao contrário do que parece, joga a favor.
-
-**Porquê a favor:** quem tem rendimento fixo consegue planear ao cêntimo. Quem trabalha à peça não consegue. A previsibilidade é a única vantagem que tem, e a maioria das pessoas desperdiça-a.
-
-**O que fazer com ela, em concreto:**
-
-**No dia em que entra**, separe primeiro — nem que sejam ${dinAssist(5)}. Não no fim do mês, quando já não há. Esta é a diferença entre quem junta e quem não junta, e não tem nada a ver com quanto se ganha.
-
-**Confirme o que lhe falta receber.** Muita gente recebe um apoio e tem direito a três. A tarifa social da energia e da água não é automática — tem de ser pedida, e muita gente que tem direito nunca a pediu. Toque em **Apoios** e veja a lista do seu país.
-
-**Marque as datas.** Se sabe que entra no dia 20, sabe que os dias 15 a 19 são os apertados. Planeie as compras grandes para os dias 20 e 21, quando há dinheiro e não se compra em aflição.
-
-Comece pelos **Apoios** aqui em baixo — é onde há dinheiro que talvez já seja seu.`;
+             'seguranca social', 'estado', 'ajuda do governo', 'benefício', 'beneficio',
+             'bpc', 'auxílio', 'auxilio', 'inss',
+             'ayuda', 'ayudas', 'subsidio por desempleo', 'paro', 'ingreso mínimo',
+             'ingreso minimo', 'imv', 'seguridad social', 'prestación', 'prestacion',
+             'benefit', 'benefits', 'universal credit', 'welfare', 'food stamps',
+             'social security', 'disability'],
+    resp(d, l) {
+      return T('resp.subsidios', { v5: dinAssist(5, l) }, l);
     }
   },
 
@@ -139,30 +150,22 @@ Comece pelos **Apoios** aqui em baixo — é onde há dinheiro que talvez já se
     id: 'comecar',
     chaves: ['começar', 'comecar', 'por onde', 'primeiro passo', 'do zero',
              'não sei por onde', 'nao sei por onde', 'ajuda', 'mudar de vida',
-             'sair da pobreza', 'melhorar de vida'],
-    resp(d) {
-      if (d.nMovs === 0) {
-        return `Do zero, e sem rodeios. O primeiro mês é o único que custa.
-
-**Esta semana, só isto:** lance tudo o que gastar. Tudo. O café, o pão, o passe. Não mude nada nos hábitos ainda — só aponte. Leva vinte segundos de cada vez, no separador **Lançar**.
-
-**Porquê antes de tudo o resto:** quem regista o que gasta passa a gastar menos, mesmo sem tentar. Não é força de vontade — é que passa a haver um número onde antes havia uma vaga sensação. Eu só percebi para onde ia o meu dinheiro quando o vi escrito.
-
-**No fim do mês** já tem uma coisa que hoje não tem: saber quanto precisa mesmo para viver. A partir daí tudo se calcula.
-
-**E o segundo mês**, separa-se um valor no dia em que o dinheiro entra. Pequeno. ${dinAssist(10)} chegam para começar — o hábito vale mais do que o valor, e o valor cresce com o tempo.
-
-Nada disto exige que seja uma pessoa diferente da que é. Exige um mês.`;
-      }
-      if (d.aperto === true) return RESPOSTAS[0].resp(d);
+             'sair da pobreza', 'melhorar de vida',
+             'empezar', 'por dónde', 'por donde', 'primer paso', 'desde cero',
+             'no sé por dónde', 'no se por donde', 'cambiar de vida',
+             'start', 'where do i start', 'first step', 'from scratch',
+             'get started', 'turn my life around', 'help me'],
+    resp(d, l) {
+      if (d.nMovs === 0) return T('resp.comecar.zero', { v10: dinAssist(10, l) }, l);
+      if (d.aperto === true) return RESPOSTAS[0].resp(d, l);
       const alvo = d.E ? d.E * 3 : null;
-      return `Já lançou ${d.nMovs} movimentos, o que é mais do que a maioria faz. Com esses números, o caminho é este:
-
-**Sobra-lhe cerca de ${dinAssist(d.folga)} por mês.** Não guarde tudo — quem tenta guardar a folga inteira desiste no primeiro mês difícil. Guarde **metade**, ${dinAssist(d.folga / 2)}, e no dia em que o dinheiro entra.
-
-**O alvo é ${alvo ? dinAssist(alvo) : 'três meses de despesa essencial'}** — três meses do seu essencial. Não é para investir; é para uma avaria não se transformar em crédito a 18%. É esta reserva que separa quem vai subindo de quem volta sempre à casa de partida.
-
-**Ao ritmo de ${dinAssist(d.folga / 2)} por mês**, lá chega em cerca de ${alvo ? Math.ceil(alvo / (d.folga / 2)) : '—'} meses. É muito tempo. É também o tempo que passa de qualquer maneira.`;
+      return T('resp.comecar.andamento', {
+        n: d.nMovs,
+        folga: dinAssist(d.folga, l),
+        metade: dinAssist(d.folga / 2, l),
+        alvo: alvo ? dinAssist(alvo, l) : T('resp.comecar.alvovago', null, l),
+        meses: alvo ? Math.ceil(alvo / (d.folga / 2)) : '—'
+      }, l);
     }
   },
 
@@ -170,22 +173,24 @@ Nada disto exige que seja uma pessoa diferente da que é. Exige um mês.`;
   {
     id: 'reserva',
     chaves: ['reserva', 'emergência', 'emergencia', 'poupança', 'poupanca',
-             'quanto guardar', 'quanto poupar', 'juntar dinheiro'],
-    resp(d) {
-      if (!d.E) return `A reserva mede-se em **meses de despesa essencial**, e não em euros. ${dinAssist(1000)} são dois meses para quem gasta ${dinAssist(500)}, e menos de um para quem gasta ${dinAssist(1100)}. Por isso o primeiro passo é saber quanto é o seu essencial — lance um mês inteiro e a aplicação diz-lhe.`;
+             'quanto guardar', 'quanto poupar', 'juntar dinheiro',
+             'colchón', 'colchon', 'ahorro', 'ahorros', 'ahorrar',
+             'cuánto guardar', 'cuanto guardar', 'fondo de emergencia',
+             'emergency fund', 'savings', 'buffer', 'rainy day',
+             'how much should i save', 'set aside'],
+    resp(d, l) {
+      if (!d.E) return T('resp.reserva.semessencial', {
+        v1000: dinAssist(1000, l), v500: dinAssist(500, l), v1100: dinAssist(1100, l)
+      }, l);
       const m = d.mesesReserva || 0;
-      const estado = m >= 3 ? `Tem ${m.toFixed(1)} meses. Está feita — a partir daqui o que sobra pode ir para outra coisa.`
-                   : m >= 1 ? `Tem ${m.toFixed(1)} meses. Já não está exposto ao pior: uma avaria já não vira crédito.`
-                   : m > 0  ? `Tem ${m.toFixed(1)} meses. É pouco, mas é infinitamente mais do que zero — a primeira semana de reserva é a que mais muda.`
-                            : `Ainda não tem reserva nenhuma. É por aqui que se começa.`;
-      return `O seu essencial é cerca de ${dinAssist(d.E)} por mês. ${estado}
-
-**Os degraus, por ordem:**
-· **Uma semana** — ${dinAssist(d.E / 4)}. Cobre o susto pequeno.
-· **Um mês** — ${dinAssist(d.E)}. Cobre a maioria das avarias.
-· **Três meses** — ${dinAssist(d.E * 3)}. Cobre ficar sem trabalho por um tempo.
-
-Não salte para os três meses. Persiga o degrau seguinte, sempre. Um alvo que se atinge dá vontade de continuar; um alvo distante dá vontade de desistir — e é isso que separa quem consegue de quem começa dez vezes.`;
+      const estado = m >= 3 ? T('resp.reserva.feita', { m: m.toFixed(1) }, l)
+                   : m >= 1 ? T('resp.reserva.um', { m: m.toFixed(1) }, l)
+                   : m > 0  ? T('resp.reserva.pouco', { m: m.toFixed(1) }, l)
+                            : T('resp.reserva.zero', null, l);
+      return T('resp.reserva', {
+        E: dinAssist(d.E, l), estado: estado,
+        semana: dinAssist(d.E / 4, l), mes: dinAssist(d.E, l), tres: dinAssist(d.E * 3, l)
+      }, l);
     }
   },
 
@@ -194,16 +199,15 @@ Não salte para os três meses. Persiga o degrau seguinte, sempre. Um alvo que s
     id: 'dividas',
     chaves: ['dívida', 'divida', 'dividas', 'dívidas', 'cartão', 'cartao',
              'crédito', 'credito', 'prestação', 'prestacao', 'parcelar',
-             'devo', 'juros', 'rotativo', 'empréstimo', 'emprestimo'],
-    resp(d) {
-      const nota = d.temParcelas ? '\n\nVi que tem prestações lançadas. No separador **Início**, o bloco "Já comprometido" mostra-lhe quanto de cada mês já está gasto antes de começar.' : '';
-      return `Sobre dívida, três coisas que aprendi a pagar caro.
-
-**Primeira: saiba o número.** Não o "mais ou menos". O número. A maior parte das pessoas endividadas não sabe quanto deve ao certo, e não se resolve o que não se mede. A ferramenta **Por onde começar a pagar dívidas** faz-lhe essa conta.
-
-**Segunda: a ordem importa menos do que continuar.** Pela matemática, começa-se pela taxa mais alta. Na prática, quem começa pela dívida mais pequena desiste menos — e uma estratégia abandonada poupa zero. Se é do tipo que precisa de ver uma vitória, comece pela pequena. Não é irracional; é conhecer-se.
-
-**Terceira, e a mais importante:** em Portugal, se falhar uma prestação, o banco é **obrigado por lei** a integrá-lo no PERSI, e enquanto isso corre não pode executar a dívida. E há apoio gratuito e confidencial para tratar disto — a RACE, com entidades por distrito. Não é um empréstimo nem vende nada. Se está a ler isto porque as contas não fecham, é provavelmente o telefonema mais útil que pode fazer esta semana.${nota}`;
+             'devo', 'juros', 'rotativo', 'empréstimo', 'emprestimo',
+             'cheque especial', 'nome sujo', 'serasa', 'negativado',
+             'deuda', 'deudas', 'tarjeta', 'préstamo', 'prestamo', 'cuota',
+             'intereses', 'debo', 'asnef',
+             'debt', 'debts', 'credit card', 'loan', 'owe', 'interest',
+             'overdraft', 'instalments', 'installments', 'repayments'],
+    resp(d, l) {
+      const nota = d.temParcelas ? T('resp.dividas.nota', null, l) : '';
+      return T('resp.dividas', { nota: nota }, l);
     }
   },
 
@@ -212,48 +216,30 @@ Não salte para os três meses. Persiga o degrau seguinte, sempre. Um alvo que s
     id: 'rendimento',
     chaves: ['ganhar mais', 'aumentar', 'negócio', 'negocio', 'vender',
              'trabalhar por conta', 'empreender', 'empresa', 'freelancer',
-             'segundo emprego', 'renda extra', 'trabalho extra', 'comércio', 'comercio'],
-    resp() {
-      return `Poupar tem um tecto: não se pode cortar abaixo de zero. Ganhar não tem. Se está com o essencial a cobrir tudo, é aqui que está a saída — e é o caminho mais lento e o único definitivo.
-
-**O que aprendi a começar sem dinheiro:**
-
-**Venda o que já sabe fazer, não o que gostaria de saber.** O erro que mais vi custar meses foi ir aprender uma coisa nova quando já havia uma coisa vendável nas mãos. Cozinhar, arranjar, limpar, conduzir, cortar cabelo, escrever, traduzir, cuidar. Qualquer uma delas tem mercado hoje.
-
-**Comece com o primeiro cliente, não com a empresa.** Sem nome, sem logótipo, sem site. Um cliente que paga. A empresa faz-se depois, e faz-se em dias. Vi muita gente gastar as poupanças a preparar um negócio que nunca teve um cliente.
-
-**Cobre desde o primeiro dia.** Trabalho de graça "para ganhar experiência" ensina o cliente a não pagar. Cobre pouco no início, mas cobre.
-
-**Separe o dinheiro do negócio do dinheiro de casa** desde o primeiro euro. Misturados, o negócio parece lucrativo até ao dia em que não há dinheiro para a renda.
-
-**E o mais importante:** um negócio pequeno que dá ${dinAssist(200)} por mês, todos os meses, muda mais a sua vida do que um plano grande que nunca começa. ${dinAssist(200)} por mês é a renda mais barata, é a reserva feita num ano, é a dívida do cartão paga.`;
+             'segundo emprego', 'renda extra', 'trabalho extra', 'comércio', 'comercio',
+             'bico', 'autônomo', 'autonomo',
+             'ganar más', 'ganar mas', 'ingresos extra', 'emprender', 'autónomo',
+             'segundo trabajo', 'montar un negocio',
+             'earn more', 'make more money', 'side job', 'side hustle',
+             'second job', 'start a business', 'self-employed', 'sell'],
+    resp(d, l) {
+      return T('resp.rendimento', { v200: dinAssist(200, l) }, l);
     }
   },
 
   /* ---------- investir ---------- */
   {
     id: 'investir',
-    chaves: ['investir', 'investimento', 'aplicar', 'render', 'bolsa',
-             'ações', 'acoes', 'cripto', 'onde ponho', 'fundo'],
-    resp(d) {
+    chaves: ['investir', 'investimento', 'invisto', 'invista', 'aplicar', 'render',
+             'bolsa', 'ações', 'acoes', 'cripto', 'onde ponho', 'fundo', 'tesouro',
+             'invertir', 'inversión', 'inversion', 'invierto', 'acciones',
+             'dónde pongo', 'donde pongo', 'renta fija', 'fondo indexado',
+             'invest', 'investing', 'stocks', 'shares', 'crypto', 'index fund',
+             'where should i put', 'isa', 'pension'],
+    resp(d, l) {
       const antes = (d.mesesReserva !== null && d.mesesReserva < 3)
-        ? `Antes de mais: tem ${(d.mesesReserva || 0).toFixed(1)} meses de reserva. Investir antes de ter três é como pôr o telhado antes das paredes — à primeira avaria vende-se ao pior preço possível, e perde-se mais do que se ganhou.\n\n` : '';
-      return `${antes}Não lhe digo onde pôr dinheiro. Não sou entidade autorizada para isso, e quem lhe disser sem conhecer a sua vida está a vender-lhe alguma coisa.
-
-**O que lhe posso dizer é como funciona, e as perguntas que tem de fazer:**
-
-**O custo é a única coisa previsível.** O retorno ninguém sabe; a comissão sabe-se ao cêntimo. Uma diferença de 2% ao ano em comissões, ao longo de vinte anos, come uma fatia enorme do resultado. Pergunte sempre: *quanto é que isto me cobra por ano, ao todo?*
-
-**O prazo decide tudo.** Dinheiro de que pode precisar dentro de três anos não deve estar exposto a oscilações. É por isso que a reserva vem primeiro.
-
-**As perguntas a fazer antes de assinar seja o que for:**
-· Quanto custa por ano, tudo incluído?
-· Quanto posso perder no pior ano registado?
-· Em quanto tempo consigo tirar o dinheiro, e com que penalização?
-· Que garantia existe, e até que valor?
-· Quem me está a vender isto ganha comissão?
-
-Se quem lhe vende não responder às cinco com clareza, tem a sua resposta.`;
+        ? T('resp.investir.antes', { m: (d.mesesReserva || 0).toFixed(1) }, l) : '';
+      return antes + T('resp.investir', null, l);
     }
   },
 
@@ -261,21 +247,13 @@ Se quem lhe vende não responder às cinco com clareza, tem a sua resposta.`;
   {
     id: 'app',
     chaves: ['como funciona', 'o que faz', 'para que serve', 'não percebo',
-             'nao percebo', 'como uso', 'como usar', 'preencher'],
-    resp() {
-      return `Simples, e é de propósito.
-
-**Lançar** — toque no que foi (Mercado, Luz, Renda…), escreva quanto, e pronto. Vinte segundos. O valor escreve-se sempre à mão porque é isso que faz pensar no dinheiro; tocar num rótulo não faz.
-
-**Início** — mostra o que sobra até ao fim do mês, e **por dia**. É esse o número que decide uma ida ao supermercado; o total do mês não decide nada.
-
-**Mês** — todos os movimentos e para onde foi o dinheiro, por categoria.
-
-**Mais** — as ferramentas, o método e o premium.
-
-Não precisa de conta, não precisa de internet, e não se liga ao seu banco. Os dados ficam no seu telemóvel.
-
-Se alguma coisa estiver confusa, diga-me qual e explico.`;
+             'nao percebo', 'como uso', 'como usar', 'preencher',
+             'cómo funciona', 'como funciona esto', 'para qué sirve', 'para que sirve',
+             'no entiendo', 'cómo se usa', 'como se usa',
+             'how does this work', 'how do i use', 'what does this do',
+             "don't understand", 'what is this app'],
+    resp(d, l) {
+      return T('resp.app', null, l);
     }
   },
 
@@ -283,33 +261,26 @@ Se alguma coisa estiver confusa, diga-me qual e explico.`;
   {
     id: 'premium',
     chaves: ['premium', 'pagar', 'preço', 'preco', 'assinatura', 'quanto custa',
-             'chave', 'comprar'],
-    resp() {
-      return `Direto: **tudo o que precisa para gerir o mês e juntar uma reserva é grátis, e vai continuar a ser.** Cobrar isso a quem está a tentar sair de uma situação difícil seria contradizer a razão de existir disto.
-
-O premium é **4,90 €, uma vez** — não é mensalidade. Dá acesso ao plano de 12 meses mês a mês, à comparação de caminhos, à projecção a longo prazo, e à sincronização entre telemóvel e computador.
-
-E digo-lhe uma coisa que estas páginas nunca dizem: **se não puder pagar, escreva e a chave é sua na mesma.** Sem justificação e sem verificação nenhuma. Um projecto que existe para ajudar quem tem pouco não pode ser mais um sítio onde quem tem pouco fica de fora.`;
+             'chave', 'comprar',
+             'precio', 'cuánto cuesta', 'cuanto cuesta', 'suscripción', 'suscripcion',
+             'clave', 'pago', 'es gratis', 'gratis',
+             'price', 'does it cost', 'does this cost', 'subscription', 'pay for',
+             'buy', 'free', 'is it free'],
+    resp(d, l) {
+      return T('resp.premium', null, l);
     }
   }
 ];
 
 /* ---------- resposta por omissão ---------- */
-function respostaGenerica(d) {
+function respostaGenerica(d, l) {
   const contexto = d.nMovs === 0
-    ? 'Ainda não lançou nada, por isso ainda não sei nada sobre a sua situação.'
-    : `Já lançou ${d.nMovs} movimentos${d.R ? `, e entra cerca de ${dinAssist(d.R)} por mês` : ''}.`;
-  return `${contexto} Posso ajudar melhor se me perguntar por uma destas coisas:
-
-· **"Não sobra nada ao fim do mês"** — o que fazer quando as contas não fecham
-· **"Recebo subsídio"** — como planear com rendimento fixo
-· **"Por onde começo?"** — o primeiro mês, passo a passo
-· **"Quanto devo guardar?"** — a reserva, em degraus
-· **"Tenho dívidas"** — a ordem certa e onde há ajuda gratuita
-· **"Como ganho mais?"** — começar a vender sem dinheiro
-· **"Onde invisto?"** — o que perguntar antes de assinar seja o que for
-
-Escreva com as suas palavras. Percebo se escrever torto.`;
+    ? T('resp.generica.zero', null, l)
+    : T('resp.generica.jalancou', {
+        n: d.nMovs,
+        comR: d.R ? T('resp.generica.comR', { R: dinAssist(d.R, l) }, l) : ''
+      }, l);
+  return T('resp.generica', { contexto: contexto }, l);
 }
 
 /* ---------- escolher a resposta ---------- */
@@ -318,7 +289,15 @@ function responder(texto) {
      traduzidas, e uma variavel local com o mesmo nome tapava-a. */
   const q = String(texto || '').toLowerCase().trim();
   const d = dadosAssistente();
-  if (!q) return respostaGenerica(d);
+
+  /* A língua é a da conversa, que o `fixarLingua` já decidiu a partir da
+     mensagem — e não a da aplicação. Quem tem o telemóvel em português e
+     escreve em espanhol recebe espanhol de volta. Usa-se o `L()` e não a
+     mensagem directamente porque uma resposta longa vem muitas vezes a seguir
+     a um "sim", e "sim" não tem língua nenhuma. */
+  const l = L();
+
+  if (!q) return respostaGenerica(d, l);
 
   let melhor = null, pontosMax = 0;
   RESPOSTAS.forEach(r => {
@@ -327,9 +306,9 @@ function responder(texto) {
     if (pontos > pontosMax) { pontosMax = pontos; melhor = r; }
   });
 
-  if (!melhor) return respostaGenerica(d);
-  const out = melhor.resp(d);
-  return out || respostaGenerica(d);
+  if (!melhor) return respostaGenerica(d, l);
+  const out = melhor.resp(d, l);
+  return out || respostaGenerica(d, l);
 }
 
 /* ============================================================
@@ -659,25 +638,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Abertura: quem é, o que faz, e o que já sabe sobre quem pergunta.
   const d = dadosAssistente();
-  juntar(`Sou o **Wesley Vianna**, fundador da Vida Financeira. Comecei sem nada e construí o que tenho a partir de negócios pequenos — por isso não lhe vou dar conselhos que nunca tive de aplicar a mim próprio.
-
-**Escreva-me como falaria com alguém.** Três coisas que faço aqui:
-
-**Lanço por si.** Escreva como fala, dizendo **o que é o sítio e o nome dele**:
-
-«Gastei 30 euros no **mercado** Continente»
-«Paguei 12 na **farmácia** Sá da Bandeira»
-«Meti 40 de gasolina na **bomba** BP»
-
-E fica lançado, com o valor, a categoria e a loja. Não tem de preencher nada. Se o sítio não for de nenhum destes tipos, escreva à mesma — eu arrumo no que puder.
-
-**Faço as contas.** Está na loja e diz «12x de 45,90 ou 480 a pronto?» — eu respondo com os números antes de assinar.
-
-**Respondo a perguntas** com os seus números, não com generalidades.
-
-${d.nMovs > 0 ? `Já vi os seus números: ${d.R ? `entra cerca de ${dinAssist(d.R)} por mês` : `${d.nMovs} movimentos lançados`}. Posso responder com base neles.` : 'Ainda não lançou nada, mas posso responder na mesma — e depois de lançar um mês, respondo com os seus números.'}
-
-Pergunte à vontade.`, 'ele');
+  /* A abertura segue a língua da aplicação e não a de uma mensagem: ainda não
+     houve mensagem nenhuma. É a primeira coisa que se lê aqui dentro, e era
+     das últimas que ainda só sabia dizer-se em português. */
+  const numeros = d.nMovs === 0
+    ? t('abertura.semnumeros')
+    : t('abertura.comnumeros', {
+        quais: d.R ? t('abertura.entra', { R: dinAssist(d.R, L()) })
+                   : t('abertura.movimentos', { n: d.nMovs })
+      });
+  juntar(t('abertura', { numeros: numeros }), 'ele');
 
   /* Uma resposta com botões por baixo. Nasceu para o "Apagar isto" e passou a
      servir também o talão lido, que precisa de um sim e de um não. Quem
