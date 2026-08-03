@@ -352,3 +352,72 @@
 .inv-nota{color:var(--cream-dim);font-size:.8rem;line-height:1.65;margin-top:16px}
 /* A nota do imposto fica antes dos campos, e nao pode passar por rodape'. */
 .inv-imp{margin:-6px 0 16px;border-left:2px solid rgba(217,178,110,.3);padding-left:12px}
+
+/* ============================================================
+   AS FERRAMENTAS ARRUMADAS POR PERGUNTA
+
+   Nove formulários abertos eram cinco mil pixéis de campos. Agora são cinco
+   grupos e nove linhas fechadas: a página cabe num polegar, e o que se lê em
+   cada linha é o nome e para que serve. Abre quem quer.
+   ============================================================ */
+.ferr-grupos{margin-top:26px}
+
+.ferr-grupo{
+  margin-bottom:34px;
+  /* O site tem `section{padding:64px 0}` para as secções de uma página que se
+     lê de cima a baixo. Um grupo de ferramentas não é uma dessas: era um vão
+     de 128 pixéis dentro de cada grupo, e cinco grupos faziam meio ecrã de
+     nada. */
+  padding:0;
+}
+.ferr-grupo-cab{margin-bottom:14px}
+.ferr-grupo-cab h2{
+  font-size:1.22rem;line-height:1.25;color:var(--cream);
+  display:flex;align-items:center;gap:10px;margin:0 0 4px
+}
+.ferr-grupo-ic{font-size:1.35rem;line-height:1}
+.ferr-grupo-cab p{color:var(--cream-dim);font-size:.9rem;margin:0;line-height:1.5}
+
+/* Uma ferramenta fechada é uma linha; aberta, é o formulário de sempre. */
+.ferr-caixa{margin-bottom:12px}
+.ferr-caixa > .ferr-cabeca{
+  list-style:none;cursor:pointer;
+  display:grid;grid-template-columns:1fr auto;align-items:center;
+  gap:2px 12px;padding:2px 0
+}
+.ferr-caixa > .ferr-cabeca::-webkit-details-marker{display:none}
+.ferr-nome{
+  grid-column:1;font-size:1.06rem;font-weight:700;color:var(--gold-soft);
+  display:flex;align-items:center;gap:10px;line-height:1.3
+}
+.ferr-nome .ic{font-size:1.25rem;line-height:1}
+.ferr-para{
+  grid-column:1;color:var(--cream-dim);font-size:.88rem;line-height:1.45;
+  padding-right:8px
+}
+.ferr-selo{
+  grid-column:1;justify-self:start;margin-top:8px;
+  font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;
+  color:#0d1512;background:var(--gold-soft);border-radius:999px;padding:4px 10px;font-weight:800
+}
+.ferr-seta{
+  grid-column:2;grid-row:1 / span 2;
+  font-size:1.5rem;color:var(--gold-soft);opacity:.75;
+  transition:transform .18s ease
+}
+.ferr-caixa[open] > .ferr-cabeca .ferr-seta{transform:rotate(90deg)}
+.ferr-caixa[open] > .ferr-cabeca{margin-bottom:16px}
+
+/* O que abre precisa de respirar do cabeçalho que o abriu. */
+.ferr-corpo > *:first-child{margin-top:0}
+
+/* Uma ferramenta trancada continua a mostrar o nome e para que serve — é o
+   cadeado que se vê, não um bloco desfocado sem explicação. */
+.ferr-caixa.trancada > .ferr-cabeca .ferr-nome,
+.ferr-caixa.trancada > .ferr-cabeca .ferr-para{opacity:1;filter:none}
+
+/* Fechada, a caixa é uma linha: os 26px de folga em cima e em baixo eram para
+   um formulário, e num rótulo lêem-se como espaço a mais. Aberta, volta a ter
+   a folga de sempre — aí há um formulário lá dentro outra vez. */
+.ferr-caixa:not([open]){padding:18px 20px}
+.ferr-caixa[open]{padding:22px 20px 26px}

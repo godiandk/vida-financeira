@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=59">
-<link rel="stylesheet" href="../app-financas.css?v=59">
-<link rel="stylesheet" href="../app-shell.css?v=59">
-<link rel="stylesheet" href="../assistente.css?v=59">
-<link rel="stylesheet" href="../ferramentas.css?v=59">
+<link rel="stylesheet" href="../estilo.css?v=60">
+<link rel="stylesheet" href="../app-financas.css?v=60">
+<link rel="stylesheet" href="../app-shell.css?v=60">
+<link rel="stylesheet" href="../assistente.css?v=60">
+<link rel="stylesheet" href="../ferramentas.css?v=60">
 </head>
 <body class="app-shell">
 
@@ -137,12 +137,6 @@
         <span class="seta">›</span>
       </button>
 
-      <button class="accao-grande" type="button" data-ir="lancar">
-        <span class="ic">➕</span>
-        <span><b>Lançar um gasto</b><span>Em vinte segundos, sem sair daqui</span></span>
-        <span class="seta">›</span>
-      </button>
-
         <div class="bloco bloco-reserva" style="margin-bottom:22px">
         <h3>A minha reserva</h3>
         <div id="reserva-corpo"></div>
@@ -154,55 +148,65 @@
         <div id="comprometido-corpo"></div>
         </div>
 
-      <!-- ============ TUDO NUMA PAGINA ============
-      Aqui entram, em gavetas, os ecras que antes obrigavam a mudar de
-      separador: lancar, o mes, as contas fixas, a divida, os apoios e as
-      ferramentas. O conteudo nao e' copiado — e' o proprio, mudado de sitio
-      pelo script la em baixo, para nao haver dois de nada. -->
-      <div class="gavetas" id="gavetas">
-        <details class="gaveta" id="gaveta-lancar">
-          <summary><span class="gv-nome" data-t="gaveta.lancar">Lançar um gasto ou uma entrada</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-lancar"></div>
-        </details>
-        <details class="gaveta" id="gaveta-mes" open>
-          <summary><span class="gv-nome" data-t="gaveta.mes">O meu mês, movimento a movimento</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-mes"></div>
-        </details>
-        <details class="gaveta" id="gaveta-contas">
-          <summary><span class="gv-nome" data-t="gaveta.contas">As contas que se repetem</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-contas"></div>
-        </details>
-        <details class="gaveta" id="gaveta-divida">
-          <summary><span class="gv-nome" data-t="gaveta.divida">O que a dívida custa</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-divida"></div>
-        </details>
-        <details class="gaveta" id="gaveta-apoios">
-          <summary><span class="gv-nome" data-t="gaveta.apoios">Apoios que talvez não receba</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-apoios"></div>
-        </details>
-        <!-- Esta gaveta nao vem de ecra nenhum: e' nova, e o corpo dela e'
-        desenhado pelo investir.js. A app dizia ha' muito tempo para juntar uma
-        reserva e nunca dizia onde a por. -->
-        <details class="gaveta" id="gaveta-investir">
-          <summary><span class="gv-nome" data-t="inv.titulo">Pôr o dinheiro a render</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="investir-corpo"></div>
-        </details>
-        <details class="gaveta" id="gaveta-mais">
-          <summary><span class="gv-nome" data-t="gaveta.mais">Ferramentas e calculadoras</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-          <div class="gv-corpo" id="gv-mais"></div>
-        </details>
-      </div>
+      <!-- ============ O MENU ============
+      Aqui esteve, durante uma versao, a aplicacao inteira: sete gavetas com o
+      conteudo de sete ecras, uma debaixo da outra. A ideia era boa e o
+      resultado nao: o Inicio ficou com cinco ecras e meio de altura e cento e
+      sessenta e nove coisas em que tocar, e o numero mais importante — o que
+      sobra ate' ao fim do mes — so' aparecia depois de um anuncio, de uma
+      saudacao e de duas perguntas.
 
-      <!-- Os atalhos eram sete, e seis deles levavam a ecras que agora sao
-      gavetas logo aqui em cima — repetir o mesmo destino duas vezes na mesma
-      pagina e' das maneiras mais rapidas de a fazer parecer maior do que e'.
-      Fica o que NAO esta' nesta pagina. -->
-      <div class="atalhos">
-        <button class="atalho destaque" type="button" data-ir="wesley">
-          <span class="ic">💬</span><b>Escrever ao Wesley</b><small>Lance falando, e faça contas</small>
+      Uma pagina onde cabe tudo nao e' uma pagina arrumada: e' uma gaveta de
+      cozinha. O que ficou aqui e' o mes desta pessoa; o resto voltou a ter
+      casa propria, e daqui vai-se la' por uma porta com o nome escrito.
+
+      Cinco linhas, todas com o mesmo aspecto, todas a dizerem o que sao e
+      para que servem. Nao ha' nada a adivinhar. -->
+      <nav class="menu-casa" aria-label="O que quer fazer">
+        <h3 class="menu-tit" data-t="menu.titulo">O que quer fazer?</h3>
+
+        <button class="menu-linha" type="button" data-ir="lancar">
+          <span class="ic">➕</span>
+          <span class="txt"><b data-t="menu.lancar">Lançar um gasto</b>
+            <small data-t="menu.lancarsub">Vinte segundos, e o mês fica certo</small></span>
+          <span class="seta" aria-hidden="true">›</span>
         </button>
+
+        <button class="menu-linha" type="button" data-ir="mes">
+          <span class="ic">📊</span>
+          <span class="txt"><b data-t="menu.mes">Ver o meu mês</b>
+            <small data-t="menu.messub">Tudo o que entrou e saiu, e para onde foi</small></span>
+          <span class="seta" aria-hidden="true">›</span>
+        </button>
+
+        <button class="menu-linha" type="button" data-ir="contas">
+          <span class="ic">🧾</span>
+          <span class="txt"><b data-t="menu.contas">As contas que se repetem</b>
+            <small data-t="menu.contassub">Renda, luz, água — e um aviso antes de vencer</small></span>
+          <span class="seta" aria-hidden="true">›</span>
+        </button>
+
+        <button class="menu-linha" type="button" data-ir="mais">
+          <span class="ic">🧰</span>
+          <span class="txt"><b data-t="menu.ferramentas">Ferramentas e calculadoras</b>
+            <small data-t="menu.ferramentassub">Dívidas, reserva, apoios: escolhe-se pela pergunta</small></span>
+          <span class="seta" aria-hidden="true">›</span>
+        </button>
+
+        <button class="menu-linha" type="button" data-ir="wesley">
+          <span class="ic">💬</span>
+          <span class="txt"><b data-t="menu.escrever">Escrever</b>
+            <small data-t="menu.escreversub">Lance falando, e faça as contas antes de assinar</small></span>
+          <span class="seta" aria-hidden="true">›</span>
+        </button>
+      </nav>
+
+      <div class="atalhos">
         <a class="atalho" href="../metodo.html">
           <span class="ic">📗</span><b>Método</b><small>Como se junta uma reserva</small>
+        </a>
+        <a class="atalho" href="../sobre.html">
+          <span class="ic">🛡️</span><b>Sobre</b><small>De quem é isto, e o que faz aos seus dados</small>
         </a>
       </div>
   </section>
@@ -595,12 +599,18 @@
   <!-- ============ PREMIUM E FERRAMENTAS ============ -->
   <section class="ecra" id="ecra-mais">
     <div class="wrap">
-      <h1 class="ecra-titulo">Ferramentas</h1>
-      <p class="ecra-sub">
-        Nove calculadoras, no mesmo sítio. Seis são grátis para sempre; as três
-        de planeamento têm cadeado, e abrem com a assinatura — ou com o mês
-        que lhe damos por criar conta.
+      <h1 class="ecra-titulo" data-t="abas.mais">Ferramentas</h1>
+      <p class="ecra-sub" data-t="ferr.sub">
+        Escolha pela pergunta que tem hoje. Toque numa para abrir.
       </p>
+
+      <!-- O "por o dinheiro a render" nao vem de ecra nenhum: e' desenhado
+      pelo investir.js aqui dentro. Fica neste sitio para o `ferramentas.js` o
+      encontrar e o arrumar no grupo de quem quer guardar dinheiro. -->
+      <details class="gaveta" id="gaveta-investir">
+        <summary><span class="gv-nome" data-t="inv.titulo">Pôr o dinheiro a render</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+        <div class="gv-corpo" id="investir-corpo"></div>
+      </details>
 
       <div class="eyebrow">Assinatura</div>
       <h2>As três de planeamento</h2>
@@ -878,11 +888,11 @@
      e' dourado sobre escuro — parecia recortado de cinco sitios diferentes.
      Estes sao tracos, todos com a mesma espessura e a mesma cor, e acendem-se
      a dourado no separador aberto. -->
+<!-- A ordem da barra é a ordem por que se lê, e por isso o Início é o
+primeiro. Estava em segundo, com o chat à frente dele: a casa da aplicação
+atrás de uma das coisas que lá se fazem. Quem abre uma aplicação de contas
+quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. -->
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
-  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false">
-    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 4z"/></svg>
-    <small data-t="abas.escrever">Escrever</small>
-  </button>
   <button class="aba" role="tab" data-ecra="inicio" aria-selected="true">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z"/></svg>
     <small data-t="abas.inicio">Início</small>
@@ -899,26 +909,30 @@
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h15M4.5 5.5v13M19.5 5.5v13M4.5 18.5h15M9 5.5v13M14.5 5.5v13"/></svg>
     <small data-t="abas.mais">Ferramentas</small>
   </button>
+  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 4z"/></svg>
+    <small data-t="abas.escrever">Escrever</small>
+  </button>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=59"></script>
-<script src="../site.js?v=59"></script>
-<script src="../app-financas.js?v=59"></script>
-<script src="../excel.js?v=59"></script>
-<script src="../partilha.js?v=59"></script>
-<script src="../divida.js?v=59"></script>
-<script src="../idiomas.js?v=59"></script>
-<script src="../respostas.js?v=59"></script>
-<script src="../interpretar.js?v=59"></script>
-<script src="../talao.js?v=59"></script>
-<script src="../ia.js?v=59"></script>
-<script src="../assistente.js?v=59"></script>
-<script src="../ferramentas.js?v=59"></script>
-<script src="../investir.js?v=59"></script>
-<script src="../banner.js?v=59"></script>
+<script src="../firebase-config.js?v=60"></script>
+<script src="../site.js?v=60"></script>
+<script src="../app-financas.js?v=60"></script>
+<script src="../excel.js?v=60"></script>
+<script src="../partilha.js?v=60"></script>
+<script src="../divida.js?v=60"></script>
+<script src="../idiomas.js?v=60"></script>
+<script src="../respostas.js?v=60"></script>
+<script src="../interpretar.js?v=60"></script>
+<script src="../talao.js?v=60"></script>
+<script src="../ia.js?v=60"></script>
+<script src="../assistente.js?v=60"></script>
+<script src="../ferramentas.js?v=60"></script>
+<script src="../investir.js?v=60"></script>
+<script src="../banner.js?v=60"></script>
 <script>
 /* ============================================================
    TUDO NUMA PAGINA
@@ -942,36 +956,49 @@
    caixa de escrita colada ao fundo. Metido numa gaveta de uma pagina que rola,
    deixava de se poder usar.
    ============================================================ */
-(function juntarTudo(){
-  const mudar = [
-    ['ecra-lancar', 'gv-lancar'],
-    ['ecra-mes', 'gv-mes'],
-    ['ecra-contas', 'gv-contas'],
-    ['ecra-divida', 'gv-divida'],
-    ['ecra-apoios', 'gv-apoios'],
-    ['ecra-mais', 'gv-mais']
-  ];
-  mudar.forEach(([de, para]) => {
-    const origem = document.getElementById(de);
-    const destino = document.getElementById(para);
-    if (!origem || !destino) return;
-    /* Move-se o conteudo de CADA `.wrap`, e nao o `.wrap`: assim nao ficam
-       molduras encaixadas umas nas outras. Tem de ser de cada um e nao so' do
-       primeiro — ha' ecras com dois, e mover so' um deitava fora o resto
-       quando a seccao era removida. Foi o que apagou o botao de exportar em
-       CSV e partiu o arranque da aplicacao inteira. */
-    const wraps = origem.querySelectorAll('.wrap');
-    if (!wraps.length) return;
-    wraps.forEach(w => { while (w.firstChild) destino.appendChild(w.firstChild); });
-    /* O que estiver fora de qualquer `.wrap` vai atras, para nao se perder. */
-    while (origem.firstChild) {
-      const n = origem.firstChild;
-      origem.removeChild(n);
+(function arrumarInicio(){
+  /* O banner estava por cima de tudo, e "tudo" passou a incluir o numero que
+     a pessoa abriu a aplicacao para ver. Um anuncio — mesmo sendo de uma coisa
+     gratis, mesmo sendo nosso — nao se poe a' frente do dinheiro de quem
+     chega. Passa para debaixo dos cartoes do mes: continua a ser visto por
+     quem abre a aplicacao, que agora abre sempre no Inicio, mas ja' nao e' a
+     primeira coisa que se le' sobre a vida de alguem.
+
+     Fica FORA dos cartoes e dentro do Inicio: quem esta' no chat ou nas
+     ferramentas nao tem um anuncio a segui-lo pelas paginas. */
+  const banner = document.querySelector('.banner-topo');
+  const resumo = document.querySelector('#ecra-inicio .resumo');
+  if (banner && resumo) {
+    banner.classList.remove('wrap');
+    banner.style.margin = '0 0 20px';
+    resumo.after(banner);
+  }
+})();
+
+(function arrumarEcras(){
+  /* As contas que se repetem passam a viver no fim do Mes, e nao num ecra
+     proprio. Sao a outra metade da mesma pergunta: o mes teve isto de entradas
+     e saidas, e ainda tem isto por pagar. Separadas, obrigavam a ter duas
+     ideias na cabeca ao mesmo tempo para saber como esta' o mes. */
+  const contas = document.getElementById('ecra-contas');
+  const mes = document.getElementById('ecra-mes');
+  if (contas && mes) {
+    const destino = mes.querySelector('.wrap') || mes;
+    const zona = document.createElement('div');
+    zona.className = 'zona-contas';
+    zona.id = 'zona-contas';
+    contas.querySelectorAll('.wrap').forEach(w => {
+      while (w.firstChild) zona.appendChild(w.firstChild);
+    });
+    while (contas.firstChild) {
+      const n = contas.firstChild;
+      contas.removeChild(n);
       if (n.nodeType === 1 && n.classList.contains('wrap')) continue;
-      destino.appendChild(n);
+      zona.appendChild(n);
     }
-    origem.remove();
-  });
+    destino.appendChild(zona);
+    contas.remove();
+  }
 })();
 
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
@@ -980,28 +1007,45 @@
   const abas = [...document.querySelectorAll('.aba[data-ecra]')];
   const ecras = [...document.querySelectorAll('.ecra')];
 
-  /* Os destinos que deixaram de ser ecras e passaram a ser gavetas. */
-  const GAVETAS = {
-    lancar: 'gaveta-lancar', mes: 'gaveta-mes', contas: 'gaveta-contas',
-    divida: 'gaveta-divida', apoios: 'gaveta-apoios', mais: 'gaveta-mais',
-    investir: 'gaveta-investir'
+  /* Alguns destinos deixaram de ser ecras e passaram a ser uma parte de
+     outro: as contas fixas vivem no fim do Mes, e a divida, os apoios e o
+     "por o dinheiro a render" vivem nas Ferramentas, cada um no seu grupo.
+     Continuam a ter nome proprio e a ser alcancaveis por esse nome — muda o
+     sitio, nao a maneira de la chegar. */
+  const ANCORAS = {
+    contas:   ['mes',  'zona-contas'],
+    divida:   ['mais', 'caixa-ecra-divida'],
+    apoios:   ['mais', 'caixa-ecra-apoios'],
+    investir: ['mais', 'grupo-guardar']
   };
 
-  function abrirGaveta(nome){
-    const g = document.getElementById(GAVETAS[nome]);
-    if (!g) return false;
-    ecras.forEach(e => e.classList.toggle('activo', e.id === 'ecra-inicio'));
-    abas.forEach(a => a.setAttribute('aria-selected', String(a.dataset.ecra === nome)));
-    g.open = true;
+  function irAte(nome){
+    const [ecra, alvo] = ANCORAS[nome];
+    mostrar(ecra, nome);
     /* Um salto instantaneo para o meio de uma pagina desorienta. Rolar mostra
-       o caminho, e e' o que faz perceber que nao se mudou de sitio. */
-    setTimeout(() => g.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
-    history.replaceState({ ecra: nome }, '', '#' + nome);
+       o caminho, e e' o que faz perceber onde a coisa esta' arrumada. */
+    setTimeout(() => {
+      const el = document.getElementById(alvo);
+      if (!el) return;
+      /* Levar alguem ate' uma gaveta fechada e' levar alguem ate' uma porta
+         fechada: quem pediu os apoios quer os apoios, e nao o sitio onde eles
+         estao guardados. */
+      const abrir = el.tagName === 'DETAILS' ? el : el.querySelector('details');
+      if (abrir) abrir.open = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
     return true;
   }
 
+  function mostrar(ecra, nome){
+    ecras.forEach(e => e.classList.toggle('activo', e.id === 'ecra-' + ecra));
+    abas.forEach(a => a.setAttribute('aria-selected', String(a.dataset.ecra === ecra)));
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    history.replaceState({ ecra: nome || ecra }, '', '#' + (nome || ecra));
+  }
+
   function ir(nome){
-    if (GAVETAS[nome] && document.getElementById(GAVETAS[nome])) return abrirGaveta(nome);
+    if (ANCORAS[nome] && document.getElementById('ecra-' + ANCORAS[nome][0])) return irAte(nome);
     ecras.forEach(e => e.classList.toggle('activo', e.id === 'ecra-' + nome));
     abas.forEach(a => a.setAttribute('aria-selected', String(a.dataset.ecra === nome)));
     window.scrollTo({ top: 0, behavior: 'instant' });

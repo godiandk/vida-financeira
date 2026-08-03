@@ -108,24 +108,77 @@ calcular, responder — que são grátis, instantâneas, funcionam sem internet 
 não contam a ninguém o que se perguntou. A IA só é chamada quando as regras
 dizem "não percebi".
 
-## Uma página, e não nove ecrãs
+## Cinco sítios, e cada um com um trabalho
 
-A aplicação tinha nove ecrãs. Para ver quanto foi o mês mudava-se de
-separador; para lançar um gasto, outro; para abrir uma calculadora, outro.
-Cada coisa estava no seu sítio e o conjunto não estava em sítio nenhum —
-ninguém tem na cabeça o mapa de nove ecrãs de uma aplicação de contas.
+A aplicação teve nove ecrãs, e depois teve um só — tudo em gavetas dentro do
+Início. As duas versões estavam erradas pela mesma razão, e a segunda pior do
+que a primeira: nove ecrãs não se guardam na cabeça, e uma página onde cabe
+tudo não é uma página arrumada, é uma gaveta de cozinha.
 
-Hoje há um sítio só. Lançar, o mês, as contas fixas, a dívida, os apoios e as
-ferramentas são **gavetas** dentro do Início. O conteúdo não é copiado: é o
-próprio, mudado de sítio por um script, com os mesmos `id` — todo o resto do
-código continua a encontrar o que procura sem se lhe ter mexido numa linha.
+O Início chegou a ter **cinco ecrãs e meio de altura e 169 coisas em que
+tocar**, e o número que a pessoa abriu a aplicação para ver — o que sobra até
+ao fim do mês — só aparecia depois de um anúncio, de uma saudação e de duas
+perguntas.
 
-A barra de baixo deixou de trocar de ecrã e passou a abrir a gaveta certa e a
-levar até ela. Continua a servir de mapa, e agora o mapa é de uma página só.
+Hoje são cinco, e a barra de baixo diz quais:
 
-O chat fica de fora, e de propósito: é uma conversa de altura inteira, com a
-caixa de escrita colada ao fundo. Metido numa gaveta de uma página que rola,
-deixava de se poder usar.
+| | serve para |
+|---|---|
+| **Início** | o mês desta pessoa: o que sobra, o que guardou, o que há a pagar |
+| **Lançar** | pôr um gasto ou uma entrada |
+| **Mês** | tudo o que entrou e saiu, para onde foi, e as contas que se repetem |
+| **Ferramentas** | as calculadoras, a dívida, os apoios e o "onde pôr a render" |
+| **Escrever** | o chat |
+
+O Início é o primeiro porque é o início. Esteve em segundo, com o chat à
+frente — a casa da aplicação atrás de uma das coisas que lá se fazem.
+
+Debaixo dos números há um menu de cinco linhas, todas com o mesmo aspecto,
+cada uma a dizer o que é e para que serve. Iguais de propósito: quando cada
+destino tem a sua cor e o seu tamanho, deixa-se de comparar destinos e passa-se
+a comparar botões.
+
+E o banner promocional passou para **debaixo** dos cartões do mês. Mesmo sendo
+de uma coisa grátis, mesmo sendo nosso, não se põe um anúncio à frente do
+dinheiro de quem chega.
+
+O conteúdo não é copiado: é o próprio, mudado de sítio por um script, com os
+mesmos `id` — todo o resto do código continua a encontrar o que procura sem se
+lhe ter mexido numa linha.
+
+## As ferramentas arrumadas pela pergunta, e não pelo preço
+
+Eram nove formulários abertos, uns debaixo dos outros, agrupados em
+"Gratuitas" e "Assinatura". Cinco mil pixéis de campos por preencher — e numa
+parede não se procura, desiste-se.
+
+E "gratuitas" e "assinatura" é a nossa maneira de as arrumar, não a de quem as
+usa. Ninguém acorda a pensar "hoje quero uma ferramenta gratuita". Acorda a
+dever dinheiro, ou sem conseguir guardar nada, ou com a renda a pesar de mais.
+
+Passaram a ser cinco grupos, com a pergunta escrita como as pessoas a fazem —
+**"Estou a dever dinheiro"**, **"Quero guardar dinheiro"**, **"Quero gastar
+menos"**, **"Dinheiro que talvez já seja seu"**, **"Planear os próximos
+anos"** — e cada ferramenta fechada, com o nome, um emoji e uma linha a dizer
+para que serve. A página deixou de ser uma parede e passou a ser um índice: de
+8.800 pixéis para 3.600, e o mesmo conteúdo lá todo.
+
+## O `num` que valia zero
+
+Dois ficheiros da mesma página tinham uma função global chamada `num`. O
+`app-financas.js` formatava um número com uma casa decimal; o `ferramentas.js`,
+carregado depois, lia um campo pelo `id`. O segundo apagava o primeiro em
+silêncio.
+
+Resultado: o cartão da Reserva pedia para formatar `0,39` e recebia uma busca
+por um campo com esse nome, que não existe. Devolvia zero. **Quem tinha 240 €
+de lado via "0 meses"** — e, no plano, "0 de uma semana de despesas
+essenciais". O cartão da partilha dizia o mesmo. Nenhum erro na consola, nada
+partido à vista: só a aplicação a dizer a alguém que o que ele juntou não
+conta.
+
+O `teste-app.mjs` abre a aplicação num Chromium do tamanho de um telemóvel e
+falha se isso voltar a acontecer.
 
 ## Quatro línguas
 
@@ -171,12 +224,21 @@ não vai ler.
 — `index.html`, `metodo.html`, `sobre.html`. O trabalho do dia-a-dia e as
 explicações estão nas quatro.
 
-Dois testes guardam isto:
+Os testes deste projecto:
 
 ```
-node teste-idiomas.mjs    # as quatro línguas têm as mesmas frases e os mesmos buracos
-node teste-chat.mjs       # e o chat vai buscar a frase certa, na língua de quem escreveu
+node teste-idiomas.mjs     # as quatro línguas têm as mesmas frases e os mesmos buracos
+node teste-chat.mjs        # o chat vai buscar a frase certa, na língua de quem escreveu
+node servidor/teste-worker.mjs   # os dois workers da IA, com um Firebase de mentira
+node teste-app.mjs         # a aplicação aberta num telemóvel a sério (precisa de servidor)
 ```
+
+O último precisa de duas coisas antes de correr: `python3 -m http.server 8899`
+noutra consola, e `npm i playwright` uma vez. Abre a aplicação num Chromium de
+390 pixéis de largura, com movimentos lançados, e carrega nas coisas como uma
+pessoa carrega — porque mover conteúdo com um script é a maneira mais fácil de
+partir um botão sem dar por isso: não dá erro nenhum, só deixa de haver ali
+nada.
 
 O primeiro apanha a chave que só existe em português; o segundo apanha a chave
 mal escrita no código, que o primeiro não vê. Nenhuma das duas falhas dá erro
