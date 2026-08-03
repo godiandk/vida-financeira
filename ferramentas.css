@@ -255,3 +255,100 @@
   display:block;color:var(--cream-dim);font-size:.76rem;
   line-height:1.5;margin-top:6px;opacity:.85;
 }
+
+/* ============================================================
+   Onde pôr o dinheiro a render
+
+   Vive em dois sítios com o mesmo aspecto: numa gaveta da aplicação e numa
+   secção do site. Por isso nada aqui depende de estar dentro de um `.ferramenta`
+   ou de um `.gv-corpo` — as medidas são todas próprias.
+   ============================================================ */
+.inv-aviso{
+  background:rgba(62,207,142,.07);border:1px solid rgba(62,207,142,.22);
+  border-radius:14px;padding:14px 16px;margin-bottom:18px;
+}
+.inv-aviso p{color:var(--cream-dim);font-size:.86rem;line-height:1.65;margin:0}
+
+/* Os dois países. Um botão carregado tem de se ver que está carregado sem se
+   ter de olhar duas vezes. */
+.inv-paises{display:flex;gap:8px;margin-bottom:22px}
+.inv-pais{
+  flex:1;padding:11px 8px;border-radius:12px;cursor:pointer;
+  background:var(--ink-3);border:1px solid rgba(217,178,110,.16);
+  color:var(--cream-dim);font:inherit;font-size:.9rem;font-weight:600;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.inv-pais:hover{color:var(--cream)}
+.inv-pais.escolhido{
+  background:rgba(217,178,110,.15);border-color:rgba(217,178,110,.5);color:var(--gold-soft);
+}
+
+.inv-titulo{
+  font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--gold-soft);
+  margin:26px 0 6px;
+}
+.inv-titulo:first-child{margin-top:0}
+.inv-sub{color:var(--cream-dim);font-size:.88rem;line-height:1.65;margin-bottom:16px}
+
+/* ---------- cada sítio onde se pode pôr o dinheiro ---------- */
+.inv-opcao{
+  background:var(--ink-2);border:1px solid rgba(217,178,110,.14);
+  border-radius:14px;margin-bottom:10px;overflow:hidden;
+}
+.inv-opcao > summary{
+  list-style:none;cursor:pointer;padding:15px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.inv-opcao > summary::-webkit-details-marker{display:none}
+.inv-opcao > summary b{color:var(--cream);font-size:.98rem;font-weight:700}
+.inv-seta{color:var(--gold-dim);font-size:1.3rem;line-height:1;transition:transform .2s}
+.inv-opcao[open] .inv-seta{transform:rotate(90deg)}
+.inv-corpo{padding:2px 16px 16px}
+.inv-linha{color:var(--cream-dim);font-size:.88rem;line-height:1.65;margin-bottom:9px}
+.inv-linha b{color:var(--gold-soft);font-weight:600}
+
+.inv-fonte{color:var(--cream-dim);font-size:.8rem;line-height:1.6;margin-top:14px}
+.inv-fonte a{color:var(--gold-soft)}
+
+/* ---------- a calculadora ---------- */
+.inv-campos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.inv-campos{grid-template-columns:1fr}}
+.inv-resultado{margin-top:20px}
+.inv-vazio{color:var(--cream-dim);font-size:.88rem;text-align:center;padding:22px 0}
+
+.inv-rot{color:var(--cream-dim);font-size:.84rem;text-align:center}
+.inv-grande{
+  font-family:'Playfair Display',serif;font-size:2.5rem;line-height:1.15;
+  color:var(--up);text-align:center;margin:4px 0 18px;
+}
+@media(max-width:400px){.inv-grande{font-size:2rem}}
+
+.inv-detalhe{border-top:1px solid rgba(217,178,110,.14);padding-top:12px}
+.inv-dl{display:flex;justify-content:space-between;gap:14px;padding:6px 0;font-size:.9rem}
+.inv-dl span{color:var(--cream-dim)}
+.inv-dl b{color:var(--cream);white-space:nowrap}
+.inv-dl b.neg{color:var(--down)}
+
+.inv-ganho{
+  color:var(--gold-soft);font-size:.92rem;line-height:1.6;
+  background:rgba(217,178,110,.08);border-radius:12px;padding:13px 15px;margin-top:14px;
+}
+
+/* O ano a ano. Numa tabela larga dentro de um telemóvel estreito, rola ela e
+   não rola a página inteira. */
+.inv-rolo{overflow-x:auto;margin-top:16px;-webkit-overflow-scrolling:touch}
+.inv-tabela{width:100%;border-collapse:collapse;font-size:.86rem;min-width:280px}
+.inv-tabela th{
+  text-align:right;color:var(--gold-dim);font-weight:600;font-size:.76rem;
+  text-transform:uppercase;letter-spacing:.04em;padding:0 10px 8px;white-space:nowrap;
+}
+.inv-tabela th:first-child,.inv-tabela td:first-child{text-align:left}
+.inv-tabela td{
+  text-align:right;color:var(--cream-dim);padding:8px 10px;
+  border-top:1px solid rgba(217,178,110,.08);white-space:nowrap;
+}
+.inv-tabela td.inv-fica{color:var(--cream);font-weight:700}
+
+.inv-nota{color:var(--cream-dim);font-size:.8rem;line-height:1.65;margin-top:16px}
+/* A nota do imposto fica antes dos campos, e nao pode passar por rodape'. */
+.inv-imp{margin:-6px 0 16px;border-left:2px solid rgba(217,178,110,.3);padding-left:12px}

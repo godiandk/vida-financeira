@@ -3571,8 +3571,22 @@ function marcarArranquePedido() {
 
 function passosDoArranque() {
   const passos = [
-    { chave: 'entra', tipo: 'valor', obrigatoria: true,
-      titulo: () => T('arr.q.entra'), ajuda: () => T('arr.a.entra') },
+    /* Esta pergunta era "Quanto entra por mês?" e era obrigatória. Quem ganha
+       à comissão, quem faz biscates, quem trabalha por turnos — que é muita
+       da gente a quem isto se destina — não tem um número para dar, e ficava
+       preso na primeira folha a inventar um. Um número inventado à entrada
+       estraga tudo o que a app calcula a partir dele.
+
+       Passa a pedir-se **um mês normal**, a dizer para escrever um mês fraco
+       quando varia, e a poder saltar-se. Quando se salta, a app não fica sem
+       nada: assim que houver um mês inteiro lançado, os números a sério
+       mandam — e sempre mandaram. */
+    { chave: 'entra', tipo: 'valor',
+      titulo: () => T('arr.q.entra'), ajuda: () => T('arr.a.entra'),
+      saltar: () => T('arr.varia') },
+    /* Esta continua obrigatória, e não é incoerência: o que não dá para não
+       pagar é a renda, a luz e a comida, e isso sabe-se mesmo quando o que
+       entra varia todos os meses. */
     { chave: 'essenciais', tipo: 'valor', obrigatoria: true,
       titulo: () => T('arr.q.essenciais'), ajuda: () => T('arr.a.essenciais') },
     { chave: 'comQuem', tipo: 'escolha',
@@ -3741,7 +3755,7 @@ function desenharArranque() {
                             'btn btn-gold arr-bt', seguir));
 
     if (!passo.obrigatoria) {
-      corpo.appendChild(botao(T('arr.naosei'), 'arr-saltar', () => {
+      corpo.appendChild(botao(passo.saltar ? passo.saltar() : T('arr.naosei'), 'arr-saltar', () => {
         arranque[passo.chave] = null;
         avancar();
       }));
@@ -3753,6 +3767,7 @@ function desenharArranque() {
   }
 
   /* ---- a resposta ---- */
+  const sabeEntra = arranque.entra !== null && arranque.entra !== undefined;
   const entra = arranque.entra || 0;
   const ess = arranque.essenciais || 0;
   const sobra = Math.round((entra - ess) * 100) / 100;
@@ -3766,7 +3781,19 @@ function desenharArranque() {
   const sub = document.createElement('p');
   sub.className = 'arr-ajuda';
 
-  if (sobra > 0) {
+  /* Quem saltou a pergunta do que entra não pode receber aqui uma subtracção
+     com um zero lá dentro: dava sempre "falta-lhe dinheiro todos os meses",
+     que é falso e é exactamente a frase que faz uma pessoa fechar a app e não
+     voltar. Sem esse número não se conclui nada — diz-se o que se sabe. */
+  if (!sabeEntra) {
+    h.textContent = 'Fica a saber-se com o primeiro mês';
+    grande.textContent = dinheiro(ess);
+    grande.className = 'arr-numero';
+    sub.textContent = 'É isto que tem de sair todos os meses só para as contas ficarem pagas. ' +
+      'Quanto entra ainda não sei, e não faz mal: assim que lançar um mês inteiro, ' +
+      'a conta passa a ser feita com o que entrou mesmo — que é melhor do que qualquer ' +
+      'número dito de cabeça.';
+  } else if (sobra > 0) {
     const dias = diasNoMes(hoje.getFullYear(), hoje.getMonth());
     h.textContent = 'Sobram-lhe';
     grande.textContent = dinheiro(sobra) + ' por mês';
@@ -3798,7 +3825,7 @@ function desenharArranque() {
     abrirEcra('contas');
   }));
 
-  if (sobra < 0) {
+  if (sabeEntra && sobra < 0) {
     acoes.appendChild(botao('Ver os apoios', 'btn btn-line arr-bt', () => {
       terminarArranque();
       abrirEcra('apoios');
@@ -5211,6 +5238,9 @@ document.addEventListener('DOMContentLoaded', () => {
     moeda = e.target.value;
     try { localStorage.setItem(MOEDA_CHAVE, moeda); } catch (err) { /* ignora */ }
     desenhar();
+    /* Trocar de moeda troca de país, e com ele trocam os sítios onde o
+       dinheiro está seguro. Um Tesouro Selic a render em euros seria mentira. */
+    if (typeof desenharInvestir === 'function') desenharInvestir();
   });
 
   desenhar();

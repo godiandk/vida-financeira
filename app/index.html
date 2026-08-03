@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=55">
-<link rel="stylesheet" href="../app-financas.css?v=55">
-<link rel="stylesheet" href="../app-shell.css?v=55">
-<link rel="stylesheet" href="../assistente.css?v=55">
-<link rel="stylesheet" href="../ferramentas.css?v=55">
+<link rel="stylesheet" href="../estilo.css?v=56">
+<link rel="stylesheet" href="../app-financas.css?v=56">
+<link rel="stylesheet" href="../app-shell.css?v=56">
+<link rel="stylesheet" href="../assistente.css?v=56">
+<link rel="stylesheet" href="../ferramentas.css?v=56">
 </head>
 <body class="app-shell">
 
@@ -179,6 +179,13 @@
         <details class="gaveta" id="gaveta-apoios">
           <summary><span class="gv-nome" data-t="gaveta.apoios">Apoios que talvez não receba</span><span class="gv-seta" aria-hidden="true">›</span></summary>
           <div class="gv-corpo" id="gv-apoios"></div>
+        </details>
+        <!-- Esta gaveta nao vem de ecra nenhum: e' nova, e o corpo dela e'
+        desenhado pelo investir.js. A app dizia ha' muito tempo para juntar uma
+        reserva e nunca dizia onde a por. -->
+        <details class="gaveta" id="gaveta-investir">
+          <summary><span class="gv-nome" data-t="inv.titulo">Pôr o dinheiro a render</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="investir-corpo"></div>
         </details>
         <details class="gaveta" id="gaveta-mais">
           <summary><span class="gv-nome" data-t="gaveta.mais">Ferramentas e calculadoras</span><span class="gv-seta" aria-hidden="true">›</span></summary>
@@ -897,19 +904,20 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=55"></script>
-<script src="../site.js?v=55"></script>
-<script src="../app-financas.js?v=55"></script>
-<script src="../excel.js?v=55"></script>
-<script src="../partilha.js?v=55"></script>
-<script src="../divida.js?v=55"></script>
-<script src="../idiomas.js?v=55"></script>
-<script src="../interpretar.js?v=55"></script>
-<script src="../talao.js?v=55"></script>
-<script src="../ia.js?v=55"></script>
-<script src="../assistente.js?v=55"></script>
-<script src="../ferramentas.js?v=55"></script>
-<script src="../banner.js?v=55"></script>
+<script src="../firebase-config.js?v=56"></script>
+<script src="../site.js?v=56"></script>
+<script src="../app-financas.js?v=56"></script>
+<script src="../excel.js?v=56"></script>
+<script src="../partilha.js?v=56"></script>
+<script src="../divida.js?v=56"></script>
+<script src="../idiomas.js?v=56"></script>
+<script src="../interpretar.js?v=56"></script>
+<script src="../talao.js?v=56"></script>
+<script src="../ia.js?v=56"></script>
+<script src="../assistente.js?v=56"></script>
+<script src="../ferramentas.js?v=56"></script>
+<script src="../investir.js?v=56"></script>
+<script src="../banner.js?v=56"></script>
 <script>
 /* ============================================================
    TUDO NUMA PAGINA
@@ -974,7 +982,8 @@
   /* Os destinos que deixaram de ser ecras e passaram a ser gavetas. */
   const GAVETAS = {
     lancar: 'gaveta-lancar', mes: 'gaveta-mes', contas: 'gaveta-contas',
-    divida: 'gaveta-divida', apoios: 'gaveta-apoios', mais: 'gaveta-mais'
+    divida: 'gaveta-divida', apoios: 'gaveta-apoios', mais: 'gaveta-mais',
+    investir: 'gaveta-investir'
   };
 
   function abrirGaveta(nome){
@@ -1023,7 +1032,12 @@
     } catch (e) { return 'inicio'; }
   }
   const inicial = location.hash ? location.hash.slice(1) : ecraDeAbertura();
-  if (document.getElementById('ecra-' + inicial)) ir(inicial);
+  /* Tambem as gavetas, e nao so' os ecras: metade dos destinos deixou de ser
+     um `ecra-` quando tudo passou para uma pagina so', e um endereco como
+     `app/#divida` — que e' o que os botoes do site mandam — deixava de abrir
+     seja o que for. */
+  if (document.getElementById('ecra-' + inicial) ||
+      document.getElementById('gaveta-' + inicial)) ir(inicial);
 
   /* Depois de lançar um movimento, volta-se ao Início: é lá que está o
      resultado do que acabou de fazer, e ficar no formulário vazio dá a

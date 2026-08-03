@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=55">
-<link rel="stylesheet" href="ferramentas.css?v=55">
+<link rel="stylesheet" href="estilo.css?v=56">
+<link rel="stylesheet" href="ferramentas.css?v=56">
 </head>
 <body>
 
@@ -46,7 +46,7 @@
       <div class="eyebrow">Ferramentas</div>
       <h1>Contas que <i>já estão feitas</i></h1>
       <p class="lead">
-        Nove calculadoras para perguntas concretas de dinheiro. Escreva os seus
+        Dez calculadoras para perguntas concretas de dinheiro. Escreva os seus
         números e a resposta aparece — com os pressupostos à vista, para poder
         conferir em vez de acreditar.
       </p>
@@ -142,6 +142,26 @@
           <div class="res" id="h-out"></div>
         </div>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ONDE POR O DINHEIRO A RENDER ============
+  A app dizia ha' muito tempo para juntar uma reserva, e nunca dizia onde.
+  Esta seccao e' a mesma que esta' na aplicacao — o corpo e' desenhado pelo
+  investir.js, e por isso nao ha' duas versoes do mesmo texto para manter. -->
+  <section style="padding-top:0" id="investir">
+    <div class="wrap">
+      <div class="eyebrow">Grátis</div>
+      <h2>Onde pôr o dinheiro a render</h2>
+      <p class="lead">
+        Juntar uma reserva e deixá-la parada na conta à ordem é vê-la render
+        zero enquanto a inflação a come. Aqui está <b>onde é que o dinheiro
+        está garantido</b> em Portugal e no Brasil, com a fonte à vista, e a
+        conta feita já com o imposto descontado.
+      </p>
+      <div class="ferramenta" style="margin-top:28px">
+        <div id="investir-corpo"></div>
       </div>
     </div>
   </section>
@@ -291,9 +311,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=55"></script>
-<script src="site.js?v=55"></script>
-<script src="interpretar.js?v=55"></script>
-<script src="ferramentas.js?v=55"></script>
+<script src="firebase-config.js?v=56"></script>
+<script src="site.js?v=56"></script>
+<script src="interpretar.js?v=56"></script>
+<script src="idiomas.js?v=56"></script>
+<script src="investir.js?v=56"></script>
+<script src="ferramentas.js?v=56"></script>
 </body>
 </html>

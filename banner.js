@@ -124,6 +124,8 @@ function bannerMensagens() {
            accao: leva(bt('bn.vercontas'), 'contas') });
   m.push({ etiqueta: bt('bn.divida.t'), texto: bt('bn.divida'),
            accao: leva(bt('bn.verconta'), 'divida') });
+  m.push({ etiqueta: bt('bn.investir.t'), texto: bt('bn.investir'),
+           accao: leva(bt('bn.verinvestir'), 'investir') });
   m.push({ etiqueta: bt('bn.seu.t'), texto: bt('bn.seu'), accao: null });
 
   return m;
