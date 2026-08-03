@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=50">
-<link rel="stylesheet" href="../app-financas.css?v=50">
-<link rel="stylesheet" href="../app-shell.css?v=50">
-<link rel="stylesheet" href="../assistente.css?v=50">
-<link rel="stylesheet" href="../ferramentas.css?v=50">
+<link rel="stylesheet" href="../estilo.css?v=51">
+<link rel="stylesheet" href="../app-financas.css?v=51">
+<link rel="stylesheet" href="../app-shell.css?v=51">
+<link rel="stylesheet" href="../assistente.css?v=51">
+<link rel="stylesheet" href="../ferramentas.css?v=51">
 </head>
 <body class="app-shell">
 
@@ -66,6 +66,11 @@
         <div class="aviso" id="aviso" hidden></div>
         <div class="proposta" id="proposta" hidden></div>
         <div class="lembrete" id="lembrete-salario" hidden></div>
+        <!-- Mes novo: um convite a conferir os numeros com o banco. Uma vez por
+        mes e dispensavel — a app pode ter-se enganado, ou a pessoa pode ter
+        esquecido um gasto, e um mes inteiro em cima de um numero errado e' um
+        mes inteiro a nao servir para nada. -->
+        <div class="conferir" id="conferir" hidden></div>
         <!-- O balanço entra por uma linha, nunca por um popup no dia 1. Um
         toque, dispensável, e depois fica acessível ao navegar para o mês. -->
         <div class="balanco-linha" id="balanco-linha" hidden></div>
@@ -838,17 +843,17 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=50"></script>
-<script src="../site.js?v=50"></script>
-<script src="../app-financas.js?v=50"></script>
-<script src="../excel.js?v=50"></script>
-<script src="../partilha.js?v=50"></script>
-<script src="../divida.js?v=50"></script>
-<script src="../interpretar.js?v=50"></script>
-<script src="../talao.js?v=50"></script>
-<script src="../assistente.js?v=50"></script>
-<script src="../ferramentas.js?v=50"></script>
-<script src="../banner.js?v=50"></script>
+<script src="../firebase-config.js?v=51"></script>
+<script src="../site.js?v=51"></script>
+<script src="../app-financas.js?v=51"></script>
+<script src="../excel.js?v=51"></script>
+<script src="../partilha.js?v=51"></script>
+<script src="../divida.js?v=51"></script>
+<script src="../interpretar.js?v=51"></script>
+<script src="../talao.js?v=51"></script>
+<script src="../assistente.js?v=51"></script>
+<script src="../ferramentas.js?v=51"></script>
+<script src="../banner.js?v=51"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */

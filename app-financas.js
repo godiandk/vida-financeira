@@ -1626,6 +1626,7 @@ function desenharTopo(r) {
   }
 
   desenharSaldoConta();
+  desenharConferir(r);
 
   document.getElementById('v-guardado').textContent = dinheiro(v.guardado);
 
@@ -1714,6 +1715,131 @@ function desenharSaldoConta() {
     dv.append(nome, val);
     el.appendChild(dv);
   }
+}
+
+/* ============================================================
+   CONFERIR NO INÍCIO DO MÊS
+
+   A app faz contas com os números que lhe deram. Se um deles estiver errado —
+   porque alguém se esqueceu de lançar um gasto, ou porque a app não viu uma
+   transferência — o erro não se corrige sozinho: fica lá, e o mês seguinte
+   começa em cima dele. Ao fim de três meses, os números já não são de ninguém
+   e a pessoa deixa de os olhar.
+
+   Uma vez por mês, e uma só, pergunta-se: isto bate certo com o seu banco?
+   Duas respostas, e a segunda abre os campos para acertar tudo de uma vez.
+
+   Não aparece a quem nunca disse quanto tem — não há nada para conferir — nem
+   volta a aparecer no mesmo mês depois de respondida.
+   ============================================================ */
+const CONFERIDO_CHAVE = 'vf:conferido';
+
+let conferirAberto = false;
+
+function mesDeHoje() {
+  return hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+}
+
+function jaConferiuEsteMes() {
+  try { return localStorage.getItem(CONFERIDO_CHAVE) === mesDeHoje(); } catch (e) { return false; }
+}
+
+function marcarConferido() {
+  try { localStorage.setItem(CONFERIDO_CHAVE, mesDeHoje()); } catch (e) {}
+  conferirAberto = false;
+  desenhar();
+}
+
+function desenharConferir(r) {
+  const el = document.getElementById('conferir');
+  if (!el) return;
+
+  const vivas = CARTEIRAS.filter(id => carteiras[id]);
+  const temQueConferir = vivas.length > 0 || (dividaTotal && dividaTotal.valor > 0);
+
+  /* Só no mês corrente: conferir saldos enquanto se olha para Março passado
+     não faz sentido nenhum. */
+  if (!temQueConferir || !r.ehMesCorrente || (jaConferiuEsteMes() && !conferirAberto)) {
+    el.hidden = true; el.innerHTML = ''; return;
+  }
+
+  el.hidden = false;
+  el.innerHTML = '';
+
+  if (!conferirAberto) {
+    const t = document.createElement('p');
+    t.className = 'cf-pergunta';
+    t.textContent = 'Mês novo. Estes números batem certo com o seu banco?';
+
+    const acoes = document.createElement('div');
+    acoes.className = 'res-acoes';
+    acoes.appendChild(botao('Está certo', 'mini-btn', marcarConferido));
+    acoes.appendChild(botao('Quero acertar', 'mini-btn', () => { conferirAberto = true; desenhar(); }));
+
+    el.append(t, acoes);
+    return;
+  }
+
+  /* ---- os campos ---- */
+  const t = document.createElement('p');
+  t.className = 'cf-pergunta';
+  t.textContent = 'Escreva o que está lá hoje. O que deixar em branco fica como está.';
+  el.appendChild(t);
+
+  const campos = [];
+  vivas.forEach(id => {
+    const linha = document.createElement('div');
+    linha.className = 'field';
+    const lab = document.createElement('label');
+    lab.textContent = nomeDaCarteira(id);
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.inputMode = 'decimal';
+    inp.placeholder = dinheiro(saldoDaCarteira(id));
+    linha.append(lab, inp);
+    el.appendChild(linha);
+    campos.push({ id: id, inp: inp });
+  });
+
+  if (dividaTotal) {
+    const linha = document.createElement('div');
+    linha.className = 'field';
+    const lab = document.createElement('label');
+    lab.textContent = 'Quanto devem';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.inputMode = 'decimal';
+    inp.placeholder = dinheiro(dividaTotal.valor);
+    linha.append(lab, inp);
+    el.appendChild(linha);
+    campos.push({ id: 'divida', inp: inp });
+  }
+
+  const acoes = document.createElement('div');
+  acoes.className = 'res-acoes';
+  acoes.appendChild(botao('Guardar', 'mini-btn mini-btn-sim', () => {
+    let mexeu = 0;
+    campos.forEach(c => {
+      const cru = String(c.inp.value).trim();
+      if (!cru) return;
+      const n = parseFloat(cru.replace(/\s/g, '').replace(',', '.'));
+      if (!isFinite(n) || n < 0) return;
+      if (c.id === 'divida') definirDividaTotal(n);
+      else definirCarteira(c.id, n);
+      mexeu++;
+    });
+    marcarConferido();
+    mostrarAviso(mexeu ? 'Acertado. Os números do mês passam a ser estes.'
+                       : 'Não mudou nada — fica tudo como estava.', mexeu ? 'ok' : 'info');
+  }));
+  acoes.appendChild(botao('Deixa estar', 'mini-btn', marcarConferido));
+  el.appendChild(acoes);
+
+  const nota = document.createElement('p');
+  nota.className = 'cf-nota';
+  nota.textContent = 'Isto acerta o saldo, não apaga nem inventa lançamentos. ' +
+    'Se faltar um gasto, lance-o em ➕ Lançar ou diga-mo no chat.';
+  el.appendChild(nota);
 }
 
 function desenharLembrete(r) {

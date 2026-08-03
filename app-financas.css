@@ -692,3 +692,22 @@ ul.movs li:last-child{border-bottom:none}
   color:var(--cream-dim);font-family:inherit;font-size:.88rem;padding:10px;min-height:44px;
 }
 .arr-rodape{display:flex;gap:14px;justify-content:center;margin-top:14px}
+
+/* ---------- conferir no início do mês ---------- */
+.conferir{
+  background:rgba(217,178,110,.07);border:1px solid rgba(217,178,110,.26);
+  border-radius:16px;padding:16px 17px;margin-bottom:16px;
+}
+.cf-pergunta{color:var(--cream);font-size:.92rem;line-height:1.55;margin-bottom:12px}
+.conferir .field{margin-bottom:10px}
+.conferir .field label{display:block;color:var(--cream-dim);font-size:.8rem;margin-bottom:5px}
+.conferir .field input{
+  width:100%;padding:11px 13px;border-radius:11px;
+  border:1px solid rgba(217,178,110,.28);background:var(--ink);
+  color:var(--cream);font-family:inherit;font-size:1rem;min-height:44px;
+}
+.conferir .field input:focus{outline:none;border-color:var(--gold)}
+.mini-btn-sim{
+  border-color:transparent;color:var(--ink);
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));font-weight:800;
+}
