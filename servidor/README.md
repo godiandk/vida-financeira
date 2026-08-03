@@ -1,9 +1,13 @@
 # O servidor da IA
 
 Isto está escrito e testado no que se pode testar sem contas, **e não está a
-correr**. Só passa a existir quando o Wesley criar duas contas — e enquanto
-não existir, a aplicação funciona exactamente como hoje, sem mudar nada e sem
+correr**. Só passa a existir quando o Wesley criar uma conta — e enquanto não
+existir, a aplicação funciona exactamente como hoje, sem mudar nada e sem
 falhar nada.
+
+Há duas maneiras de o pôr a andar: **uma grátis, sem cartão nenhum**, e uma
+paga. Estão as duas descritas aqui em baixo, e a grátis vem primeiro por ser a
+que eu escolheria.
 
 ## Porque é que isto é preciso
 
@@ -17,9 +21,9 @@ público não é secreta: qualquer pessoa a abre com o botão direito do rato. E
 dias estaria a ser usada por estranhos, e a factura vinha para quem a pôs lá.
 
 Este servidor é a caixa onde essa chave fica fechada — ou, na via grátis, a
-peça que fala com o modelo que corre dentro da própria Cloudflare e por isso
-não precisa de chave nenhuma. É a peça mais pequena
-possível que resolve o problema, e não faz mais nada.
+peça que fala com o modelo que corre dentro da própria Cloudflare, e que por
+isso não precisa de chave nenhuma. É a peça mais pequena possível que resolve
+o problema, e não faz mais nada.
 
 ## O que ele faz, e o que não faz
 
@@ -28,7 +32,7 @@ Faz três coisas:
 1. confirma que quem pergunta tem conta na aplicação — verifica a assinatura
    do Firebase a sério, com as chaves públicas da Google;
 2. trava quem pergunta de mais (20 por dia por pessoa);
-3. passa a pergunta à Anthropic e devolve a resposta.
+3. passa a pergunta ao modelo e devolve a resposta.
 
 Não faz:
 
@@ -150,7 +154,7 @@ num dia o que mil pagam num ano.
 
 ## O que eu faria antes de abrir isto
 
-Deixe correr um mês sem IA. As regras que estão escritas hoje já lançam,
+Deixe correr um mês sem IA — nem a grátis. As regras que estão escritas hoje já lançam,
 calculam, corrigem e lêem talões, sem custar um cêntimo e sem mandar nada para
 fora. Se aparecerem frases que elas não percebem, mande-mas — muitas resolvem-se
 com uma linha, e uma linha não tem factura ao fim do mês.
