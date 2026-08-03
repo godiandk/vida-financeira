@@ -371,7 +371,7 @@ let contasEditando = false;// o ecrã de gestão está em modo de edição
    separados dos movimentos de propósito: assim que houver lançamentos a sério,
    é por eles que a app se guia, e isto passa a ser só o ponto de partida. */
 let arranque = {
-  feito: false, dispensado: false,
+  feito: false, dispensado: false, pedidoAposConta: false,
   entra: null, essenciais: null,
   comQuem: null, saldoMinha: null, saldoParceiro: null,
   saldoEmergencia: null, divida: null, plano: null
@@ -871,6 +871,7 @@ function carregarLocal() {
       dispensado: !!arr.dispensado,
       entra: (isFinite(e) && e > 0) ? e : null,
       essenciais: (isFinite(s) && s >= 0) ? s : null,
+      pedidoAposConta: !!arr.pedidoAposConta,
       comQuem: typeof arr.comQuem === 'string' ? arr.comQuem : null,
       saldoMinha: numeroOuNada(arr.saldoMinha),
       saldoParceiro: numeroOuNada(arr.saldoParceiro),
@@ -3537,8 +3538,35 @@ function numeroOuNada(x) {
     ? Math.round(n * 100) / 100 : null;
 }
 
+/* ------------------------------------------------------------
+   Quando é que se pergunta
+
+   A regra era: só a quem nunca lançou nada, e só até dizer "agora não". Isso
+   deixava de fora exactamente quem mais interessa — quem já andava a usar a
+   app sem conta e depois criou uma. Essa pessoa nunca chegava a ser perguntada,
+   e as respostas que nunca deu eram as que agora tinham onde ficar guardadas.
+
+   Passa a haver um segundo momento: **assim que existe conta**, pergunta-se
+   uma vez, mesmo a quem já tem movimentos e mesmo a quem já tinha dispensado.
+   Uma vez, e não sempre: fica marcado que já se perguntou depois de a conta
+   existir, e não se insiste. Insistir é o que faz desinstalar.
+
+   E continua a poder saltar-se tudo. Obrigatório é ser perguntado, não é
+   responder — obrigar alguém a escrever um número que não sabe continua a ser
+   convidá-lo a inventá-lo.
+   ------------------------------------------------------------ */
 function precisaArranque() {
-  return !arranque.feito && !arranque.dispensado && movimentos.length === 0;
+  if (arranque.feito) return false;
+  if (utilizador && !arranque.pedidoAposConta) return true;
+  return !arranque.dispensado && movimentos.length === 0;
+}
+
+/* Chamado quando o Firebase diz quem é a pessoa. Marca que a pergunta de
+   depois-da-conta já foi feita, para não voltar em cada abertura. */
+function marcarArranquePedido() {
+  if (arranque.pedidoAposConta) return;
+  arranque.pedidoAposConta = true;
+  guardarArranque();
 }
 
 function passosDoArranque() {
@@ -3580,6 +3608,9 @@ function rodapeDoArranque(passos) {
   }
   zona.appendChild(botao(T('arr.agoranao'), 'arr-voltar', () => {
     arranque.dispensado = true;
+    /* Dispensar com conta criada conta como "já foi perguntado": senão a
+       pergunta voltava na abertura seguinte, e isso é perseguir alguém. */
+    if (utilizador) arranque.pedidoAposConta = true;
     guardarArranque();
     desenhar();
     abrirEcra('inicio');
@@ -3607,8 +3638,18 @@ function desenharArranque() {
   const corpo = document.getElementById('arranque-corpo');
   if (!ecra || !corpo) return;
 
-  if (!precisaArranque()) { ecra.hidden = true; return; }
+  if (!precisaArranque()) {
+    ecra.hidden = true;
+    ecra.classList.remove('activo');
+    return;
+  }
+  /* Além de deixar de estar escondido, tem de passar a ser o ecrã activo — é
+     `.ecra.activo` que manda no `display`. Enquanto o arranque só aparecia a
+     quem nunca tinha lançado nada, quem o punha activo era o arranque da
+     navegação; agora que também aparece a quem acabou de criar conta e já tem
+     movimentos, tem de o fazer por si. */
   ecra.hidden = false;
+  document.querySelectorAll('.ecra').forEach(e => e.classList.toggle('activo', e === ecra));
   corpo.innerHTML = '';
 
   const passos = passosDoArranque();
@@ -3633,7 +3674,7 @@ function desenharArranque() {
     const avancar = () => {
       arranquePasso++;
       guardarArranque();
-      if (arranquePasso >= passos.length) aplicarArranque();
+      if (arranquePasso >= passos.length) { aplicarArranque(); marcarArranquePedido(); }
       desenhar();
     };
 
@@ -3804,7 +3845,9 @@ function avisoSemConta() {
 
 function terminarArranque() {
   arranque.feito = true;
+  arranque.pedidoAposConta = true;
   guardarArranque();
+  abrirEcra('inicio');
   desenhar();
 }
 
@@ -4914,6 +4957,10 @@ function ligarNuvem() {
       return;
     }
     if (nota) nota.textContent = 'Sessão iniciada como ' + (u.email || 'utilizador') + ' — os movimentos são sincronizados.';
+
+    /* Com conta criada, as respostas do arranque passam a ter onde ficar
+       guardadas. Se ainda não foram dadas, é agora que se pergunta. */
+    desenhar();
 
     db.collection('utilizadores').doc(u.uid).get()
       .then(doc => {

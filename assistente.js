@@ -919,7 +919,19 @@ Pergunte à vontade.`, 'ele');
     const c = (typeof calculadora === 'function') ? calculadora(escrito) : { ok: false };
     if (c.ok) { juntar(c.resposta, 'ele'); return; }
 
-    juntar(responder(escrito), 'ele');
+    /* As respostas escritas são o último passo grátis. Havendo IA ligada, e
+       só se a resposta escrita for a genérica — a que diz "não percebi bem" —
+       vale a pena perguntar a alguém que perceba. Enquanto não houver
+       servidor, o `iaPerguntar` devolve `null` de imediato e isto não muda
+       coisa nenhuma. */
+    const escrita = responder(escrito);
+    if (typeof iaLigada !== 'function' || !iaLigada()) { juntar(escrita, 'ele'); return; }
+
+    const vivo = juntarVivo('…');
+    iaPerguntar(escrito).then(resp => {
+      vivo.apagar();
+      juntar(resp || escrita, 'ele');
+    });
   }
 
   form.addEventListener('submit', e => {

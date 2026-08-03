@@ -58,6 +58,23 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
+## A IA — escrita, e desligada
+
+Em `servidor/` está o que falta para haver uma IA a sério: um Worker da
+Cloudflare que guarda a chave da Anthropic, confirma que quem pergunta tem
+conta (assinatura do Firebase verificada com as chaves públicas da Google),
+trava quem pergunta de mais, e não guarda conversa nenhuma.
+
+**Não está a correr.** O `ia.js` tem o endereço do servidor vazio, e enquanto
+estiver vazio a aplicação nem tenta — funciona exactamente como hoje. Para
+existir são precisas duas contas do dono do projecto: Anthropic (com cartão) e
+Cloudflare (grátis). Os passos e os custos estão em `servidor/README.md`.
+
+E a IA entra em último lugar, sempre. Primeiro as regras — corrigir, lançar,
+calcular, responder — que são grátis, instantâneas, funcionam sem internet e
+não contam a ninguém o que se perguntou. A IA só é chamada quando as regras
+dizem "não percebi".
+
 ## Uma página, e não nove ecrãs
 
 A aplicação tinha nove ecrãs. Para ver quanto foi o mês mudava-se de

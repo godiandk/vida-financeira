@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v46';
+const VERSAO = 'vida-financeira-v47';
 
 /* O motor de leitura de talões vive numa cache à parte, e de propósito sem a
    versão do site no nome. São 4 MB que a pessoa autorizou descarregar uma vez;
@@ -45,6 +45,7 @@ const FICHEIROS = [
   './banner.js',
   './talao.js',
   './idiomas.js',
+  './ia.js',
   './estilo.css',
   './app-financas.css',
   './app-financas.js',
