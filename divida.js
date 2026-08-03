@@ -280,8 +280,11 @@ function notaAjuda(ref) {
 
 /* ---------- ligar ---------- */
 function ligarDivida() {
-  const ecra = document.getElementById('ecra-divida');
-  if (!ecra) return;
+  /* Isto perguntava pelo `#ecra-divida`, que era a secção onde este ecrã
+     vivia. Deixou de existir: o conteúdo passou para uma gaveta do Início e a
+     moldura foi deitada fora. Pergunta-se agora por um campo que é mesmo
+     deste ecrã — o que interessa é ele estar na página, não onde. */
+  if (!document.getElementById('dv-deve')) return;
 
   const ref = refJuro();
 

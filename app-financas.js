@@ -3763,6 +3763,37 @@ function desenharArranque() {
   }));
 
   corpo.appendChild(acoes);
+  corpo.appendChild(avisoSemConta());
+}
+
+/* ------------------------------------------------------------
+   Sem conta, isto fica só neste telemóvel
+
+   Quem responde a sete perguntas e depois limpa o navegador, ou troca de
+   telemóvel, perde tudo o que escreveu — e não foi avisado. Não se obriga
+   ninguém a criar conta para usar a aplicação, que é uma promessa antiga e
+   fica de pé; diz-se o que acontece e deixa-se a porta aberta.
+
+   A quem já entrou não se diz nada: as respostas dessa pessoa já estão a
+   subir para a nuvem enquanto ela responde.
+   ------------------------------------------------------------ */
+function avisoSemConta() {
+  const zona = document.createElement('div');
+  if (utilizador) return zona;
+
+  zona.className = 'arr-semconta';
+  const t = document.createElement('p');
+  t.textContent = 'Isto ficou guardado só neste telemóvel. Se limpar o navegador ' +
+    'ou trocar de aparelho, perde-se.';
+  const a = document.createElement('a');
+  /* Classe própria e não `arr-bt`: essa é a dos botões que fazem avançar o
+     arranque, e uma ligação que sai da aplicação não pode estar no mesmo
+     saco de quem carrega no primeiro botão que vê. */
+  a.className = 'btn btn-line arr-bt-conta';
+  a.href = (typeof raizDoSite === 'function' ? raizDoSite() : '../') + 'conta.html';
+  a.textContent = 'Criar conta e guardar isto';
+  zona.append(t, a);
+  return zona;
 }
 
 function terminarArranque() {

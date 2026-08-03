@@ -13,18 +13,26 @@
       faltam, não um anúncio. Um banner que oferece o que a pessoa já comprou
       é a forma mais rápida de a irritar.
 
-   2. Fecha-se e não volta. Fica guardado no aparelho, e não há truque para o
-      trazer de volta na semana seguinte.
+   2. Fecha-se, e volta na visita seguinte. Isto já foi ao contrário — fechado
+      era fechado para sempre — e estava errado: quem fecha um aviso está a
+      dizer "agora não", não "nunca mais". Fica escondido enquanto o separador
+      estiver aberto e reaparece quando a pessoa volta, que é quando há outra
+      vez espaço para o ler.
 
-   3. Pára quando se lhe toca. Rodar por baixo do dedo de alguém que está a
-      ler é tirar-lhe a frase a meio.
+   3. Pára quando se lhe toca, e passa-se com o dedo para o lado. Um carrossel
+      que só anda sozinho obriga a esperar sete segundos para ver a mensagem
+      seguinte — ou a caçar um ponto de oito píxeis.
 
    4. Respeita quem pediu menos movimento no sistema (`prefers-reduced-motion`):
-      aí não roda sozinho, e ficam as setas.
+      aí não roda sozinho, e ficam os pontos e o dedo.
    ============================================================ */
 
+/* `sessionStorage` e não `localStorage`, de propósito: dura o que durar o
+   separador. É isso que faz o banner voltar amanhã sem voltar daqui a dois
+   segundos. */
 const BANNER_FECHADO = 'vf:banner-fechado';
 const BANNER_INTERVALO = 7000;
+const BANNER_ARRASTO = 45;   /* píxeis a partir dos quais é um gesto e não um toque */
 
 let bannerAviso = [];
 let bannerI = 0;
@@ -104,7 +112,7 @@ function bannerMensagens() {
 
   m.push({
     etiqueta: 'Escreva, e fica lançado',
-    texto: '«Acabei de gastar 30 no continente» — e o movimento fica feito, com o valor, a categoria e a loja.',
+    texto: '«Gastei 30 euros no mercado Continente» — e o movimento fica feito, com o valor, a categoria e a loja. Escreva o tipo de sítio e o nome: mercado, farmácia, bomba de gasolina.',
     accao: leva('Experimentar', 'wesley')
   });
 
@@ -220,7 +228,7 @@ function bannerFechar() {
   document.body.classList.remove('com-banner');
   bannerVisivelAgora = false;
   bannerParar();
-  try { localStorage.setItem(BANNER_FECHADO, '1'); } catch (e) {}
+  try { sessionStorage.setItem(BANNER_FECHADO, '1'); } catch (e) {}
 }
 
 /* ------------------------------------------------------------
@@ -261,7 +269,12 @@ function bannerLigar() {
   const el = document.getElementById('banner');
   if (!el) return;
 
-  try { if (localStorage.getItem(BANNER_FECHADO) === '1') { el.hidden = true; return; } } catch (e) {}
+  try {
+    if (sessionStorage.getItem(BANNER_FECHADO) === '1') { el.hidden = true; return; }
+    /* Quem tinha o banner fechado para sempre pela versão anterior volta a
+       vê-lo: a marca antiga é apagada em vez de respeitada. */
+    localStorage.removeItem(BANNER_FECHADO);
+  } catch (e) {}
 
   bannerAviso = bannerMensagens();
   if (!bannerAviso.length) { el.hidden = true; return; }
@@ -284,10 +297,40 @@ function bannerLigar() {
 
   /* Parar enquanto se lê, e retomar ao sair. Rodar por baixo do dedo de quem
      está a ler é tirar-lhe a frase a meio. */
-  ['mouseenter', 'touchstart', 'focusin'].forEach(ev =>
+  ['mouseenter', 'focusin'].forEach(ev =>
     el.addEventListener(ev, () => { bannerParado = true; }, { passive: true }));
-  ['mouseleave', 'touchend', 'focusout'].forEach(ev =>
+  ['mouseleave', 'focusout'].forEach(ev =>
     el.addEventListener(ev, () => { bannerParado = false; }, { passive: true }));
+
+  /* ---- passar com o dedo ----
+     O que faltava e que dava a sensação de estar avariado: os pontos são
+     alvos de oito píxeis, e ninguém acerta neles a andar na rua. Arrastar
+     para a esquerda vai à mensagem seguinte, para a direita à anterior. */
+  let x0 = null, y0 = null;
+  el.addEventListener('touchstart', e => {
+    bannerParado = true;
+    const t = e.touches && e.touches[0];
+    if (t) { x0 = t.clientX; y0 = t.clientY; }
+  }, { passive: true });
+
+  el.addEventListener('touchend', e => {
+    bannerParado = false;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t || x0 === null) { x0 = null; return; }
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = null;
+    /* Só conta como gesto lateral se andou mais para o lado do que para
+       cima ou para baixo — senão, rolar a página trocava de mensagem. */
+    if (Math.abs(dx) < BANNER_ARRASTO || Math.abs(dx) < Math.abs(dy)) return;
+    bannerIr(bannerI + (dx < 0 ? 1 : -1));
+    bannerComecar();
+  }, { passive: true });
+
+  /* Com rato, e para quem usa o teclado. */
+  el.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { bannerIr(bannerI - 1); bannerComecar(); }
+    if (e.key === 'ArrowRight') { bannerIr(bannerI + 1); bannerComecar(); }
+  });
 
   /* Um separador escondido não deve consumir tempo nem bateria. */
   document.addEventListener('visibilitychange', () => {

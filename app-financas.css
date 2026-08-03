@@ -711,3 +711,11 @@ ul.movs li:last-child{border-bottom:none}
   border-color:transparent;color:var(--ink);
   background:linear-gradient(135deg,var(--gold-soft),var(--gold));font-weight:800;
 }
+
+/* O aviso de que, sem conta, as respostas do arranque ficam só no aparelho. */
+.arr-semconta{
+  margin-top:22px;padding-top:18px;
+  border-top:1px solid rgba(217,178,110,.16);text-align:center;
+}
+.arr-semconta p{color:var(--cream-dim);font-size:.86rem;line-height:1.55;margin-bottom:12px}
+.arr-bt-conta{width:100%;max-width:380px;display:inline-block;text-align:center}

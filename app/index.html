@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=52">
-<link rel="stylesheet" href="../app-financas.css?v=52">
-<link rel="stylesheet" href="../app-shell.css?v=52">
-<link rel="stylesheet" href="../assistente.css?v=52">
-<link rel="stylesheet" href="../ferramentas.css?v=52">
+<link rel="stylesheet" href="../estilo.css?v=53">
+<link rel="stylesheet" href="../app-financas.css?v=53">
+<link rel="stylesheet" href="../app-shell.css?v=53">
+<link rel="stylesheet" href="../assistente.css?v=53">
+<link rel="stylesheet" href="../ferramentas.css?v=53">
 </head>
 <body class="app-shell">
 
@@ -154,27 +154,50 @@
         <div id="comprometido-corpo"></div>
         </div>
 
+      <!-- ============ TUDO NUMA PAGINA ============
+      Aqui entram, em gavetas, os ecras que antes obrigavam a mudar de
+      separador: lancar, o mes, as contas fixas, a divida, os apoios e as
+      ferramentas. O conteudo nao e' copiado — e' o proprio, mudado de sitio
+      pelo script la em baixo, para nao haver dois de nada. -->
+      <div class="gavetas" id="gavetas">
+        <details class="gaveta" id="gaveta-lancar">
+          <summary><span class="gv-nome">Lançar um gasto ou uma entrada</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-lancar"></div>
+        </details>
+        <details class="gaveta" id="gaveta-mes" open>
+          <summary><span class="gv-nome">O meu mês, movimento a movimento</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-mes"></div>
+        </details>
+        <details class="gaveta" id="gaveta-contas">
+          <summary><span class="gv-nome">As contas que se repetem</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-contas"></div>
+        </details>
+        <details class="gaveta" id="gaveta-divida">
+          <summary><span class="gv-nome">O que a dívida custa</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-divida"></div>
+        </details>
+        <details class="gaveta" id="gaveta-apoios">
+          <summary><span class="gv-nome">Apoios que talvez não receba</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-apoios"></div>
+        </details>
+        <details class="gaveta" id="gaveta-mais">
+          <summary><span class="gv-nome">Ferramentas e calculadoras</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+          <div class="gv-corpo" id="gv-mais"></div>
+        </details>
+      </div>
+
+      <!-- Os atalhos eram sete, e seis deles levavam a ecras que agora sao
+      gavetas logo aqui em cima — repetir o mesmo destino duas vezes na mesma
+      pagina e' das maneiras mais rapidas de a fazer parecer maior do que e'.
+      Fica o que NAO esta' nesta pagina. -->
       <div class="atalhos">
         <button class="atalho destaque" type="button" data-ir="wesley">
-          <span class="ic">💬</span><b>Chat com o Wesley</b><small>Perguntas de dinheiro, respondidas</small>
-        </button>
-        <button class="atalho" type="button" data-ir="divida">
-          <span class="ic">💳</span><b>O que a dívida custa</b><small>Prestações, juro e quanto falta</small>
-        </button>
-        <button class="atalho" type="button" data-ir="contas">
-          <span class="ic">🗓️</span><b>As minhas contas</b><small>O que vence e em que dia</small>
-        </button>
-        <button class="atalho" type="button" data-ir="mes">
-          <span class="ic">📊</span><b>O meu mês</b><small>Movimentos e categorias</small>
+          <span class="ic">💬</span><b>Escrever ao Wesley</b><small>Lance falando, e faça contas</small>
         </button>
         <a class="atalho" href="../metodo.html">
           <span class="ic">📗</span><b>Método</b><small>Como se junta uma reserva</small>
         </a>
-        <button class="atalho destaque" type="button" data-ir="mais">
-          <span class="ic">🧮</span><b>Ferramentas</b><small>Nove calculadoras, seis grátis</small>
-        </button>
       </div>
-    </div>
   </section>
 
   <!-- ============ LANÇAR ============ -->
@@ -326,7 +349,10 @@
       <div class="assist-fio" id="assist-fio"></div>
 
       <div class="assist-sugs">
-        <button class="assist-sug" type="button" data-q="gastei 30 no continente">Gastei 30 no continente</button>
+        <!-- O exemplo diz o TIPO de sitio e o nome: quem esta no Brasil nao sabe
+        o que e' o Continente, e um exemplo que nao se percebe nao ensina nada. -->
+        <button class="assist-sug" type="button" data-q="gastei 30 euros no mercado continente">Gastei 30 no mercado</button>
+        <button class="assist-sug" type="button" data-q="paguei 12 na farmacia">Paguei 12 na farmácia</button>
         <button class="assist-sug" type="button" data-q="12x de 45,90 ou 480 a pronto?">12x de 45,90 ou 480 a pronto?</button>
         <button class="assist-sug" type="button" data-q="não sobra nada">Não sobra nada</button>
         <button class="assist-sug" type="button" data-q="recebo subsídio">Recebo subsídio</button>
@@ -352,7 +378,7 @@
       <form class="assist-form" id="assist-form" novalidate>
         <label class="assist-foto" for="assist-ficheiro" aria-label="Tirar fotografia">📷</label>
         <input id="assist-ficheiro" type="file" accept="image/*" capture="environment" hidden>
-        <input id="assist-campo" type="text" placeholder="Gastei 30 no continente…" autocomplete="off">
+        <input id="assist-campo" type="text" placeholder="Gastei 30 euros no mercado…" autocomplete="off">
         <button type="submit" aria-label="Enviar">↑</button>
       </form>
 
@@ -831,37 +857,130 @@
 
 </main>
 
+<!-- Os icones eram emoji: uma casinha vermelha, um abaco laranja, um mais
+     cinzento. Cada um com o seu desenho, a sua cor e o seu peso, numa barra que
+     e' dourado sobre escuro — parecia recortado de cinco sitios diferentes.
+     Estes sao tracos, todos com a mesma espessura e a mesma cor, e acendem-se
+     a dourado no separador aberto. -->
 <nav class="abas" role="tablist" aria-label="Secções da aplicação">
-  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false"><span class="ic">💬</span><small>Escrever</small></button>
-  <button class="aba" role="tab" data-ecra="inicio" aria-selected="true"><span class="ic">🏠</span><small>Início</small></button>
-  <button class="aba" role="tab" data-ecra="lancar" aria-selected="false"><span class="ic">➕</span><small>Lançar</small></button>
-  
-  <button class="aba" role="tab" data-ecra="mes" aria-selected="false"><span class="ic">📊</span><small>Mês</small></button>
-  <button class="aba" role="tab" data-ecra="mais" aria-selected="false"><span class="ic">🧮</span><small>Ferramentas</small></button>
+  <button class="aba" role="tab" data-ecra="wesley" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v11H9l-5 4z"/></svg>
+    <small>Escrever</small>
+  </button>
+  <button class="aba" role="tab" data-ecra="inicio" aria-selected="true">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z"/></svg>
+    <small>Início</small>
+  </button>
+  <button class="aba" role="tab" data-ecra="lancar" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v15M4.5 12h15"/></svg>
+    <small>Lançar</small>
+  </button>
+  <button class="aba" role="tab" data-ecra="mes" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9m5 11V4.5m5 15.5v-8m5 8V7"/></svg>
+    <small>Mês</small>
+  </button>
+  <button class="aba" role="tab" data-ecra="mais" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h15M4.5 5.5v13M19.5 5.5v13M4.5 18.5h15M9 5.5v13M14.5 5.5v13"/></svg>
+    <small>Ferramentas</small>
+  </button>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=52"></script>
-<script src="../site.js?v=52"></script>
-<script src="../app-financas.js?v=52"></script>
-<script src="../excel.js?v=52"></script>
-<script src="../partilha.js?v=52"></script>
-<script src="../divida.js?v=52"></script>
-<script src="../interpretar.js?v=52"></script>
-<script src="../talao.js?v=52"></script>
-<script src="../assistente.js?v=52"></script>
-<script src="../ferramentas.js?v=52"></script>
-<script src="../banner.js?v=52"></script>
+<script src="../firebase-config.js?v=53"></script>
+<script src="../site.js?v=53"></script>
+<script src="../app-financas.js?v=53"></script>
+<script src="../excel.js?v=53"></script>
+<script src="../partilha.js?v=53"></script>
+<script src="../divida.js?v=53"></script>
+<script src="../interpretar.js?v=53"></script>
+<script src="../talao.js?v=53"></script>
+<script src="../assistente.js?v=53"></script>
+<script src="../ferramentas.js?v=53"></script>
+<script src="../banner.js?v=53"></script>
 <script>
+/* ============================================================
+   TUDO NUMA PAGINA
+
+   A aplicacao tinha nove ecras. Para ver quanto foi o mes mudava-se de
+   separador; para lancar um gasto, outro; para abrir uma calculadora, outro.
+   Cada coisa estava no seu sitio e o conjunto nao estava em sitio nenhum —
+   ninguem tem na cabeca o mapa de nove ecras de uma aplicacao de contas.
+
+   Passa a haver um sitio so'. O conteudo dos outros ecras e' MUDADO de sitio
+   para gavetas dentro do Inicio: nao ha copias, os `id` sao os mesmos, e todo
+   o javascript que ja' existia continua a encontrar o que procura sem se lhe
+   ter mexido numa linha. As gavetas fechadas nao enchem a pagina; a do mes
+   nasce aberta, que e' o que quase toda a gente vem ver.
+
+   A barra de baixo deixa de trocar de ecra e passa a abrir a gaveta certa e a
+   levar ate' ela. Continua a servir de mapa — e agora o mapa e' de uma pagina
+   so'.
+
+   O chat fica de fora, e de proposito: e' uma conversa de altura inteira, com
+   caixa de escrita colada ao fundo. Metido numa gaveta de uma pagina que rola,
+   deixava de se poder usar.
+   ============================================================ */
+(function juntarTudo(){
+  const mudar = [
+    ['ecra-lancar', 'gv-lancar'],
+    ['ecra-mes', 'gv-mes'],
+    ['ecra-contas', 'gv-contas'],
+    ['ecra-divida', 'gv-divida'],
+    ['ecra-apoios', 'gv-apoios'],
+    ['ecra-mais', 'gv-mais']
+  ];
+  mudar.forEach(([de, para]) => {
+    const origem = document.getElementById(de);
+    const destino = document.getElementById(para);
+    if (!origem || !destino) return;
+    /* Move-se o conteudo de CADA `.wrap`, e nao o `.wrap`: assim nao ficam
+       molduras encaixadas umas nas outras. Tem de ser de cada um e nao so' do
+       primeiro — ha' ecras com dois, e mover so' um deitava fora o resto
+       quando a seccao era removida. Foi o que apagou o botao de exportar em
+       CSV e partiu o arranque da aplicacao inteira. */
+    const wraps = origem.querySelectorAll('.wrap');
+    if (!wraps.length) return;
+    wraps.forEach(w => { while (w.firstChild) destino.appendChild(w.firstChild); });
+    /* O que estiver fora de qualquer `.wrap` vai atras, para nao se perder. */
+    while (origem.firstChild) {
+      const n = origem.firstChild;
+      origem.removeChild(n);
+      if (n.nodeType === 1 && n.classList.contains('wrap')) continue;
+      destino.appendChild(n);
+    }
+    origem.remove();
+  });
+})();
+
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
 (function abas(){
   const abas = [...document.querySelectorAll('.aba[data-ecra]')];
   const ecras = [...document.querySelectorAll('.ecra')];
 
+  /* Os destinos que deixaram de ser ecras e passaram a ser gavetas. */
+  const GAVETAS = {
+    lancar: 'gaveta-lancar', mes: 'gaveta-mes', contas: 'gaveta-contas',
+    divida: 'gaveta-divida', apoios: 'gaveta-apoios', mais: 'gaveta-mais'
+  };
+
+  function abrirGaveta(nome){
+    const g = document.getElementById(GAVETAS[nome]);
+    if (!g) return false;
+    ecras.forEach(e => e.classList.toggle('activo', e.id === 'ecra-inicio'));
+    abas.forEach(a => a.setAttribute('aria-selected', String(a.dataset.ecra === nome)));
+    g.open = true;
+    /* Um salto instantaneo para o meio de uma pagina desorienta. Rolar mostra
+       o caminho, e e' o que faz perceber que nao se mudou de sitio. */
+    setTimeout(() => g.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+    history.replaceState({ ecra: nome }, '', '#' + nome);
+    return true;
+  }
+
   function ir(nome){
+    if (GAVETAS[nome] && document.getElementById(GAVETAS[nome])) return abrirGaveta(nome);
     ecras.forEach(e => e.classList.toggle('activo', e.id === 'ecra-' + nome));
     abas.forEach(a => a.setAttribute('aria-selected', String(a.dataset.ecra === nome)));
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -899,7 +1018,11 @@
      resultado do que acabou de fazer, e ficar no formulário vazio dá a
      sensação de que não aconteceu nada. */
   const form = document.getElementById('form');
-  if (form) form.addEventListener('submit', () => setTimeout(() => ir('inicio'), 350));
+  if (form) form.addEventListener('submit', () => setTimeout(() => {
+    const g = document.getElementById('gaveta-lancar');
+    if (g) g.open = false;
+    ir('inicio');
+  }, 350));
 })();
 
 /* Saudação conforme a hora — é o que faz uma aplicação parecer que sabe que

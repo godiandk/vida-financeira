@@ -58,6 +58,25 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
+## Uma página, e não nove ecrãs
+
+A aplicação tinha nove ecrãs. Para ver quanto foi o mês mudava-se de
+separador; para lançar um gasto, outro; para abrir uma calculadora, outro.
+Cada coisa estava no seu sítio e o conjunto não estava em sítio nenhum —
+ninguém tem na cabeça o mapa de nove ecrãs de uma aplicação de contas.
+
+Hoje há um sítio só. Lançar, o mês, as contas fixas, a dívida, os apoios e as
+ferramentas são **gavetas** dentro do Início. O conteúdo não é copiado: é o
+próprio, mudado de sítio por um script, com os mesmos `id` — todo o resto do
+código continua a encontrar o que procura sem se lhe ter mexido numa linha.
+
+A barra de baixo deixou de trocar de ecrã e passou a abrir a gaveta certa e a
+levar até ela. Continua a servir de mapa, e agora o mapa é de uma página só.
+
+O chat fica de fora, e de propósito: é uma conversa de altura inteira, com a
+caixa de escrita colada ao fundo. Metido numa gaveta de uma página que rola,
+deixava de se poder usar.
+
 ## Quatro línguas
 
 O chat entende português de Portugal, português do Brasil, espanhol e inglês —

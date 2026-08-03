@@ -640,7 +640,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 **Escreva-me como falaria com alguém.** Três coisas que faço aqui:
 
-**Lanço por si.** «Acabei de gastar 30 no continente» — e fica lançado, com o valor, a categoria e a loja. Não tem de preencher nada.
+**Lanço por si.** Escreva como fala, dizendo **o que é o sítio e o nome dele**:
+
+«Gastei 30 euros no **mercado** Continente»
+«Paguei 12 na **farmácia** Sá da Bandeira»
+«Meti 40 de gasolina na **bomba** BP»
+
+E fica lançado, com o valor, a categoria e a loja. Não tem de preencher nada. Se o sítio não for de nenhum destes tipos, escreva à mesma — eu arrumo no que puder.
 
 **Faço as contas.** Está na loja e diz «12x de 45,90 ou 480 a pronto?» — eu respondo com os números antes de assinar.
 
@@ -944,7 +950,8 @@ Pergunte à vontade.`, 'ele');
 
         if (typeof ocrPodeCorrer !== 'function' || !ocrPodeCorrer()) {
           juntar('Guardei a fotografia.\n\nEste telemóvel não me deixa ler o talão ' +
-            'sozinho. **Escreva quanto foi** (por exemplo, "30 no continente") e eu ' +
+            'sozinho. **Escreva quanto foi** — por exemplo, "gastei 30 euros no mercado ' +
+            'Continente" — e eu ' +
             'lanço com o talão agarrado.', 'ele');
           return;
         }
@@ -963,7 +970,8 @@ Pergunte à vontade.`, 'ele');
           [
             { rotulo: 'Ler o talão', tom: 'sim', aoClicar: () => { lerOTalao(paraLer); return 'A ler…'; } },
             { rotulo: 'Escrevo eu', aoClicar: () => {
-                juntar('Está bem. **Escreva quanto foi** — por exemplo, "30 no continente" — ' +
+                juntar('Está bem. **Escreva quanto foi** — por exemplo, "gastei 30 euros no ' +
+                  'mercado Continente" — ' +
                   'e eu lanço com o talão agarrado.', 'ele');
                 return 'Escreve você';
               } }
@@ -1077,10 +1085,15 @@ Pergunte à vontade.`, 'ele');
     }
   });
 
+  /* Os atalhos passam pelo mesmo caminho do que se escreve à mão. Iam
+     directos ao `responder`, e por isso o atalho "Gastei 30 no mercado"
+     devolvia um texto sobre mercearia em vez de lançar o gasto — que é
+     precisamente a coisa que ele existe para demonstrar. */
   document.querySelectorAll('.assist-sug').forEach(b => {
     b.addEventListener('click', () => {
+      const q = b.dataset.q || b.textContent;
       juntar(b.textContent, 'eu');
-      setTimeout(() => juntar(responder(b.dataset.q || b.textContent), 'ele'), 340);
+      setTimeout(() => tratar(q), 340);
     });
   });
 });
