@@ -409,17 +409,22 @@ function executarLeitura(r) {
 /* ============================================================
    A fotografia do talão
 
-   O que isto NÃO faz, e vale a pena estar escrito: não lê o talão. Ler
-   números de uma fotografia exige ou um serviço pago — e a chave desse
-   serviço iria dentro deste ficheiro, público, para a primeira pessoa que a
-   quisesse copiar — ou uma biblioteca de muitos megabytes descarregada para
-   o telemóvel de quem tem dados contados, para depois falhar num talão
-   amarrotado. Prometer que lê e depois errar o valor é pior do que não
-   prometer.
+   Durante muito tempo esta parte da aplicação dizia, com todas as letras, que
+   não sabia ler o talão — e a razão era boa: os serviços que lêem imagens
+   cobram e exigem uma chave secreta, e num site que é só ficheiros essa chave
+   ficava à vista de toda a gente.
 
-   O que faz: guarda a fotografia agarrada ao movimento. A pessoa escreve
-   "30 no continente", o movimento fica lançado, e o talão fica lá para
-   quando for preciso provar o que foi.
+   Agora lê. Não por um serviço, mas por um motor que corre dentro do próprio
+   telemóvel (ver `talao.js`). Isso muda a promessa em dois pontos que importam
+   a quem usa isto: a fotografia do talão — que mostra onde a pessoa anda, a
+   que horas e com que cartão paga — continua a não sair do aparelho; e os
+   quatro megabytes do motor só são descarregados quando alguém manda ler um
+   talão, depois de lhe ser dito quanto é.
+
+   O que sai do OCR nunca é lançado às escondidas. É mostrado — o valor, a
+   loja, o dia — e é a pessoa que carrega em "Sim, lança". Um número errado
+   metido sozinho nas contas de alguém é a forma mais rápida de essa pessoa
+   deixar de confiar no caderno todo.
 
    As fotografias ficam à parte dos movimentos e nunca sobem para a nuvem:
    são o que ocupa espaço a sério, e o dono do telemóvel não pediu para as
@@ -479,6 +484,44 @@ function encolherImagem(ficheiro) {
     };
     leitor.readAsDataURL(ficheiro);
   });
+}
+
+/* A fotografia por inteiro, para ler. A `encolherImagem` corta para 640px, que
+   serve para ver e não serve para ler; aqui não se corta nada e é o `talao.js`
+   que decide o tamanho de leitura. */
+function imagemGrande(ficheiro) {
+  return new Promise((feito, falhou) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => falhou(new Error('nao-leu'));
+    leitor.onload = () => feito(leitor.result);
+    leitor.readAsDataURL(ficheiro);
+  });
+}
+
+function leitorJaCa() {
+  return typeof ocrJaDescarregado === 'function' && ocrJaDescarregado();
+}
+
+/* '2026-08-03' → uma data local. Sem isto, o `new Date('2026-08-03')` do
+   navegador lê a cadeia como UTC e, a oeste de Greenwich, um talão do dia 3
+   ficava lançado no dia 2. */
+function dataDoDia(iso) {
+  const p = String(iso).split('-');
+  return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+}
+
+const MESES_TALAO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+function diaPorExtenso(iso) {
+  const d = dataDoDia(iso);
+  return d.getDate() + ' de ' + MESES_TALAO[d.getMonth()];
+}
+
+function ehHoje(iso) {
+  const d = dataDoDia(iso), h = new Date();
+  return d.getDate() === h.getDate() && d.getMonth() === h.getMonth() &&
+         d.getFullYear() === h.getFullYear();
 }
 
 function apagarUltimoLote() {
@@ -542,24 +585,52 @@ ${d.nMovs > 0 ? `Já vi os seus números: ${d.R ? `entra cerca de ${dinAssist(d.
 
 Pergunte à vontade.`, 'ele');
 
-  /* Uma resposta com um botão por baixo. Só o de apagar precisa disto, e não
-     valia um sistema de botões para um caso — mas vale um sítio só. */
-  function juntarComAccao(texto, rotulo, aoClicar) {
+  /* Uma resposta com botões por baixo. Nasceu para o "Apagar isto" e passou a
+     servir também o talão lido, que precisa de um sim e de um não. Quem
+     carrega decide o que acontece à bolha: devolver uma frase substitui o
+     texto, devolver `true` desactiva os botões, devolver nada deixa tudo. */
+  function juntarBotoes(texto, botoes) {
     const li = bolha(texto, 'ele');
     const zona = li.querySelector('.msg-txt');
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'msg-accao';
-    b.textContent = rotulo;
-    b.addEventListener('click', () => {
-      if (aoClicar()) {
-        b.disabled = true;
-        b.textContent = 'Apagado';
-      }
+    const fila = document.createElement('div');
+    fila.className = 'msg-accoes';
+    zona.appendChild(fila);
+
+    botoes.forEach(cfg => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'msg-accao' + (cfg.tom === 'sim' ? ' msg-accao-sim' : '');
+      b.textContent = cfg.rotulo;
+      b.addEventListener('click', () => {
+        const r = cfg.aoClicar(li);
+        if (r === false) return;
+        Array.prototype.forEach.call(zona.querySelectorAll('.msg-accao'), x => { x.disabled = true; });
+        if (typeof r === 'string') b.textContent = r;
+      });
+      fila.appendChild(b);
     });
-    zona.appendChild(b);
+
     fio.appendChild(li);
     fio.scrollTop = fio.scrollHeight;
+    return li;
+  }
+
+  function juntarComAccao(texto, rotulo, aoClicar) {
+    juntarBotoes(texto, [{ rotulo: rotulo, aoClicar: () => aoClicar() ? 'Apagado' : false }]);
+  }
+
+  /* Uma bolha que se reescreve no lugar. Quatro megabytes numa rede fraca são
+     um minuto de ecrã quieto, e um ecrã quieto parece avariado — isto é o que
+     mostra que a coisa está viva sem encher o fio de mensagens. */
+  function juntarVivo(texto) {
+    const li = bolha(texto, 'ele');
+    fio.appendChild(li);
+    fio.scrollTop = fio.scrollHeight;
+    const zona = li.querySelector('.msg-txt');
+    return {
+      escrever(t) { zona.innerHTML = assistMarkdown(t); fio.scrollTop = fio.scrollHeight; },
+      apagar() { li.remove(); }
+    };
   }
 
   function tratar(t) {
@@ -638,15 +709,131 @@ Pergunte à vontade.`, 'ele');
         fotoEmEspera = await encolherImagem(f);
         if (vistaFoto) vistaFoto.src = fotoEmEspera;
         if (zonaFoto) zonaFoto.hidden = false;
-        juntar('Guardei a fotografia.\n\n' +
-          'Não a consigo ler sozinho — e prefiro dizer-lhe isso a arriscar meter ' +
-          'um valor errado nas suas contas. **Escreva quanto foi** (por exemplo, ' +
-          '"30 no continente") e eu lanço com o talão agarrado.', 'ele');
+
+        /* A imagem grande, para ler. A que se guarda é a pequena — 640px
+           chegam para a ver, mas não chegam para a ler. */
+        const paraLer = await imagemGrande(f);
+
+        if (typeof ocrPodeCorrer !== 'function' || !ocrPodeCorrer()) {
+          juntar('Guardei a fotografia.\n\nEste telemóvel não me deixa ler o talão ' +
+            'sozinho. **Escreva quanto foi** (por exemplo, "30 no continente") e eu ' +
+            'lanço com o talão agarrado.', 'ele');
+          return;
+        }
+
+        /* Se o motor já cá está — já foi usado antes — não se pergunta nada:
+           perguntar por perguntar é uma barreira a mais para quem só quer
+           lançar um gasto. A pergunta existe por causa dos megabytes, e da
+           segunda vez já não há megabytes nenhuns. */
+        if (leitorJaCa()) { lerOTalao(paraLer); return; }
+
+        juntarBotoes('Guardei a fotografia. **Quer que eu tente ler o talão?**\n\n' +
+          'Da primeira vez tenho de descarregar o leitor: cerca de ' +
+          (typeof OCR_MEGAS === 'number' ? OCR_MEGAS.toString().replace('.', ',') : '4,3') +
+          ' MB, **uma vez só**. Depois disso funciona sem internet, e a fotografia ' +
+          'nunca sai do seu telemóvel — quem lê é o próprio aparelho.',
+          [
+            { rotulo: 'Ler o talão', tom: 'sim', aoClicar: () => { lerOTalao(paraLer); return 'A ler…'; } },
+            { rotulo: 'Escrevo eu', aoClicar: () => {
+                juntar('Está bem. **Escreva quanto foi** — por exemplo, "30 no continente" — ' +
+                  'e eu lanço com o talão agarrado.', 'ele');
+                return 'Escreve você';
+              } }
+          ]);
       } catch (err) {
         campoFicheiro.value = '';
         juntar('Não consegui abrir essa imagem. Tente outra vez.', 'ele');
       }
     });
+  }
+
+  /* ---------- ler o talão ---------- */
+
+  /* Nomes por extenso do que o motor anda a fazer. O que ele diz em inglês
+     ("loading language traineddata") não diz nada a ninguém. */
+  const OCR_PASSOS = {
+    'loading tesseract core': 'A descarregar o leitor',
+    'initializing tesseract': 'A preparar o leitor',
+    'loading language traineddata': 'A descarregar o português',
+    'initializing api': 'Quase pronto',
+    'recognizing text': 'A ler o talão'
+  };
+
+  async function lerOTalao(imagem) {
+    const vivo = juntarVivo('A preparar…');
+    let ultimo = '';
+    try {
+      const texto = await ocrLer(imagem, ({ passo, parte }) => {
+        const nome = OCR_PASSOS[passo] || 'A trabalhar';
+        const pct = Math.round((parte || 0) * 100);
+        const linha = nome + (pct > 0 && pct < 100 ? ' — ' + pct + '%' : '…');
+        if (linha !== ultimo) { ultimo = linha; vivo.escrever(linha); }
+      });
+
+      const r = (typeof talaoInterpretar === 'function') ? talaoInterpretar(texto) : { ok: false };
+      vivo.apagar();
+
+      if (!r.ok) {
+        juntar('Li a fotografia mas **não encontrei lá o total**. Acontece com talões ' +
+          'amarrotados ou com pouca luz.\n\nTire outra com o talão esticado e a foto ' +
+          'direita — ou **escreva quanto foi** e eu lanço na mesma, com este talão agarrado.', 'ele');
+        return;
+      }
+      propor(r);
+    } catch (e) {
+      vivo.apagar();
+      juntar('Não consegui descarregar o leitor — talvez a internet tenha falhado a meio.\n\n' +
+        'Pode tentar outra vez, ou **escrever quanto foi** que eu lanço com o talão agarrado.', 'ele');
+    }
+  }
+
+  /* O que se leu, dito por palavras, com um sim e um não. Nunca se lança sem
+     este passo: o OCR erra, e um valor errado metido sozinho nas contas de
+     alguém faz mais estrago do que valor nenhum. */
+  function propor(r) {
+    const onde = r.loja ? ' no **' + r.loja + '**' : '';
+    const dia = r.data ? diaPorExtenso(r.data) : '';
+    const quando = (dia && !ehHoje(r.data)) ? ', dia ' + dia : '';
+
+    const certo = r.confianca === 'alta';
+    const texto = certo
+      ? ('Li o talão: **' + dinCurto(r.valor) + '**' + onde + quando + '.\n\nLanço assim?')
+      : ('Acho que li **' + dinCurto(r.valor) + '**' + onde + quando + ' — mas **não tenho a ' +
+         'certeza**, o talão está difícil de ler.\n\nSe o valor estiver certo eu lanço; ' +
+         'se não estiver, escreva-o e eu corrijo.');
+
+    juntarBotoes(texto, [
+      { rotulo: 'Sim, lança', tom: 'sim', aoClicar: () => { lancarTalao(r); return 'Lançado'; } },
+      { rotulo: 'Não, escrevo eu', aoClicar: () => {
+          juntar('Certo. **Escreva quanto foi** e eu lanço com o talão agarrado.', 'ele');
+          return 'Escreve você';
+        } }
+    ]);
+  }
+
+  function lancarTalao(r) {
+    if (typeof executarLeitura !== 'function') return;
+    const resposta = executarLeitura({
+      tipo: 'movimentos',
+      lancamentos: [{
+        tipo: 'saida',
+        valor: r.valor,
+        categoria: r.categoria,
+        descricao: r.loja || '',
+        data: r.data ? dataDoDia(r.data) : new Date(),
+        parcelas: 1
+      }]
+    });
+    if (!resposta) return;
+
+    let comFoto = '';
+    if (fotoEmEspera && ultimoLote && ultimoLote.length) {
+      comFoto = guardarFoto(ultimoLote[0], fotoEmEspera)
+        ? '\n\nCom a fotografia agarrada.'
+        : '\n\nNão coube a fotografia — o movimento ficou lançado à mesma.';
+      limparFotoEmEspera();
+    }
+    juntarComAccao(resposta + comFoto, 'Apagar isto', apagarUltimoLote);
   }
 
   const foraFoto = document.getElementById('foto-fora');

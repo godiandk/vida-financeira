@@ -14,7 +14,14 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v38';
+const VERSAO = 'vida-financeira-v39';
+
+/* O motor de leitura de talões vive numa cache à parte, e de propósito sem a
+   versão do site no nome. São 4 MB que a pessoa autorizou descarregar uma vez;
+   se ficassem na cache da versão, cada publicação minha deitava-os fora e
+   obrigava-a a descarregá-los outra vez. Isso não é uma limpeza, é uma factura
+   de dados que eu mandava a quem não pediu nada. */
+const CACHE_OCR = 'vida-financeira-ocr-v1';
 
 const FICHEIROS = [
   './',
@@ -36,6 +43,7 @@ const FICHEIROS = [
   './partilha.js',
   './divida.js',
   './banner.js',
+  './talao.js',
   './estilo.css',
   './app-financas.css',
   './app-financas.js',
@@ -64,7 +72,7 @@ self.addEventListener('activate', ev => {
   ev.waitUntil(
     caches.keys()
       .then(chaves => Promise.all(
-        chaves.filter(c => c !== VERSAO).map(c => caches.delete(c))
+        chaves.filter(c => c !== VERSAO && c !== CACHE_OCR).map(c => caches.delete(c))
       ))
       .then(() => self.clients.claim())
   );
@@ -111,6 +119,25 @@ self.addEventListener('fetch', ev => {
   // ela: falhando a rede, serve-se a cache exactamente como antes. Para
   // ficheiros de dezenas de kilobytes é uma troca óbvia.
   const caminho = new URL(req.url).pathname;
+
+  // ----------------------------------------------------------
+  // O motor de leitura de talões (`vendor/ocr`) é a excepção: são 4 MB que a
+  // pessoa autorizou descarregar UMA vez. Ir à rede confirmar se mudaram —
+  // que é o que a regra de baixo faz — desfazia essa promessa em cada talão
+  // lido. Estes ficheiros não mudam sem mudarem de versão, por isso cache
+  // primeiro, e só se lá não estiverem é que se vai buscá-los.
+  if (caminho.indexOf('/vendor/') !== -1) {
+    ev.respondWith(
+      caches.open(CACHE_OCR).then(c => c.match(req, { ignoreSearch: true }).then(
+        guardado => guardado || fetch(req).then(res => {
+          c.put(req, res.clone());
+          return res;
+        })
+      ))
+    );
+    return;
+  }
+
   const ehCodigo = /\.(js|css)$/i.test(caminho);
 
   if (ehCodigo) {

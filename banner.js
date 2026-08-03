@@ -109,6 +109,12 @@ function bannerMensagens() {
   });
 
   m.push({
+    etiqueta: 'Fotografe o talão',
+    texto: 'Tire uma fotografia ao talão e eu leio o total, a loja e o dia. A leitura é feita dentro do seu telemóvel — a fotografia não sai daqui.',
+    accao: leva('Experimentar', 'wesley')
+  });
+
+  m.push({
     etiqueta: 'Contas na hora',
     texto: 'Na loja, pergunte «12x de 45,90 ou 480 a pronto?». A resposta vem antes de assinar — e é grátis.',
     accao: leva('Abrir o chat', 'wesley')

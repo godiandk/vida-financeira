@@ -28,11 +28,31 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `partilha.js` — desenha o cartão que se manda para o grupo
 - `banner.js` — o banner rotativo que conta o que a aplicação faz e o mês
   grátis de quem cria conta; cala-se para quem já tem chave
+- `talao.js` — lê a fotografia do talão (total, loja e data) com o motor de
+  OCR a correr dentro do próprio telemóvel
+- `vendor/ocr/` — o Tesseract compilado para WebAssembly e o dicionário do
+  português, guardados aqui em vez de virem de um CDN. Cerca de 4,3 MB, e
+  **não** são descarregados ao abrir o site: só quando alguém manda ler um
+  talão, depois de lhe ser dito o tamanho. Ficam numa cache própria do
+  service worker, que sobrevive às versões do site — publicar uma correcção
+  não pode custar quatro megabytes a quem tem dados contados.
 - `ferramentas.js` — as calculadoras, a ajuda e o acesso de assinatura
 - `site.js` — menu, moeda por país, sessão e registo do service worker
 - `firebase-config.js` — ligação ao Firebase (**opcional**, ver abaixo)
 - `firestore.rules` — regras de segurança da base de dados
 - `manifest.json` + `sw.js` + `icon-*.png` — tornam o site instalável como app
+
+## A fotografia do talão
+
+Fotografa-se o talão e a aplicação lê o total, a loja e o dia. A leitura é
+feita **dentro do aparelho**: não há servidor nem serviço pelo meio, e a
+fotografia — que mostra onde a pessoa anda, a que horas e com que cartão paga
+— não sai do telemóvel. Também não sobe para a nuvem com os movimentos.
+
+O que for lido é sempre **mostrado antes de ser gravado**, com um sim e um
+não. O OCR erra, e um número errado metido às escondidas nas contas de alguém
+faz mais estrago do que número nenhum: com talões amarrotados, desbotados ou
+mal fotografados, a aplicação prefere dizer que não conseguiu.
 
 ## Onde ficam os dados
 

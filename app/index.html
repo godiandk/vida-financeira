@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=46">
-<link rel="stylesheet" href="../app-financas.css?v=46">
-<link rel="stylesheet" href="../app-shell.css?v=46">
-<link rel="stylesheet" href="../assistente.css?v=46">
-<link rel="stylesheet" href="../ferramentas.css?v=46">
+<link rel="stylesheet" href="../estilo.css?v=47">
+<link rel="stylesheet" href="../app-financas.css?v=47">
+<link rel="stylesheet" href="../app-shell.css?v=47">
+<link rel="stylesheet" href="../assistente.css?v=47">
+<link rel="stylesheet" href="../ferramentas.css?v=47">
 </head>
 <body class="app-shell">
 
@@ -325,16 +325,15 @@
         <button class="assist-sug" type="button" data-q="ganhar mais negócio">Como ganho mais?</button>
       </div>
 
-      <!-- A fotografia entra como prova agarrada ao movimento. Ler o talao
-           sozinho exigiria um servico pago (com uma chave secreta, impossivel
-           num site publico) ou uma biblioteca de muitos megabytes no telemovel
-           de quem tem dados contados. Esta escrito na pagina em vez de
-           prometido. -->
+      <!-- A fotografia fica agarrada ao movimento, e agora tambem e' lida: o
+           motor de OCR corre dentro do proprio telemovel (talao.js), sem
+           servico nenhum pelo meio, por isso a foto nao sai do aparelho. O
+           valor lido e' sempre mostrado antes de ser gravado. -->
       <div class="foto-espera" id="foto-espera" hidden>
         <img id="foto-vista" alt="">
         <div>
           <b>Fotografia guardada</b>
-          <span>Escreva quanto foi e eu lanço com ela agarrada.</span>
+          <span>Vou tentar ler o total. Se não conseguir, escreva-o você.</span>
         </div>
         <button type="button" id="foto-fora" aria-label="Tirar a fotografia">✕</button>
       </div>
@@ -833,16 +832,17 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=46"></script>
-<script src="../site.js?v=46"></script>
-<script src="../app-financas.js?v=46"></script>
-<script src="../excel.js?v=46"></script>
-<script src="../partilha.js?v=46"></script>
-<script src="../divida.js?v=46"></script>
-<script src="../interpretar.js?v=46"></script>
-<script src="../assistente.js?v=46"></script>
-<script src="../ferramentas.js?v=46"></script>
-<script src="../banner.js?v=46"></script>
+<script src="../firebase-config.js?v=47"></script>
+<script src="../site.js?v=47"></script>
+<script src="../app-financas.js?v=47"></script>
+<script src="../excel.js?v=47"></script>
+<script src="../partilha.js?v=47"></script>
+<script src="../divida.js?v=47"></script>
+<script src="../interpretar.js?v=47"></script>
+<script src="../talao.js?v=47"></script>
+<script src="../assistente.js?v=47"></script>
+<script src="../ferramentas.js?v=47"></script>
+<script src="../banner.js?v=47"></script>
 <script>
 /* Trocar de ecrã. Sem recarregar a página: os elementos todos continuam no
    documento, por isso o app-financas.js não dá por nada. */
