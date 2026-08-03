@@ -39,10 +39,19 @@ const COR = {
 
 /* Quais os cartões que os números desta pessoa dão para preencher. Um cartão
    sem dados não entra na lista — não se inventa. */
+/* Num casal, o dinheiro é dos dois — e o cartão que se manda para o grupo da
+   família é lido pelos dois. "Descobri que gasto" e "a minha reserva" ditos
+   sobre dinheiro que é de duas pessoas não são só imprecisos: são a aplicação
+   a dar razão a um contra o outro, num assunto em que as casas discutem. */
+function juntos() {
+  return typeof temParceiro === 'function' && temParceiro();
+}
+
 function cartoesPossiveis() {
   if (typeof calcular !== 'function') return [];
   const r = calcular();
   const lista = [];
+  const nos = juntos();
 
   /* --- o que dava para adiar ---
      O mais forte, e o que não envergonha ninguém: não é "gastas mal", é
@@ -56,7 +65,7 @@ function cartoesPossiveis() {
       lista.push({
         id: 'adiar',
         etiqueta: 'O que dava para adiar',
-        topo: 'Descobri que gasto',
+        topo: nos ? 'Descobrimos que gastamos' : 'Descobri que gasto',
         numero: dinheiro(Math.round(media * 100) / 100),
         baixo: 'por mês em coisas que davam para adiar.',
         rodape: mesesComp.length === 1 ? 'Média do último mês' : 'Média dos últimos ' + mesesComp.length + ' meses'
@@ -69,12 +78,16 @@ function cartoesPossiveis() {
     const meses = r.mesesDeReserva;
     lista.push({
       id: 'reserva',
-      etiqueta: 'A minha reserva',
-      topo: 'Já tenho',
+      etiqueta: nos ? 'A nossa reserva' : 'A minha reserva',
+      topo: nos ? 'Já temos' : 'Já tenho',
       numero: dinheiro(r.reserva),
+      /* "Comecei do zero" era dito a quem tinha cem euros guardados: uma
+         frase sobre um passado que a aplicação não conhece. O que ela sabe é
+         que ainda não chega a meio mês de essenciais — e isso diz-se sem
+         inventar história nenhuma a ninguém. */
       baixo: (meses && meses >= 0.5)
         ? 'de lado — dá para ' + num(meses) + ' meses de essenciais.'
-        : 'de lado. Comecei do zero.',
+        : 'de lado. É por aqui que se começa.',
       rodape: 'Um mês de cada vez'
     });
   }
@@ -106,7 +119,8 @@ function cartoesPossiveis() {
     lista.push({
       id: 'pordia',
       etiqueta: 'Até ao fim do mês',
-      topo: 'Faltam ' + r.porDia.dias + (r.porDia.dias === 1 ? ' dia' : ' dias') + ' e tenho',
+      topo: 'Faltam ' + r.porDia.dias + (r.porDia.dias === 1 ? ' dia' : ' dias') +
+            (nos ? ' e temos' : ' e tenho'),
       numero: dinheiro(r.porDia.valor),
       baixo: 'por dia. Saber isto muda o que se compra hoje.',
       rodape: 'A aplicação faz esta conta sozinha'

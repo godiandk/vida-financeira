@@ -4815,62 +4815,157 @@ function proporMomento(m) {
    ============================================================ */
 function folhasParaExcel() {
   const r = calcular();
-  const T = (v) => ({ v: v, t: 't' });
+  const T_ = (v) => ({ v: v, t: 't' });
   const H = (v) => ({ v: v, t: 'h' });
   const N = (v) => ({ v: v, t: 'n' });
   const D = (v) => ({ v: v, t: 'd' });
+  const F = (formula, valor) => ({ v: valor, t: 'f', f: formula });
+  const HN = (v) => ({ v: v, t: 'hn' });
+  const P = (v) => ({ v: v, t: 'p' });
+
+  const comContas = temParceiro() || movimentos.some(m => m.conta && m.conta !== 'minha');
 
   /* ---- folha 1: os movimentos ---- */
-  const movs = [[H('Data'), H('Tipo'), H('Categoria'), H('Descrição'), H('Valor'),
-                 H('Essencial'), H('Moeda'), H('Prestação'), H('De')]];
-  movimentos.slice().sort((a, b) => a.data.localeCompare(b.data)).forEach(m => {
+  const cab = [H('Data'), H('Tipo'), H('Categoria'), H('Descrição'), H('Valor'),
+               H('Essencial'), H('Moeda')];
+  if (comContas) cab.push(H('De que conta'));
+  cab.push(H('Prestação nº'), H('Em quantas'));
+  const movs = [cab];
+
+  const ordenados = movimentos.slice().sort((a, b) => a.data.localeCompare(b.data));
+  ordenados.forEach(m => {
     const ess = (m.tipo === 'saida' && m.categoria !== 'reserva')
       ? (ehEssencial(m) ? 'Essencial' : 'Dá para adiar') : '';
-    movs.push([
+    const linha = [
       D(m.data),
-      T(m.tipo === 'entrada' ? 'Entrada' : 'Saída'),
-      T(catInfo(m.tipo, m.categoria).nome),
-      T(m.descricao || ''),
+      T_(m.tipo === 'entrada' ? 'Entrada' : 'Saída'),
+      T_(catInfo(m.tipo, m.categoria).nome),
+      T_(m.descricao || ''),
       /* Saídas com sinal negativo: assim a coluna soma sozinha e dá o saldo,
          em vez de dar a soma de tudo o que passou pelas mãos da pessoa. */
       N(m.tipo === 'entrada' ? m.valor : -m.valor),
-      T(ess),
-      T(m.moeda || moeda),
-      m.parc ? N(m.parc.n) : T(''),
-      m.parc ? N(m.parc.de) : T('')
-    ]);
+      T_(ess),
+      T_(m.moeda || moeda)
+    ];
+    /* De quem era o dinheiro. Faltava, e num casal era a coluna que fazia
+       falta: a aplicação separa três carteiras o ano inteiro e depois
+       exportava uma folha onde ninguém sabia de quem tinha saído o quê. */
+    if (comContas) linha.push(T_(nomeDaCarteira(contaDoMovimento(m))));
+    linha.push(m.parc ? N(m.parc.n) : T_(''), m.parc ? N(m.parc.de) : T_(''));
+    movs.push(linha);
   });
+
+  /* Uma linha de totais, com soma a sério e não um número escrito à mão: quem
+     apagar uma linha vê o total mudar, que é para isso que se abre uma folha
+     de cálculo. */
+  if (ordenados.length) {
+    const ultima = ordenados.length + 1;
+    const totais = [HN('TOTAL'), HN(''), HN(''), HN(''),
+                    { v: somaMovimentos(ordenados), t: 'fh', f: 'SUM(E2:E' + ultima + ')' },
+                    HN(''), HN('')];
+    if (comContas) totais.push(HN(''));
+    totais.push(HN(''), HN(''));
+    movs.push(totais);
+  }
 
   /* ---- folha 2: mês a mês ---- */
   const mes = [[H('Mês'), H('Entrou'), H('Saiu'), H('Guardado'), H('Sobrou')]];
-  Object.keys(r.meses).sort().forEach(k => {
+  const chavesMes = Object.keys(r.meses).sort();
+  chavesMes.forEach(k => {
     const a = r.meses[k];
     const saiu = a.essenciais + a.naoEssenciais;
     mes.push([
-      T(comMaiuscula(mesExtenso(k))),
-      N(Math.round(a.rendimento * 100) / 100),
-      N(Math.round(saiu * 100) / 100),
-      N(Math.round(a.guardado * 100) / 100),
-      N(Math.round((a.rendimento - saiu - a.guardado) * 100) / 100)
+      T_(comMaiuscula(mesExtenso(k))),
+      N(cent(a.rendimento)),
+      N(cent(saiu)),
+      N(cent(a.guardado)),
+      N(cent(a.rendimento - saiu - a.guardado))
     ]);
   });
+  if (chavesMes.length) {
+    const u = chavesMes.length + 1;
+    mes.push([HN('TOTAL'),
+      { v: somaColuna(r, 'entrou'), t: 'fh', f: 'SUM(B2:B' + u + ')' },
+      { v: somaColuna(r, 'saiu'),   t: 'fh', f: 'SUM(C2:C' + u + ')' },
+      { v: somaColuna(r, 'guardado'), t: 'fh', f: 'SUM(D2:D' + u + ')' },
+      { v: somaColuna(r, 'sobrou'), t: 'fh', f: 'SUM(E2:E' + u + ')' }]);
+  }
 
   /* ---- folha 3: para onde foi ---- */
   const cats = {};
+  let totalSaidas = 0;
   movimentos.forEach(m => {
     if (m.tipo !== 'saida' || m.categoria === 'reserva') return;
     cats[m.categoria] = (cats[m.categoria] || 0) + m.valor;
+    totalSaidas += m.valor;
   });
-  const porCat = [[H('Categoria'), H('Total gasto')]];
-  Object.keys(cats).sort((a, b) => cats[b] - cats[a]).forEach(c => {
-    porCat.push([T(catInfo('saida', c).nome), N(Math.round(cats[c] * 100) / 100)]);
+  const ordem = Object.keys(cats).sort((a, b) => cats[b] - cats[a]);
+  /* A percentagem é o que se procura numa folha destas — "quanto é que o
+     mercado me leva?" — e é a conta que toda a gente faz à mão a seguir. */
+  const porCat = [[H('Categoria'), H('Total gasto'), H('% do que saiu')]];
+  ordem.forEach(c => {
+    porCat.push([
+      T_(catInfo('saida', c).nome),
+      N(cent(cats[c])),
+      P(totalSaidas > 0 ? Math.round(cats[c] / totalSaidas * 1000) / 10 : 0)
+    ]);
   });
+  if (ordem.length) {
+    porCat.push([HN('TOTAL'),
+      { v: cent(totalSaidas), t: 'fh', f: 'SUM(B2:B' + (ordem.length + 1) + ')' },
+      { v: 100, t: 'ph' }]);
+  }
 
-  return [
-    { nome: 'Movimentos', linhas: movs },
+  const folhas = [
+    { nome: 'Movimentos', linhas: movs, filtro: comContas ? 'A1:J' : 'A1:I' },
     { nome: 'Mês a mês', linhas: mes },
     { nome: 'Por categoria', linhas: porCat }
   ];
+
+  /* ---- folha 4: por pessoa, só quando há mais do que uma ---- */
+  if (comContas) {
+    const porConta = {};
+    movimentos.forEach(m => {
+      const id = contaDoMovimento(m);
+      const a = porConta[id] || (porConta[id] = { entrou: 0, saiu: 0, guardou: 0 });
+      if (m.tipo === 'entrada') a.entrou += m.valor;
+      else if (m.categoria === 'reserva') a.guardou += m.valor;
+      else a.saiu += m.valor;
+    });
+    const pessoas = [[H('Conta'), H('Entrou'), H('Saiu'), H('Guardou'), H('Diferença')]];
+    CARTEIRAS.filter(id => porConta[id]).forEach(id => {
+      const a = porConta[id];
+      pessoas.push([
+        T_(nomeDaCarteira(id)),
+        N(cent(a.entrou)), N(cent(a.saiu)), N(cent(a.guardou)),
+        N(cent(a.entrou - a.saiu - a.guardou))
+      ]);
+    });
+    folhas.push({ nome: 'Por pessoa', linhas: pessoas });
+  }
+
+  return folhas;
+}
+
+function cent(v) {
+  return Math.round((Number(v) || 0) * 100) / 100;
+}
+
+function somaMovimentos(lista) {
+  return cent(lista.reduce((s, m) => s + (m.tipo === 'entrada' ? m.valor : -m.valor), 0));
+}
+
+function somaColuna(r, qual) {
+  let total = 0;
+  Object.keys(r.meses).forEach(k => {
+    const a = r.meses[k];
+    const saiu = a.essenciais + a.naoEssenciais;
+    if (qual === 'entrou') total += a.rendimento;
+    else if (qual === 'saiu') total += saiu;
+    else if (qual === 'guardado') total += a.guardado;
+    else total += a.rendimento - saiu - a.guardado;
+  });
+  return cent(total);
 }
 
 function exportarExcel() {
@@ -4898,38 +4993,72 @@ function exportarExcel() {
   }
 }
 
+/* ============================================================
+   Exportar em CSV
+
+   O CSV que aqui esteve punha aspas à volta de TUDO, incluindo os números. O
+   Excel, ao abrir, lê `"74,3"` como texto — e a pessoa fica com uma folha
+   onde a coluna do dinheiro não soma. Somar uma coluna é a primeira coisa que
+   se faz a uma folha de contas; era a única que não dava.
+
+   Passa a ir sem aspas nos números, com a vírgula decimal e os dois decimais
+   sempre — `74,30` e não `74,3`, que num extracto parece um valor cortado. As
+   saídas vão com sinal negativo, como no Excel, para a coluna somar sozinha e
+   dar o saldo em vez da soma de tudo o que passou pelas mãos.
+
+   E leva a coluna que faltava: de que conta saiu. A aplicação separa três
+   carteiras o ano inteiro e depois exportava uma folha onde ninguém sabia de
+   quem era o dinheiro que acabou.
+   ============================================================ */
 function exportarCSV() {
-  const csv = linhasCSV().map(l => l.map(c => '"' + c + '"').join(';')).join('\r\n');
+  const linhas = linhasCSV();
+  const csv = linhas.map(l => l.map(c => {
+    if (typeof c === 'number') return String(cent(c).toFixed(2)).replace('.', ',');
+    /* As datas também vão sem aspas: entre aspas, a folha lê-as como texto e
+       não dá para ordenar por data nem filtrar por mês — que é a segunda
+       coisa que se faz a uma folha destas, logo a seguir a somar. */
+    if (/^\d{4}-\d{2}-\d{2}$/.test(c)) return c;
+    return '"' + String(c).replace(/"/g, '""') + '"';
+  }).join(';')).join('\r\n');
+
   // O BOM faz o Excel abrir os acentos correctamente.
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'vida-financeira.csv';
+  a.download = 'vida-financeira-' + isoLocal(new Date()) + '.csv';
   a.click();
   URL.revokeObjectURL(a.href);
+  mostrarAviso('Ficheiro CSV criado com ' + movimentos.length + ' movimentos.', 'ok');
 }
 
 function linhasCSV() {
-  /* As duas colunas novas vão no fim: um ficheiro exportado antes desta
-     versão continua a abrir, e uma folha já feita não muda de colunas. */
-  const linhas = [['data', 'tipo', 'categoria', 'descricao', 'valor', 'essencial', 'moeda',
-                   'prestacao', 'grupo']];
+  const comContas = temParceiro() || movimentos.some(m => m.conta && m.conta !== 'minha');
+
+  /* As colunas novas vão no fim: um ficheiro exportado antes desta versão
+     continua a abrir, e uma folha já feita não muda de colunas. */
+  const cab = ['data', 'tipo', 'categoria', 'descricao', 'valor', 'essencial', 'moeda',
+               'prestacao', 'grupo'];
+  if (comContas) cab.push('conta');
+  const linhas = [cab];
+
   movimentos.slice()
     .sort((a, b) => a.data.localeCompare(b.data))
     .forEach(m => {
       const ess = (m.tipo === 'saida' && m.categoria !== 'reserva')
         ? (ehEssencial(m) ? 'essencial' : 'da para adiar') : '';
-      linhas.push([
+      const linha = [
         m.data,
         m.tipo,
         catInfo(m.tipo, m.categoria).nome,
-        (m.descricao || '').replace(/"/g, '""'),
-        String(m.valor).replace('.', ','),
+        m.descricao || '',
+        m.tipo === 'entrada' ? cent(m.valor) : -cent(m.valor),
         ess,
         m.moeda || moeda,
         m.parc ? (m.parc.n + '/' + m.parc.de) : '',
         m.parc ? m.parc.g : ''
-      ]);
+      ];
+      if (comContas) linha.push(nomeDaCarteira(contaDoMovimento(m)));
+      linhas.push(linha);
     });
   return linhas;
 }

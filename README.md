@@ -163,6 +163,46 @@ anos"** — e cada ferramenta fechada, com o nome, um emoji e uma linha a dizer
 para que serve. A página deixou de ser uma parede e passou a ser um índice: de
 8.800 pixéis para 3.600, e o mesmo conteúdo lá todo.
 
+## A folha que não somava
+
+O CSV punha aspas à volta de tudo, incluindo os números. Um `"74,3"` chega ao
+Excel como **texto** — e a pessoa fica com uma folha onde a coluna do dinheiro
+não soma. Somar uma coluna é a primeira coisa que se faz a uma folha de
+contas; era a única que não dava.
+
+E havia uma coisa pior, e mais silenciosa: **nenhuma das duas exportações
+dizia de que conta tinha saído o dinheiro.** A aplicação separa três carteiras
+o ano inteiro — a dele, a dela, a de emergência — e depois entregava uma folha
+onde ninguém sabia de quem era o dinheiro que acabou. Que é exactamente a
+pergunta que se faz quando o mês fecha.
+
+O que sai hoje:
+
+**CSV** — números sem aspas, com vírgula decimal e sempre dois decimais
+(`74,30`, e não `74,3`, que num extracto parece um valor cortado). Datas sem
+aspas, para se poder ordenar e filtrar por mês. Saídas com sinal negativo, para
+a coluna somar sozinha e dar o saldo. Coluna `conta` quando há mais do que uma.
+
+**Excel** — quatro folhas em vez de três: *Movimentos*, *Mês a mês*, *Por
+categoria* e, num casal, *Por pessoa* (quanto entrou, saiu e guardou cada um).
+Cada folha fecha com uma linha de **TOTAL**, e o total é uma fórmula `SUM` de
+verdade — quem apagar uma linha vê o total mudar, que é para isso que se abre
+uma folha de cálculo. Filtro no cabeçalho dos movimentos ("mostra-me só o
+mercado", "só o que saiu da conta dela"), primeira linha congelada, e a coluna
+das percentagens deixou de sair formatada como dinheiro — 46,1% aparecia como
+`46,10 €` numa linha em que se tinham gasto 648.
+
+## O cartão que se manda para o grupo
+
+Num casal dizia **"a minha reserva"** e **"descobri que gasto"** sobre dinheiro
+que é de duas pessoas. Não é só impreciso: é a aplicação a dar razão a um
+contra o outro, num assunto em que as casas discutem. Passa a dizer "a nossa
+reserva" e "descobrimos que gastamos" quando há duas pessoas na casa.
+
+E dizia **"comecei do zero"** a quem tinha cem euros guardados — uma frase
+sobre um passado que a aplicação não conhece. Passa a dizer o que ela sabe:
+"é por aqui que se começa".
+
 ## O `num` que valia zero
 
 Dois ficheiros da mesma página tinham uma função global chamada `num`. O
@@ -324,6 +364,6 @@ outros. O `INSTRUÇÕES.md` tem o passo a passo do GitHub Pages.
 
 - O lançamento dos movimentos é manual, de propósito: não há leitura de
   extractos nem ligação a bancos.
-- O botão **Exportar para Excel (CSV)** existe porque limpar os dados do
-  navegador apaga os movimentos guardados localmente — convém ter cópia.
+- O botão **Exportar** existe porque limpar os dados do navegador apaga os
+  movimentos guardados localmente — convém ter cópia. Ver abaixo o que sai.
 - O "aplicativo" é apenas um PWA, instalável direto do navegador.

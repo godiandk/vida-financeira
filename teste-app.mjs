@@ -217,6 +217,102 @@ await testar('quem tem dinheiro de lado não vê "0 meses"', async () => {
     'a conta dá ' + r.calculado.toFixed(2) + ' meses e o cartão mostra "' + r.meses + '"');
 });
 
+/* ============================================================
+   O que sai da aplicação: a folha e o cartão
+
+   Uma exportação é a única coisa desta aplicação que vive fora dela. Se sair
+   torta, ninguém a corrige — abre-se no Excel, não soma, e fecha-se.
+
+   O CSV punha aspas à volta de tudo, incluindo os números: `"74,3"` chega ao
+   Excel como texto, e a coluna do dinheiro não soma. E nenhuma das duas
+   exportações dizia de que conta tinha saído o dinheiro, numa aplicação que
+   separa três carteiras o ano inteiro.
+   ============================================================ */
+console.log('\no que sai da aplicação\n');
+
+async function comoCasal(sim) {
+  await p.evaluate(c => {
+    localStorage.setItem('vf:lar', JSON.stringify({ comQuem: c ? 'esposa' : 'so' }));
+    const m = JSON.parse(localStorage.getItem('vf:movimentos') || '[]');
+    m.forEach((x, i) => { x.conta = c ? (i % 3 === 0 ? 'parceiro' : 'minha') : undefined; });
+    localStorage.setItem('vf:movimentos', JSON.stringify(m));
+  }, sim);
+  await p.goto(ENDERECO + '/app/', { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1200);
+}
+
+await testar('o CSV manda números, e não texto com aspas', async () => {
+  await comoCasal(false);
+  const linhas = await p.evaluate(() => linhasCSV());
+  const valores = linhas.slice(1).map(l => l[4]);
+  valores.forEach(v => assert.equal(typeof v, 'number',
+    'o valor devia ir como número e foi como "' + v + '"'));
+});
+
+await testar('as saídas vão negativas, para a coluna somar o saldo', async () => {
+  const linhas = await p.evaluate(() => linhasCSV());
+  const saida = linhas.slice(1).find(l => l[1] === 'saida');
+  const entrada = linhas.slice(1).find(l => l[1] === 'entrada');
+  assert.ok(saida[4] < 0, 'uma saída devia ser negativa: ' + saida[4]);
+  assert.ok(entrada[4] > 0, 'uma entrada devia ser positiva: ' + entrada[4]);
+});
+
+await testar('sozinho, não há coluna de conta a estorvar', async () => {
+  const linhas = await p.evaluate(() => linhasCSV());
+  assert.ok(!linhas[0].includes('conta'), 'não devia haver coluna de conta');
+  const folhas = await p.evaluate(() => folhasParaExcel().map(f => f.nome));
+  assert.deepEqual(folhas, ['Movimentos', 'Mês a mês', 'Por categoria']);
+});
+
+await testar('em casal, a folha diz de quem era o dinheiro', async () => {
+  await comoCasal(true);
+  const linhas = await p.evaluate(() => linhasCSV());
+  assert.ok(linhas[0].includes('conta'), 'falta a coluna da conta no CSV');
+  const contas = new Set(linhas.slice(1).map(l => l[l.length - 1]));
+  assert.ok(contas.size >= 2, 'todas as linhas dizem a mesma conta: ' + [...contas]);
+
+  const folhas = await p.evaluate(() => folhasParaExcel());
+  assert.ok(folhas.some(f => f.nome === 'Por pessoa'), 'falta a folha "Por pessoa"');
+  const cab = folhas[0].linhas[0].map(c => c.v);
+  assert.ok(cab.includes('De que conta'), 'falta a coluna no Excel: ' + cab.join(', '));
+});
+
+await testar('cada folha fecha com um total que é uma soma a sério', async () => {
+  const folhas = await p.evaluate(() => folhasParaExcel());
+  ['Movimentos', 'Mês a mês', 'Por categoria'].forEach(nome => {
+    const f = folhas.find(x => x.nome === nome);
+    const ultima = f.linhas[f.linhas.length - 1];
+    assert.equal(ultima[0].v, 'TOTAL', nome + ' não acaba num total');
+    assert.ok(ultima.some(c => c.f && /^SUM\(/.test(c.f)),
+      nome + ': o total devia ser uma fórmula e não um número escrito à mão');
+  });
+});
+
+await testar('a percentagem não sai formatada como dinheiro', async () => {
+  const f = await p.evaluate(() => folhasParaExcel().find(x => x.nome === 'Por categoria'));
+  const linha = f.linhas[1];
+  assert.equal(linha[2].t, 'p', 'a coluna da percentagem devia ter o formato de percentagem');
+});
+
+await testar('o cartão de um casal fala no plural', async () => {
+  const cartoes = await p.evaluate(() => cartoesPossiveis());
+  const reserva = cartoes.find(c => c.id === 'reserva');
+  if (reserva) {
+    assert.ok(/temos/.test(reserva.topo), 'devia dizer "Já temos": ' + reserva.topo);
+    assert.ok(/nossa/i.test(reserva.etiqueta), 'devia dizer "A nossa reserva"');
+  }
+  const adiar = cartoes.find(c => c.id === 'adiar');
+  if (adiar) assert.ok(/gastamos/.test(adiar.topo), 'devia dizer "gastamos": ' + adiar.topo);
+});
+
+await testar('e nenhum cartão inventa uma história que não sabe', async () => {
+  const cartoes = await p.evaluate(() => cartoesPossiveis());
+  cartoes.forEach(c => {
+    assert.ok(!/comecei do zero/i.test(c.baixo || ''),
+      'o cartão diz "comecei do zero" a quem já tem dinheiro guardado');
+  });
+});
+
 await testar('nada rebentou pelo caminho', async () => {
   assert.equal(erros.length, 0, erros.slice(0, 3).join(' | '));
 });
