@@ -58,6 +58,27 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
+## Quatro línguas
+
+O chat entende português de Portugal, português do Brasil, espanhol e inglês —
+e frases meio numa língua meio noutra, que é como muita gente emigrada escreve
+mesmo. Não há um modo de língua a escolher em lado nenhum: escreve-se como sai.
+
+| | |
+|---|---|
+| "gastei 30 no continente" | pt |
+| "gasté 30 en el mercadona" | es |
+| "I spent 30 at lidl" | en |
+| "my wife spent 40 at the market" | sai da conta dela |
+| "the last one was 50, not 500" | corrige o último para 50 |
+
+Os números seguem a convenção de cada sítio: `1.500,00` e `1,500.00` querem
+dizer o mesmo e são lidos como o mesmo.
+
+**O que ainda está só em português** são as respostas longas — os textos de
+ajuda sobre reservas, dívidas e apoios. O chat percebe as quatro línguas e faz
+o trabalho; explicar em quatro línguas é o passo seguinte.
+
 ## As carteiras
 
 Uma pessoa sozinha tem uma conta. Um casal tem três: a dele, a dela, e o

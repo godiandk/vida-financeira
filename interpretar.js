@@ -100,7 +100,8 @@ function acharValores(texto) {
        e ainda ficava com dois valores — o que desligava a leitura das
        prestações, que só corre quando há um valor só. */
     const depois = texto.slice(m.index + bruto.length);
-    if (/^\s*(x\b|vezes|prestac|parcela)/i.test(semAcentos(depois))) continue;
+    if (/^\s*(x\b|vezes|prestac|parcela|cuota|plazo|installment|instalment|payments\b|months\b)/i
+        .test(semAcentos(depois))) continue;
 
     achados.push({ valor: v, inicio: m.index, fim: m.index + m[0].length, texto: m[0].trim() });
     if (re.lastIndex === m.index) re.lastIndex++;
@@ -200,16 +201,39 @@ const V_SAIDA = ['gastei','gastou','gastamos','gastei-me','gasto','gastar',
   /* Tirar da poupança é dinheiro a sair de um sítio para outro. Sem estes,
      "tirei 200 da poupança" não era nada — e é das frases mais comuns de quem
      está a chegar ao fim do mês. */
-  'tirei','tirou','tiramos','usei','usou','usamos','mexi no','mexemos no'];
+  'tirei','tirou','tiramos','usei','usou','usamos','mexi no','mexemos no',
+  /* espanhol */
+  'gaste','gasto','gastamos','gastar','pague','pago','pagamos','pagar','compre','compro',
+  'compramos','comprar','costo','saque','retire','saco','gastado','pagado','comprado',
+  /* inglês */
+  'spent','spend','paid','pay','bought','buy','cost','withdrew','withdraw','took out',
+  'i spent','i paid','i bought','put','filled up'];
 const V_ENTRADA = ['recebi','recebeu','recebemos','recebo','recebido',
   'ganhei','ganhou','ganho','entrou','caiu','me pagaram','pagaram-me',
-  'depositaram','veio','creditaram','recebimento','entrada de','vendi','vendeu'];
+  'depositaram','veio','creditaram','recebimento','entrada de','vendi','vendeu',
+  /* espanhol */
+  'recibi','recibio','recibimos','gane','gano','ganamos','cobre','cobro','vendi','vendio',
+  'me pagaron','ingreso','deposito','entro',
+  /* inglês */
+  'received','earned','got paid','was paid','sold','i sold','i earned','i received',
+  'came in','deposited','my salary','payday'];
 
 /* Frases sobre o que ainda não aconteceu. "vou comprar uma tv de 300" não é
    uma compra — e gravá-la punha na conta da pessoa dinheiro que ela ainda
    tem. */
-const FUTURO = ['vou ','vamos ','quero ','queria ','penso ','pretendo ','se eu ',
-  'preciso de ','tenho de ','tenho que ','devia ','pensei em ','estou a pensar'];
+/* Formas em que só pode ser dinheiro a entrar, mesmo que a frase traga por
+   perto uma palavra de gasto. */
+const V_ENTRADA_CERTA = ['recebi','recebemos','recibi','recibimos','received',
+  'got paid','was paid','me pagaram','pagaram-me','me pagaron','my salary','payday',
+  'vendi','vendio','sold','i sold','ganhei','gane','earned'];
+
+const FUTURO = ['vou','vamos','quero','queria','penso','pretendo','se eu',
+  'preciso de','tenho de','tenho que','devia','pensei em','estou a pensar',
+  /* espanhol */
+  'voy a','vamos a','quiero','queria','pienso','necesito','tengo que','deberia',
+  /* inglês */
+  'i will','i am going to','im going to','i want','i need to','i have to','should i',
+  'thinking of','planning to','gonna'];
 /* ---------- dizer quanto se tem ----------
 
    "Tenho 1000 no banco" não é um movimento: é um facto sobre o presente. E há
@@ -225,14 +249,27 @@ const FUTURO = ['vou ','vamos ','quero ','queria ','penso ','pretendo ','se eu '
 const V_SALDO = ['tenho','tinha','fiquei com','sobrou-me','sobrou me','me sobrou',
   'estou com','ando com','restam','resta-me','resta me','me restam','sobra-me','sobra me',
   'o meu saldo e','meu saldo e','o saldo e','saldo atual e','saldo actual e','saldo real e',
-  'no banco','na conta','na poupanca','de lado','guardado','poupado','na carteira','em casa'];
+  'no banco','na conta','na poupanca','de lado','guardado','poupado','na carteira','em casa',
+  /* espanhol */
+  'ela tem','ele tem','tem guardado','tem de lado',
+  'tengo','tiene','tienen','tenia','has','tiene guardado',
+  'me queda','me quedan','quedan','mi saldo es','el saldo es','en el banco',
+  'en la cuenta','ahorrado','guardado','en efectivo',
+  /* inglês */
+  'i have','ive got','i got','she has','he has','my balance is','the balance is',
+  'her balance is','in the bank','in my account',
+  'in savings','saved up','left in','i still have'];
 
 /* Onde é que o dinheiro está. Sem nada dito, é a conta — é o caso comum, e é
    o que a pessoa quer ver quando pergunta "quanto tenho?". */
 const ONDE_RESERVA = ['de lado','guardado','guardados','poupado','poupados','poupanca',
-  'reserva','pe de meia','pé de meia','mealheiro','emergencia'];
+  'reserva','pe de meia','pé de meia','mealheiro','emergencia',
+  'ahorros','ahorrado','fondo de emergencia','apartado',
+  'savings','saved','emergency fund','rainy day','set aside','put aside'];
 const ONDE_CONTA = ['no banco','na conta','conta bancaria','multibanco','na carteira',
-  'em casa','na mao','a mao','em dinheiro','saldo'];
+  'em casa','na mao','a mao','em dinheiro','saldo',
+  'en el banco','en la cuenta','cuenta bancaria','en efectivo','en la cartera',
+  'in the bank','in my account','in the account','bank account','in cash','on me','wallet'];
 
 /* ---------- de quem é o dinheiro ----------
 
@@ -249,21 +286,91 @@ const DO_PARCEIRO = ['minha mulher','minha esposa','minha companheira','minha pa
   'a mulher','a esposa','o marido',
   'conta dela','conta dele','cartao dela','cartao dele','dinheiro dela','dinheiro dele',
   'ela gastou','ele gastou','ela pagou','ele pagou','ela comprou','ele comprou',
-  'ela recebeu','ele recebeu','ela ganhou','ele ganhou'];
+  'ela recebeu','ele recebeu','ela ganhou','ele ganhou',
+  /* espanhol */
+  'mi mujer','mi esposa','mi marido','mi esposo','mi pareja','su cuenta','ella gasto',
+  'el gasto','ella pago','el pago','ella compro','ella recibio',
+  /* inglês */
+  'my wife','my husband','my partner','her account','his account','her card','his card',
+  'she spent','he spent','she paid','he paid','she bought','he bought','she got paid'];
 
 const DA_EMERGENCIA = ['emergencia','do fundo','no fundo','da reserva','na reserva',
   'da poupanca','na poupanca','dos guardados','do pe de meia','do mealheiro',
-  'do que estava de lado','do dinheiro de lado'];
+  'do que estava de lado','do dinheiro de lado',
+  'de los ahorros','del fondo','fondo de emergencia','de la reserva',
+  'from savings','out of savings','emergency fund','from the fund','rainy day'];
 
 /* 'minha' | 'parceiro' | 'emergencia' */
 function deQuemEODinheiro(t) {
-  if (contem(t, DA_EMERGENCIA)) return 'emergencia';
-  if (contem(t, DO_PARCEIRO)) return 'parceiro';
+  if (contemPalavra(t, DA_EMERGENCIA)) return 'emergencia';
+  if (contemPalavra(t, DO_PARCEIRO)) return 'parceiro';
   return 'minha';
 }
 
 function contem(t, lista) {
   return lista.some(k => t.includes(k));
+}
+
+/* ------------------------------------------------------------
+   Quatro línguas
+
+   Isto vai ser usado por gente de Portugal, do Brasil, e por quem emigrou e
+   escreve meio em inglês ou meio em espanhol — que é metade do público a que
+   isto se destina. Uma aplicação que só entende "gastei" deixa de fora quem
+   escreve "gasté", "spent" ou "gastei 30 no market".
+
+   As palavras das quatro línguas vivem nas mesmas listas de propósito. Não há
+   um modo de língua a ser escolhido em lado nenhum, e por isso ninguém tem de
+   escolher nada: escreve-se como sai, e uma frase meio numa língua meio
+   noutra — que é como as pessoas escrevem mesmo — é entendida na mesma.
+
+   O preço é o risco de uma palavra curta de uma língua aparecer dentro de uma
+   palavra de outra. "got" vive dentro de "esgotado", "pago" dentro de
+   "pagoda". Por isso as listas passaram a ser comparadas por palavra inteira
+   e não por pedaço de texto: é o que separa "recebi" de "recebimento" quando
+   isso importa, e o que impede o inglês de morder o português.
+   ------------------------------------------------------------ */
+const REGEX_CACHE = {};
+
+function contemPalavra(t, lista) {
+  for (let i = 0; i < lista.length; i++) {
+    const k = lista[i];
+    let re = REGEX_CACHE[k];
+    if (!re) {
+      /* Escapa o que for de regex e prende às fronteiras da palavra. Chaves
+         com espaço lá dentro ("fiz compras") continuam a funcionar: a
+         fronteira é do primeiro e do último caractere. */
+      const esc = k.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      re = new RegExp('(^|[^a-z0-9])' + esc + '([^a-z0-9]|$)', 'i');
+      REGEX_CACHE[k] = re;
+    }
+    if (re.test(t)) return true;
+  }
+  return false;
+}
+
+/* Qual das quatro está a ser escrita, para a resposta sair na mesma língua.
+   Não é um detector de língua a sério: são as palavras de função, que são as
+   que aparecem em qualquer frase e não se confundem entre si. */
+const MARCAS_LINGUA = {
+  en: ['i', 'my', 'the', 'have', 'spent', 'paid', 'bought', 'got', 'and', 'on', 'at',
+       'how', 'much', 'wrong', 'fix', 'account', 'balance', 'wife', 'husband', 'today'],
+  es: ['yo', 'mi', 'el', 'la', 'tengo', 'gaste', 'pague', 'compre', 'cuanto', 'cuenta',
+       'saldo', 'esposa', 'marido', 'hoy', 'ayer', 'dinero', 'arregla', 'corrige'],
+  pt: ['eu', 'meu', 'minha', 'tenho', 'gastei', 'paguei', 'comprei', 'quanto', 'conta',
+       'saldo', 'esposa', 'marido', 'hoje', 'ontem', 'dinheiro', 'arruma', 'corrige', 'nao']
+};
+
+function lingua(texto) {
+  const t = semAcentos(String(texto || '')).toLowerCase();
+  let melhor = 'pt', pontos = 0;
+  Object.keys(MARCAS_LINGUA).forEach(k => {
+    const n = MARCAS_LINGUA[k].filter(w => contemPalavra(t, [w])).length;
+    /* Empate fica em português: é a língua da aplicação, e responder em
+       inglês a quem escreveu uma palavra ambígua é pior do que o contrário. */
+    if (n > pontos) { pontos = n; melhor = k; }
+  });
+  return melhor;
 }
 
 /* 'conta' ou 'reserva'. Dito nenhum dos dois, é a conta: quem escreve "tenho
@@ -288,9 +395,9 @@ const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','saba
 function acharData(t, hoje) {
   const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
 
-  if (/\banteontem\b/.test(t)) { d.setDate(d.getDate() - 2); return d; }
-  if (/\bontem\b/.test(t)) { d.setDate(d.getDate() - 1); return d; }
-  if (/\bhoje\b|\bagora\b|\bacabei de\b|\bacabo de\b/.test(t)) return d;
+  if (/\banteontem\b|\banteayer\b|\bday before yesterday\b/.test(t)) { d.setDate(d.getDate() - 2); return d; }
+  if (/\bontem\b|\bayer\b|\byesterday\b/.test(t)) { d.setDate(d.getDate() - 1); return d; }
+  if (/\bhoje\b|\bagora\b|\bacabei de\b|\bacabo de\b|\bhoy\b|\bahora\b|\bacabo de\b|\btoday\b|\bjust now\b|\bi just\b/.test(t)) return d;
 
   const dm = t.match(/\b([0-3]?[0-9])[\/\-]([01]?[0-9])(?:[\/\-](\d{2,4}))?\b/);
   if (dm) {
@@ -329,7 +436,7 @@ function acharData(t, hoje) {
 
 /* ---------- prestações ---------- */
 function acharParcelas(t) {
-  const m = t.match(/\b(?:em\s+)?(\d{1,2})\s*(?:x|vezes|prestacoes|prestacao|parcelas|parcela)\b/);
+  const m = t.match(/\b(?:em\s+|in\s+|en\s+)?(\d{1,2})\s*(?:x|vezes|prestacoes|prestacao|parcelas|parcela|cuotas|cuota|plazos|installments|instalments|payments|months)\b/);
   if (!m) return 0;
   const n = Number(m[1]);
   return (n >= 2 && n <= 60) ? n : 0;
@@ -384,19 +491,26 @@ function interpretar(texto, opcoes) {
   /* Uma frase sem verbo nenhum de dinheiro é quase sempre uma pergunta com um
      número lá dentro — "quanto rende 1000 euros?". Deixa-se passar para o
      assistente responder, em vez de lançar um movimento que ninguém pediu. */
-  const ehSaida = contem(t, V_SAIDA);
-  const ehEntrada = contem(t, V_ENTRADA);
-  const ehSaldo = contem(t, V_SALDO);
+  const ehSaida = contemPalavra(t, V_SAIDA);
+  const ehEntrada = contemPalavra(t, V_ENTRADA);
+  /* "I got paid 1500" tem "paid" lá dentro, que é verbo de saída — e sem isto
+     um ordenado entrava na app como despesa. Estas são as formas que não têm
+     outra leitura possível: quando aparecem, é dinheiro a entrar. */
+  const entradaCerta = contemPalavra(t, V_ENTRADA_CERTA);
+  const ehSaldo = contemPalavra(t, V_SALDO);
   if (!ehSaida && !ehEntrada && !ehSaldo) return { ok: false, motivo: 'sem-verbo' };
 
   /* Perguntas não são lançamentos, mesmo com verbo e número. */
-  if (/\?$/.test(cru) || /^(quanto|quando|como|porque|por que|onde|sera que|vale a pena|devo|posso)\b/.test(t)) {
+  if (/\?$/.test(cru) ||
+      /^(quanto|quando|como|porque|por que|onde|sera que|vale a pena|devo|posso)\b/.test(t) ||
+      /^(cuanto|cuando|como|por que|donde|vale la pena|debo|puedo)\b/.test(t) ||
+      /^(how|when|what|where|why|should i|can i|is it worth|do i)\b/.test(t)) {
     return { ok: false, motivo: 'pergunta' };
   }
 
   /* Nem intenções. "vou comprar uma tv de 300" não é uma compra, e gravá-la
      tirava à pessoa dinheiro que ela ainda tem. */
-  if (contem(t, FUTURO)) return { ok: false, motivo: 'futuro' };
+  if (contemPalavra(t, FUTURO)) return { ok: false, motivo: 'futuro' };
 
   const data = acharData(t, hoje);
   const parcelas = acharParcelas(t);
@@ -417,7 +531,7 @@ function interpretar(texto, opcoes) {
     };
   }
 
-  const tipo = ehEntrada && !ehSaida ? 'entrada' : 'saida';
+  const tipo = (ehEntrada && (!ehSaida || entradaCerta)) ? 'entrada' : 'saida';
 
   /* Um valor por lançamento. Com vários, cada um fica com o pedaço de frase
      que vai do fim do valor anterior até ao fim do seu — é aí que está o
@@ -652,16 +766,39 @@ const PEDIR_ARRANJO = ['corrig', 'corrije', 'arruma', 'arranja', 'arranje',
   /* "o valor certo é X" — a forma mais directa de todas, e faltava. "certo"
      sozinho não serve: "está certo!" é a pessoa a concordar. */
   'valor certo e', 'o certo e', 'correto e', 'correcto e', 'certo sao', 'certo e de',
-  'na verdade e', 'na verdade sao', 'afinal e', 'afinal sao', 'e mesmo'];
+  'na verdade e', 'na verdade sao', 'afinal e', 'afinal sao', 'e mesmo',
+  /* espanhol */
+  'corrige', 'corrige lo', 'corrigelo', 'arregla', 'arreglalo', 'cambia', 'ajusta',
+  'esta mal', 'esta equivocado', 'no es eso', 'me equivoque', 'en realidad es',
+  'el valor correcto es', 'lo correcto es',
+  /* inglês */
+  'fix', 'fix it', 'correct', 'correct it', 'change', 'change it', 'update it',
+  'thats wrong', 'that is wrong', 'its wrong', 'it is wrong', 'i made a mistake',
+  'i was wrong', 'actually it', 'actually its', 'should be', 'the right one is',
+  'not right', 'incorrect'];
 
 /* Quem diz isto está a falar do número grande do ecrã. */
-const FALA_DO_NEGATIVO = ['negativo', 'menos', 'vermelho', 'divida no ecra', 'saldo negativo'];
+const FALA_DO_NEGATIVO = ['negativo', 'menos', 'vermelho', 'divida no ecra', 'saldo negativo',
+  'en negativo', 'en rojo', 'saldo negativo',
+  'negative', 'minus', 'in the red', 'red number', 'negative balance'];
 
-const PERGUNTA_QUANTO = /\b(quanto (e que )?(eu )?tenho|quanto (e que )?(me )?(sobra|resta)|qual (e )?(o )?meu saldo|qual (e )?o saldo|quanto ha na conta|quanto tenho na conta)\b/;
+const PERGUNTA_QUANTO = new RegExp('\\b(' + [
+  /* português */
+  'quanto (e que )?(eu )?tenho', 'quanto (e que )?(me )?(sobra|resta)',
+  'qual (e )?(o )?meu saldo', 'qual (e )?o saldo', 'quanto ha na conta',
+  'quanto tenho na conta',
+  /* espanhol */
+  'cuanto (dinero )?tengo', 'cuanto me queda', 'cual es mi saldo', 'cuanto hay en la cuenta',
+  /* inglês */
+  'how much (money )?(do i|have i)( got| have)?', 'how much is left', 'how much do i have',
+  'what.?s my balance', 'what is my balance', 'my balance'
+].join('|') + ')\\b');
 
 /* Frases que apontam para o último lançamento, e não para o saldo. */
 const FALA_DO_ULTIMO = ['ultimo', 'ultima', 'esse lancamento', 'aquele lancamento',
-  'o lancamento', 'a compra', 'aquela compra', 'essa compra', 'o gasto', 'aquele gasto'];
+  'o lancamento', 'a compra', 'aquela compra', 'essa compra', 'o gasto', 'aquele gasto',
+  'el ultimo', 'la ultima', 'ese gasto', 'esa compra', 'el movimiento',
+  'last', 'the last one', 'that one', 'that expense', 'that purchase', 'last entry'];
 
 /* ------------------------------------------------------------
    Devolve o que a pessoa quer, ou null se isto não for para aqui.
@@ -679,8 +816,8 @@ function entenderPedido(texto) {
 
   if (PERGUNTA_QUANTO.test(t)) return { pedido: 'saldo-quanto' };
 
-  const querArranjo = contem(t, PEDIR_ARRANJO);
-  const falaDoNegativo = contem(t, FALA_DO_NEGATIVO);
+  const querArranjo = contemPalavra(t, PEDIR_ARRANJO);
+  const falaDoNegativo = contemPalavra(t, FALA_DO_NEGATIVO);
   const valores = acharValores(cru);
 
   /* Sem número: é uma reclamação. Não há nada a gravar, mas há muito a
@@ -694,7 +831,7 @@ function entenderPedido(texto) {
   /* Com número e com ordem de arranjo, falta saber o quê: o último
      lançamento ou o saldo. Quem nomeia o lançamento está a falar dele — e
      nomeá-lo chega, porque "o último foi 50, não 500" não traz mais nada. */
-  const falaDoUltimo = contem(t, FALA_DO_ULTIMO);
+  const falaDoUltimo = contemPalavra(t, FALA_DO_ULTIMO);
   if (querArranjo || falaDoNegativo || falaDoUltimo) {
     const bom = valorCorrigido(cru, t, valores);
     if (bom === null) return null;
@@ -717,8 +854,11 @@ function entenderPedido(texto) {
    dizer que estava errado. */
 function valorCorrigido(cru, t, valores) {
   const recusados = valores.filter(v => {
-    const antes = t.slice(Math.max(0, v.inicio - 12), v.inicio);
-    return /\bnao\s+(e\s+|era\s+|sao\s+|foi\s+)?$/.test(antes);
+    const antes = t.slice(Math.max(0, v.inicio - 14), v.inicio);
+    /* "não 500", "not 500", "no 500". O "no" espanhol é o mesmo "no" que em
+       português quer dizer "em o" — mas aqui só conta colado ao número, e
+       "gastei 30 no continente" nunca chega a esta função. */
+    return /\b(nao|not|no)\s+(e\s+|era\s+|sao\s+|foi\s+|es\s+|fue\s+|is\s+|was\s+|it\s+was\s+)?$/.test(antes);
   });
   const bons = valores.filter(v => recusados.indexOf(v) === -1);
   const lista = bons.length ? bons : valores;
@@ -726,6 +866,6 @@ function valorCorrigido(cru, t, valores) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { interpretar, calculadora, entenderPedido, ondeEstaODinheiro, deQuemEODinheiro,
+  module.exports = { interpretar, calculadora, entenderPedido, ondeEstaODinheiro, deQuemEODinheiro, lingua, contemPalavra,
     acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
 }
