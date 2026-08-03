@@ -23,9 +23,6 @@ const PROJECTO = 'vida-financeira-faf77';
 const ORIGEM = 'https://godiandk.github.io';
 const KID = 'chave-de-teste';
 
-/* O tamanho das instruções entra na conta de um dos testes: o que se corta é o
-   resumo da pessoa, não o texto que diz à IA o que ela não pode fazer. */
-const INSTRUCOES_MAX = 1200;
 
 /* ---------- as chaves, geradas na hora ---------- */
 async function parDeChaves() {
@@ -276,11 +273,14 @@ await testar('a lista de movimentos não passa daqui', async () => {
   const t = await token();
   let visto = null;
   const env = envGratis({ IA: { run: async (m, o) => { visto = o; return { response: 'ok' }; } } });
-  const resumoLongo = 'Entra por mês: 1200\n' + 'x'.repeat(2000);
+  /* Uma aplicação com defeito podia mandar daqui um extracto inteiro. O corte
+     é do lado do servidor, e não uma confiança de que o cliente se porta bem:
+     o que passar do tamanho combinado não chega ao modelo. */
+  const resumoLongo = 'Entra por mês: 1200\n' + 'x'.repeat(2000) + 'ISTO-NAO-PODE-CHEGAR-AO-MODELO';
   await gratis.fetch(pedidoPost({ mensagem: 'e agora?', resumo: resumoLongo }, { Authorization: 'Bearer ' + t }), env);
   const sistema = visto.messages[0].content;
-  assert.ok(sistema.includes('Entra por mês: 1200'));
-  assert.ok(sistema.length < 800 + INSTRUCOES_MAX, 'o resumo tem de vir cortado');
+  assert.ok(sistema.includes('Entra por mês: 1200'), 'o princípio do resumo devia passar');
+  assert.ok(!sistema.includes('ISTO-NAO-PODE-CHEGAR-AO-MODELO'), 'o resumo tem de vir cortado');
 });
 
 await testar('as chaves da Google pedem-se uma vez, não a cada pergunta', async () => {
@@ -289,6 +289,147 @@ await testar('as chaves da Google pedem-se uma vez, não a cada pergunta', async
   await gratis.fetch(pedidoPost({ mensagem: 'a' }, { Authorization: 'Bearer ' + t }), envGratis());
   await gratis.fetch(pedidoPost({ mensagem: 'b' }, { Authorization: 'Bearer ' + t }), envGratis());
   assert.equal(pedidosAoJWKS, antes);
+});
+
+/* ---------- o modelo grande, o pequeno atrás, e a revisão ---------- */
+
+console.log('\nworker-gratis.js — a qualidade da resposta\n');
+
+/* Uma IA de mentira que se pode mandar responder o que se quiser, e que conta
+   por que modelo é que foi chamada. */
+function iaFalsa(guiao) {
+  const chamadas = [];
+  return {
+    chamadas,
+    run: async (modelo, opcoes) => {
+      chamadas.push({ modelo, opcoes });
+      const r = guiao(modelo, opcoes, chamadas.length);
+      if (r instanceof Error) throw r;
+      return { response: r };
+    }
+  };
+}
+
+await testar('pergunta-se primeiro ao modelo grande', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'Corte primeiro no que se repete todos os meses, que é onde há mais folga.');
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'onde corto?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  assert.equal(r.status, 200);
+  assert.equal(ia.chamadas.length, 1);
+  assert.ok(ia.chamadas[0].modelo.includes('70b'), 'devia ter ido ao grande');
+});
+
+await testar('falhando o grande, o pequeno responde em vez de ninguém', async () => {
+  const t = await token();
+  const ia = iaFalsa(modelo => modelo.includes('70b')
+    ? new Error('sem capacidade')
+    : 'Veja primeiro as contas que se repetem todos os meses.');
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'onde corto?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  const d = await r.json();
+  assert.equal(r.status, 200);
+  assert.ok(d.modelo.includes('8b'), 'a resposta devia ter vindo do pequeno');
+});
+
+await testar('falhando os dois, cala-se — e não inventa', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => new Error('sem capacidade'));
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'onde corto?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  assert.equal(r.status, 429);
+  assert.equal((await r.json()).erro, 'sem-quota');
+});
+
+const RECUSAVEIS = [
+  ['uma promessa de retorno', 'Ponha o dinheiro a render: isso rende 12% ao ano, garantido.'],
+  ['dizer que é seguro', 'É um investimento seguro, sem risco nenhum, pode avançar.'],
+  ['recomendar uma marca', 'Recomendo abrir conta no Revolut e comprar bitcoin todos os meses.'],
+  ['atirar a culpa', 'Se não sobra nada, a culpa é sua: falta de disciplina sua, mais nada.'],
+  ['pedir dados', 'Diga-me o número do cartão e o CVV que eu confirmo o pagamento.'],
+  ['fazer-se passar por pessoa', 'Sou o Wesley e quando eu estava endividado fiz assim.']
+];
+
+for (const [nome, mau] of RECUSAVEIS) {
+  await testar('a revisão apanha ' + nome, async () => {
+    const t = await token();
+    const ia = iaFalsa(() => mau);
+    const r = await gratis.fetch(pedidoPost({ mensagem: 'e agora?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+    assert.equal(r.status, 422, 'devia ter sido recusada');
+    assert.equal((await r.json()).erro, 'nao-passou');
+    assert.equal(ia.chamadas.length, 2, 'devia ter pedido uma segunda vez antes de desistir');
+  });
+}
+
+await testar('recusada à primeira, aceita-se a segunda', async () => {
+  const t = await token();
+  const ia = iaFalsa((m, o, n) => n === 1
+    ? 'Isso rende 12% ao ano, garantido.'
+    : 'Não lhe digo onde pôr o dinheiro. Antes disso: tem reserva para três meses?');
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'onde invisto?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  assert.equal(r.status, 200);
+  assert.equal(ia.chamadas.length, 2);
+  /* e a segunda tentativa tem de dizer ao modelo o que esteve mal */
+  const sistema = ia.chamadas[1].opcoes.messages[0].content;
+  assert.ok(sistema.includes('RECUSADA'), 'a segunda pergunta devia explicar a recusa');
+});
+
+await testar('uma resposta boa passa sem ser mexida', async () => {
+  const t = await token();
+  const boa = 'Com o que entra e o que é essencial, sobra pouco. Antes de cortar mais, veja os Apoios: costuma haver dinheiro a que já se tem direito.';
+  const ia = iaFalsa(() => boa);
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'e agora?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  const d = await r.json();
+  assert.equal(d.texto, boa);
+  assert.equal(ia.chamadas.length, 1);
+});
+
+await testar('falar de juros de 18% não é prometer 18%', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'O cartão de crédito costuma cobrar juros altos, muitas vezes acima de 18% ao ano. Pagar isso primeiro é o que rende mais.');
+  const r = await gratis.fetch(pedidoPost({ mensagem: 'pago primeiro o cartão?' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  assert.equal(r.status, 200, 'a revisão não devia ter apanhado isto');
+});
+
+await testar('a conversa anterior vai junto, e por ordem', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'Cortar aí muda pouco; a renda é que pesa.');
+  await gratis.fetch(pedidoPost({
+    mensagem: 'e se eu cortar isso?',
+    historico: [
+      { de: 'ele', txt: 'resposta antiga que não devia abrir a conversa' },
+      { de: 'eu', txt: 'gasto muito em mercado?' },
+      { de: 'ele', txt: 'gasta 38% em mercado' }
+    ]
+  }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+
+  const msgs = ia.chamadas[0].opcoes.messages;
+  assert.equal(msgs[0].role, 'system');
+  assert.equal(msgs[1].role, 'user', 'a conversa tem de começar em quem pergunta');
+  assert.equal(msgs[1].content, 'gasto muito em mercado?');
+  assert.equal(msgs[msgs.length - 1].content, 'e se eu cortar isso?');
+});
+
+await testar('uma conversa comprida vai cortada', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'Resposta.');
+  const historico = [];
+  for (let i = 0; i < 40; i++) historico.push({ de: i % 2 ? 'ele' : 'eu', txt: 'mensagem ' + i });
+  await gratis.fetch(pedidoPost({ mensagem: 'e agora?', historico }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  const msgs = ia.chamadas[0].opcoes.messages;
+  assert.ok(msgs.length <= 8, 'sistema + seis trocas + a pergunta, no máximo — vieram ' + msgs.length);
+});
+
+await testar('a língua da conversa é dita ao modelo', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'Respuesta corta.');
+  await gratis.fetch(pedidoPost({ mensagem: '¿y ahora?', lingua: 'es' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  assert.ok(ia.chamadas[0].opcoes.messages[0].content.includes('espanhol'));
+});
+
+await testar('sem números lançados, diz-se ao modelo que não os há', async () => {
+  const t = await token();
+  const ia = iaFalsa(() => 'Ainda não sei nada da sua situação, mas posso explicar como se começa.');
+  await gratis.fetch(pedidoPost({ mensagem: 'por onde começo?', resumo: '' }, { Authorization: 'Bearer ' + t }), envGratis({ IA: ia }));
+  const sistema = ia.chamadas[0].opcoes.messages[0].content;
+  assert.ok(sistema.includes('ainda não lançou nada'), 'o modelo tem de saber que não tem números');
 });
 
 console.log('\nworker.js (o pago)\n');

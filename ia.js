@@ -26,10 +26,15 @@
 
    ---- O que sai daqui ----
 
-   A pergunta, e um resumo de três linhas: quanto entra, quanto sai, se há
-   dívida. **Nunca a lista de movimentos.** Quem comprou o quê e onde é do
-   foro de quem comprou, e não precisa de sair do telemóvel para alguém
-   receber um conselho sobre o fim do mês.
+   A pergunta, as últimas seis trocas da conversa, a língua, e um resumo de
+   contas: quanto entra, quanto leva o essencial, quantos meses de reserva, se
+   há dívida, e as três categorias onde o dinheiro se está a ir.
+
+   **Nunca a lista de movimentos.** Nem o nome de uma loja, nem uma data, nem
+   uma fotografia. "Gasta 38% em mercado" responde à pergunta; "comprou 23,40
+   no Continente a 12 de Março" só serve a quem quer saber por onde a pessoa
+   anda — e essa é a diferença entre ajudar alguém e contar a vida dele a um
+   servidor.
    ============================================================ */
 
 /* ← O endereço do worker. Vazio = desligado.
@@ -47,26 +52,99 @@ function iaLigada() {
   return typeof IA_ENDERECO === 'string' && IA_ENDERECO.indexOf('http') === 0;
 }
 
-/* Três linhas, e não um extracto. O que aqui não estiver, a IA não sabe — e
-   é assim que se quer. */
+/* ---- o que sai daqui, e o que não sai ----
+
+   Contas, e nunca o extracto. Vai o que se pode dizer em voz alta numa sala:
+   quanto entra, quanto leva o essencial, quantos meses de reserva, se há
+   dívida, e em que três categorias é que o dinheiro se está a ir. Não vai —
+   nem por engano — a lista de movimentos, nem o nome de uma loja, nem uma
+   data, nem uma fotografia de talão.
+
+   A diferença entre "gasta 38% em mercado" e "comprou 23,40 no Continente a
+   12 de Março" é a diferença entre ajudar alguém e contar a vida dele a um
+   servidor. A primeira responde à pergunta; a segunda só serve para quem quer
+   saber por onde a pessoa anda.
+
+   As médias vêm do `dadosAssistente()`, que usa a mediana dos meses fechados:
+   um mês com uma avaria não faz a IA achar que a pessoa gasta sempre aquilo. */
 function iaResumo() {
-  if (typeof calcular !== 'function') return '';
+  const linhas = [];
+
   try {
-    const r = calcular();
-    const v = r.mesVisivel || {};
-    const linhas = [];
-    if (v.entrou) linhas.push('Entra por mês: ' + Math.round(v.entrou));
-    if (v.saiu) linhas.push('Sai por mês: ' + Math.round(v.saiu));
+    const d = (typeof dadosAssistente === 'function') ? dadosAssistente() : null;
+    if (d) {
+      if (d.nMeses) linhas.push('Meses já lançados por inteiro: ' + d.nMeses);
+      if (d.R) linhas.push('Entra por mês (mediana): ' + Math.round(d.R));
+      if (d.E) linhas.push('Essencial por mês (mediana): ' + Math.round(d.E));
+      if (d.folga !== null && d.folga !== undefined) {
+        linhas.push('Sobra por mês: ' + Math.round(d.folga)
+          + (d.folga <= 0 ? ' (não sobra nada)' : ''));
+      }
+      if (d.mesesReserva !== null && d.mesesReserva !== undefined) {
+        linhas.push('Reserva: ' + d.mesesReserva.toFixed(1) + ' meses de essencial ('
+          + Math.round(d.reserva) + ')');
+      }
+      if (d.temParcelas) linhas.push('Tem prestações a pagar todos os meses.');
+      if (d.moeda) linhas.push('Moeda: ' + d.moeda);
+    }
+  } catch (e) {}
+
+  try {
     if (typeof saldoDeTudo === 'function') {
       const t = saldoDeTudo();
-      if (t !== null) linhas.push('Tem agora: ' + Math.round(t));
+      if (t !== null && t !== undefined) linhas.push('Tem na conta agora: ' + Math.round(t));
     }
+  } catch (e) {}
+
+  try {
     if (typeof dividaTotal !== 'undefined' && dividaTotal && dividaTotal.valor > 0) {
-      linhas.push('Deve: ' + Math.round(dividaTotal.valor));
+      linhas.push('Deve ao todo: ' + Math.round(dividaTotal.valor));
     }
-    if (typeof moeda !== 'undefined') linhas.push('Moeda: ' + moeda);
-    return linhas.join('\n');
-  } catch (e) { return ''; }
+  } catch (e) {}
+
+  /* As três categorias maiores, em percentagem. Categorias — "Mercado",
+     "Casa e rendas" — e nunca lojas. É o que permite responder "onde corto?"
+     com alguma coisa que sirva, em vez de com um princípio geral. */
+  try {
+    const r = (typeof calcular === 'function') ? calcular() : null;
+    const porCat = r && r.mesVisivel && r.mesVisivel.porCat;
+    const total = r && r.mesVisivel && r.mesVisivel.saiu;
+    if (porCat && total > 0) {
+      const nomes = {};
+      if (typeof CATEGORIAS !== 'undefined' && CATEGORIAS.saida) {
+        CATEGORIAS.saida.forEach(c => { nomes[c.id] = c.nome; });
+      }
+      const tres = Object.keys(porCat)
+        .filter(c => c !== 'reserva' && porCat[c] > 0)
+        .sort((a, b) => porCat[b] - porCat[a])
+        .slice(0, 3)
+        .map(c => (nomes[c] || c) + ' ' + Math.round(porCat[c] / total * 100) + '%');
+      if (tres.length) linhas.push('Onde vai o dinheiro este mês: ' + tres.join(', '));
+    }
+  } catch (e) {}
+
+  return linhas.join('\n');
+}
+
+/* As últimas trocas da conversa, para um "e se eu cortar isso?" querer dizer
+   alguma coisa. Seis mensagens: as suficientes para o fio não se perder, e
+   poucas o bastante para não ser uma conversa inteira a sair daqui por causa
+   de uma pergunta de uma linha. */
+function iaHistorico() {
+  try {
+    const bolhas = document.querySelectorAll('#assist-fio .msg');
+    const out = [];
+    bolhas.forEach(li => {
+      const txt = li.querySelector('.msg-txt');
+      if (!txt) return;
+      out.push({
+        de: li.classList.contains('eu') ? 'eu' : 'ele',
+        txt: (txt.innerText || txt.textContent || '').trim().slice(0, 600)
+      });
+    });
+    /* A última é a pergunta que se está a fazer agora, e essa vai à parte. */
+    return out.slice(-7, -1);
+  } catch (e) { return []; }
 }
 
 /* O token da sessão do Firebase. Sem conta iniciada não há IA — e não por
@@ -92,8 +170,21 @@ function iaPerguntar(mensagem) {
     const chamada = fetch(IA_ENDERECO, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ mensagem: String(mensagem || '').slice(0, 2000), resumo: iaResumo() })
+      body: JSON.stringify({
+        mensagem: String(mensagem || '').slice(0, 2000),
+        resumo: iaResumo(),
+        historico: iaHistorico(),
+        /* A língua da conversa, decidida pelo `assistente.js` a partir do que
+           foi escrito. O modelo costuma acertar sozinho, mas costuma não é
+           sempre — e receber a resposta na língua errada, sobre dinheiro, é
+           a aplicação a dizer a alguém que ele ali é estrangeiro. */
+        lingua: (typeof L === 'function') ? L() : (typeof idioma === 'function' ? idioma() : '')
+      })
     }).then(r => {
+      /* 422 é a revisão do servidor a recusar o que o modelo escreveu. Não é
+         avaria: é o sistema a funcionar. Devolve-se `null` como em qualquer
+         outro "não", e o chat responde pela resposta escrita à mão — que para
+         estes casos é melhor do que uma resposta gerada que não passou. */
       if (!r.ok) return null;
       return r.json().then(d => (d && d.texto) ? d.texto : null);
     }).catch(() => null);

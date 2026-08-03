@@ -70,8 +70,27 @@ contradição — e a conclusão de quem lê é sempre a mesma: isto não perceb
 Está a correr em `https://vf-ia.wly-vianna.workers.dev`, um Worker da
 Cloudflare com o código de `servidor/worker-gratis.js`. Confirma que quem
 pergunta tem conta (assinatura do Firebase verificada com as chaves públicas
-da Google), trava em 20 perguntas por pessoa e por dia, não guarda conversa
-nenhuma, e **não recebe a lista de movimentos** — só um resumo de três linhas.
+da Google), trava em 20 perguntas por pessoa e por dia, e não guarda conversa
+nenhuma.
+
+**O que sai do telemóvel** são contas e nunca o extracto: quanto entra, quanto
+leva o essencial, quantos meses de reserva, se há dívida, e as três categorias
+onde o dinheiro se está a ir. Nunca a lista de movimentos, nem o nome de uma
+loja, nem uma data, nem uma fotografia. "Gasta 38% em mercado" responde à
+pergunta; "comprou 23,40 no Continente a 12 de Março" só serve a quem quer
+saber por onde a pessoa anda.
+
+**O que o modelo escreve é lido antes de sair.** Promessas de retorno, marcas
+de banco ou de cripto a serem recomendadas, culpa atirada a quem não chega ao
+fim do mês, pedidos de senha, e o modelo a fazer-se passar pelo fundador — tudo
+isso é recusado. Recusado uma vez, pede-se outra; à segunda, cala-se e o chat
+responde pela resposta escrita à mão. A revisão erra de propósito para o lado
+de recusar: o custo de recusar de mais é uma resposta melhor escrita.
+
+E o modelo **não se apresenta como pessoa nenhuma.** O chat tem o nome e a
+história do fundador porque as respostas escritas são dele; pôr as mesmas
+palavras na boca de um modelo, e sobre o dinheiro de quem pergunta, seria outra
+coisa.
 
 O modelo corre dentro da própria Cloudflare, nos 10.000 neurónios por dia que
 ela dá de graça. Não há chave da Anthropic e **não há cartão na conta** — é

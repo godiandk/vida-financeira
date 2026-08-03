@@ -27,21 +27,53 @@ o problema, e não faz mais nada.
 
 ## O que ele faz, e o que não faz
 
-Faz três coisas:
+Faz quatro coisas:
 
 1. confirma que quem pergunta tem conta na aplicação — verifica a assinatura
    do Firebase a sério, com as chaves públicas da Google;
 2. trava quem pergunta de mais (20 por dia por pessoa);
-3. passa a pergunta ao modelo e devolve a resposta.
+3. passa a pergunta ao modelo, com as últimas trocas da conversa;
+4. **lê o que o modelo escreveu antes de o deixar sair.**
 
 Não faz:
 
 - **não guarda conversas.** Nem em log, nem em base de dados;
-- **não recebe movimentos.** A aplicação manda um resumo de três linhas — o
-  que entra, o que sai, se há dívida — e nunca a lista do que a pessoa comprou;
+- **não recebe movimentos.** A aplicação manda contas — quanto entra, quanto
+  leva o essencial, meses de reserva, se há dívida, e as três categorias onde
+  o dinheiro se está a ir — e **nunca a lista do que a pessoa comprou**, nem o
+  nome de uma loja, nem uma data, nem uma fotografia;
 - **não substitui as regras.** O `interpretar.js` continua a lançar, a
   calcular e a corrigir de graça, sem internet e sem contar a ninguém. A IA só
   entra quando as regras dizem "não percebi".
+
+### A revisão do que sai
+
+Um modelo instruído a não fazer uma coisa faz-la à mesma, de vez em quando. E
+as coisas que este não pode fazer não são de bom gosto: prometer retorno,
+mandar comprar uma marca, dizer a alguém aflito que a culpa é dele, pedir uma
+senha, fazer-se passar pelo fundador.
+
+Por isso o que ele escreve é lido antes de sair. Apanhado, pede-se outra vez,
+dizendo o que esteve mal. À segunda, **cala-se**: devolve 422 e o chat responde
+pela resposta escrita à mão, que para esses casos é melhor.
+
+A revisão erra de propósito para o lado de recusar. O custo de recusar de mais
+é uma resposta melhor escrita; o de recusar de menos é alguém a comprar cripto
+por causa de uma aplicação que promete não vender nada.
+
+### Dois modelos, um atrás do outro
+
+Pergunta-se primeiro ao **Llama 3.3 70B**. Se ele falhar — quota do dia,
+avaria — tenta-se o **8B** antes de desistir, e só depois é que o chat cai nas
+regras escritas. Uma resposta mais seca é muito melhor do que nenhuma.
+
+| | por resposta | por dia, nos 10.000 grátis |
+|---|---|---|
+| Llama 3.3 70B | ~70 neurónios | ~140 respostas |
+| Llama 3.1 8B (a reserva) | ~12 neurónios | ~800 respostas |
+
+140 respostas por dia é muito mais procura do que esta aplicação tem. No dia em
+que tiver, o pequeno entra sozinho — e ninguém fica sem resposta.
 
 ## Há dois caminhos, e um deles não tem factura
 
@@ -50,9 +82,9 @@ Não faz:
 | onde corre o modelo | dentro da Cloudflare | na Anthropic |
 | contas a criar | **uma** (Cloudflare) | duas (Cloudflare + Anthropic) |
 | cartão | **nenhum** | sim, na Anthropic |
-| quanto dá por dia | ~1.300 respostas (10.000 neurónios grátis) | o que se pagar |
+| quanto dá por dia | ~140 com o 70B, ~800 com o 8B | o que se pagar |
 | quando acaba | responde "não dá" e o chat segue pelas regras | continua, e a factura sobe |
-| qualidade | boa para conversa de contas; frases mais curtas | melhor |
+| qualidade | boa para conversa de contas | melhor |
 
 **Comece pelo grátis.** É a mesma aplicação, com as mesmas regras escritas, e a
 única diferença que a pessoa nota é a resposta ser mais seca. Se um dia isso
