@@ -650,3 +650,14 @@ ul.movs li:last-child{border-bottom:none}
   border-radius:0 12px 12px 0;padding:14px 16px;
 }
 .dv-ajuda a{color:var(--gold-soft);font-weight:700}
+
+/* A linha do dinheiro que a pessoa tem mesmo, por baixo do "livre do mês".
+   Duas coisas diferentes, encostadas de propósito: o número de cima é uma
+   diferença (entrou menos saiu) e pode ser negativo num mês normal; o de
+   baixo é dinheiro. Quem lê só o de cima acha que está a dever. */
+.linha-conta{
+  margin-top:12px;padding-top:12px;
+  border-top:1px solid rgba(217,178,110,.18);
+  font-weight:800;font-size:1.02rem;color:var(--up);
+}
+.linha-conta.neg{color:var(--down)}

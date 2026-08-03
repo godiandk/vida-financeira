@@ -364,11 +364,22 @@ function nomeCategoria(tipo, id) {
 /* Faz o que o leitor percebeu, e devolve o texto da resposta. */
 function executarLeitura(r) {
   if (r.tipo === 'saldo') {
-    if (typeof definirReservaInicial !== 'function') return null;
-    definirReservaInicial(r.valor);
     ultimoLote = null;
-    return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado. Passa a contar na sua reserva.\n\n' +
-           'Não lancei isto como entrada — não é dinheiro que recebeu hoje, é dinheiro que já tinha.';
+
+    /* "de lado", "guardado", "na poupança" — dinheiro parado. Vai para a
+       reserva, como sempre foi. */
+    if (r.onde === 'reserva') {
+      if (typeof definirReservaInicial !== 'function') return null;
+      definirReservaInicial(r.valor);
+      return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado. Passa a contar na sua reserva.\n\n' +
+             'Não lancei isto como entrada — não é dinheiro que recebeu hoje, é dinheiro que já tinha.';
+    }
+
+    /* "no banco", "na conta", ou sem dizer onde: é o dinheiro de viver, e
+       quem trata disso é o `dizerSaldoDaConta`, lá em baixo — porque dizer o
+       saldo e corrigir o saldo são a mesma coisa e não podem ter dois
+       caminhos. Aqui devolve-se null para o chat seguir por lá. */
+    return null;
   }
 
   if (typeof lancar !== 'function') return null;
@@ -404,6 +415,58 @@ function executarLeitura(r) {
   const quando = mesmoDia ? '' : '\n\nCom a data de ' + d.getDate() + '/' + (d.getMonth() + 1) + '.';
 
   return (criados.length === 1 ? 'Lançado:' : 'Lançados:') + '\n\n' + linhas.join('\n') + quando;
+}
+
+/* ------------------------------------------------------------
+   O mal-entendido que custou mais caro
+
+   O número grande do Início chama-se "Livre até ao fim do mês" e é uma
+   diferença: entrou menos saiu. Num mês em que se lançaram gastos e ainda não
+   entrou o ordenado, é negativo — e está certo que seja.
+
+   Só que quem o lê não lê "diferença": lê "eu tenho menos quinhentos". Depois
+   diz à app quanto tem no banco, o número não muda, e a conclusão é que a
+   ferramenta não percebeu nada. Não era desatenção de ninguém: eram dois
+   números verdadeiros e nenhuma frase a explicar que falavam de coisas
+   diferentes.
+
+   Esta é a frase. Aparece quando o mês está negativo, e uma vez só — repeti-la
+   a cada mensagem era outra maneira de não estar a ouvir.
+   ------------------------------------------------------------ */
+let jaExpliqueiONegativo = false;
+
+function mesEstaNegativo() {
+  if (typeof calcular !== 'function') return false;
+  try {
+    const r = calcular();
+    return !!(r && r.mesVisivel && !r.mesVisivel.vazio && r.mesVisivel.livre < 0);
+  } catch (e) { return false; }
+}
+
+function avisoDoNegativo() {
+  if (jaExpliqueiONegativo || !mesEstaNegativo()) return '';
+  jaExpliqueiONegativo = true;
+  return '\n\nE já agora, sobre o número vermelho lá em cima: **não é uma dívida.** ' +
+    'É só quanto saiu a mais do que entrou **neste mês** — que é o normal antes de ' +
+    'entrar o ordenado. O seu dinheiro é o que está em "Na conta".';
+}
+
+function explicarONegativo() {
+  jaExpliqueiONegativo = true;
+  const agora = (typeof saldoAgora === 'function') ? saldoAgora() : null;
+  let t = 'Tem razão em estranhar, e a culpa é da etiqueta.\n\n' +
+    'Aquele número vermelho **não é o seu saldo** e não é uma dívida. É a conta ' +
+    '**deste mês**: o que saiu menos o que entrou. Enquanto não entrar o ordenado, ' +
+    'ele fica negativo — e continuaria negativo mesmo que tivesse um milhão no banco.';
+
+  if (agora !== null) {
+    t += '\n\nO seu dinheiro é o outro: **' + dinCurto(agora) + ' na conta**, ' +
+      'na linha logo por baixo.';
+  } else {
+    t += '\n\n**Diga-me quanto tem na conta** — "tenho 1000 no banco" — e eu ponho ' +
+      'esse número no Início e mantenho-o certo a partir daí.';
+  }
+  return t;
 }
 
 /* ============================================================
@@ -633,8 +696,154 @@ Pergunte à vontade.`, 'ele');
     };
   }
 
+  /* ---------- corrigir, reclamar, perguntar quanto se tem ----------
+
+     Isto vem ANTES de se tentar ler um movimento, e a ordem é deliberada.
+     "o último gasto foi 50, não 500" tem a palavra "gasto" lá dentro; lida
+     como movimento, lançava-se uma despesa nova de 50 em vez de se corrigir a
+     de 500. Quem escreve "corrige", "errei" ou "não é isso" está a falar do
+     que já lá está, e essas palavras não aparecem em quem está só a lançar. */
+  function tratarPedido(pedido) {
+    if (pedido.pedido === 'saldo-quanto') {
+      const agora = (typeof saldoAgora === 'function') ? saldoAgora() : null;
+      if (agora === null) {
+        juntar('Ainda não sei quanto tem na conta — só sei o que me foi lançado.\n\n' +
+          '**Diga-me o número** ("tenho 1000 no banco") e a partir daí mantenho-o ' +
+          'certo sozinho: desconto o que gastar e somo o que entrar.', 'ele');
+        return true;
+      }
+      juntar('Tem **' + dinCurto(agora) + '** na conta.' + avisoDoNegativo(), 'ele');
+      return true;
+    }
+
+    if (pedido.pedido === 'queixa-saldo') { juntar(explicarONegativo(), 'ele'); return true; }
+
+    if (pedido.pedido === 'queixa') {
+      juntar('Diga-me o que está errado e eu arranjo.\n\n' +
+        'Se for um valor: **"o último foi 50, não 500"**.\n' +
+        'Se for o saldo: **"tenho 1000 no banco"**.\n' +
+        'Se for um lançamento a mais, escreva **"apaga o último"**.', 'ele');
+      return true;
+    }
+
+    /* Explicar é grátis; mudar os números é que faz parte da assinatura.
+       Dizer a alguém "aquele vermelho não é uma dívida" e cobrar por isso
+       seria mesquinho. */
+    if (!podeLancarPorTexto()) {
+      juntar('Percebi o que quer corrigir — e é isso que a **Vida Financeira** faz por si.\n\n' +
+        '**Crie conta e tem um mês inteiro, de graça.** Sem cartão, sem nada.', 'ele');
+      return true;
+    }
+
+    if (pedido.pedido === 'corrigir-ultimo') { corrigirUltimo(pedido.valor); return true; }
+    if (pedido.pedido === 'corrigir-saldo') { corrigirSaldo(pedido); return true; }
+    return false;
+  }
+
+  function corrigirUltimo(valor) {
+    if (typeof movimentos === 'undefined' || !movimentos.length) {
+      juntar('Ainda não há nenhum lançamento para corrigir.', 'ele');
+      return;
+    }
+    const m = movimentos[movimentos.length - 1];
+    const antes = m.valor;
+    if (Math.abs(antes - valor) < 0.005) {
+      juntar('O último já está em **' + dinCurto(valor) + '**. Não mexi em nada.', 'ele');
+      return;
+    }
+    m.valor = Math.round(valor * 100) / 100;
+    if (typeof guardar === 'function') guardar();
+    if (typeof desenhar === 'function') desenhar();
+    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(m.valor) + '**' +
+      (m.descricao ? ' · ' + m.descricao : '') + '.', 'ele');
+  }
+
+  /* Dizer o saldo certo é sempre aceite. O que muda é o que se faz com a
+     diferença: da primeira vez não há diferença nenhuma a explicar — é o
+     ponto de partida. Havendo já um saldo conhecido e o novo não bater com
+     ele, a diferença é dinheiro que se moveu sem ninguém ter lançado, e a app
+     PERGUNTA se quer que fique registado. Nunca inventa o lançamento
+     sozinha: é dinheiro na conta de alguém. */
+  function corrigirSaldo(pedido) {
+    if (pedido.onde === 'reserva' && typeof definirReservaInicial === 'function') {
+      definirReservaInicial(pedido.valor);
+      juntar('Corrigido: tem **' + dinCurto(pedido.valor) + '** de lado.', 'ele');
+      return;
+    }
+    dizerSaldoDaConta(pedido.valor);
+  }
+
+  /* Uma porta só para o saldo da conta, venha ela de "tenho 1000 no banco" ou
+     de "corrige para 1000". São a mesma frase dita de duas maneiras, e ter
+     dois caminhos era o que fazia a app oferecer o acerto num caso e ficar
+     calada no outro. */
+  function dizerSaldoDaConta(novo) {
+    if (typeof definirSaldoConta !== 'function') { juntar(explicarONegativo(), 'ele'); return; }
+
+    const antes = (typeof saldoAgora === 'function') ? saldoAgora() : null;
+    definirSaldoConta(novo);
+
+    if (antes === null) {
+      juntar('Fico a saber: **' + dinCurto(novo) + '** na conta.\n\n' +
+        'Já está no seu Início, em "Na conta". A partir daqui vou eu descontando o que ' +
+        'gastar e somando o que entrar — não precisa de o escrever outra vez.' +
+        avisoDoNegativo(), 'ele');
+      return;
+    }
+
+    const dif = Math.round((novo - antes) * 100) / 100;
+    if (Math.abs(dif) < 0.005) {
+      juntar('Já estava em **' + dinCurto(novo) + '**. Não mexi em nada.', 'ele');
+      return;
+    }
+
+    const falta = dif > 0;
+    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(novo) + '** na conta.', 'ele');
+
+    juntarBotoes('Há **' + dinCurto(Math.abs(dif)) + '** de diferença que nunca foi lançado — ' +
+      (falta ? 'dinheiro que entrou' : 'dinheiro que saiu') + ' sem eu saber.\n\n' +
+      'Quer que eu registe isso no mês, para as contas baterem certo?',
+      [
+        { rotulo: 'Sim, regista', tom: 'sim', aoClicar: () => { lancarAcerto(dif); return 'Registado'; } },
+        { rotulo: 'Não, deixa', aoClicar: () => {
+            juntar('Fica só o saldo corrigido, então. O mês continua como estava.', 'ele');
+            return 'Ficou como estava';
+          } }
+      ]);
+  }
+
+  function lancarAcerto(dif) {
+    if (typeof lancar !== 'function') return;
+    /* O acerto é lançado com a data de hoje e não muda o saldo da conta: esse
+       já é o número certo, foi a pessoa que o disse. Por isso o movimento
+       nasce com a hora de ANTES da declaração — senão o `saldoAgora()`
+       somava-o outra vez e o saldo afastava-se do que ela acabou de dizer. */
+    const m = lancar({
+      tipo: dif > 0 ? 'entrada' : 'saida',
+      valor: Math.abs(dif),
+      categoria: 'acerto',
+      descricao: 'Acerto de saldo',
+      /* Data em texto, como todos os outros movimentos. Passar aqui um
+         `Date` fazia a app rebentar mais tarde, na altura de a desenhar. */
+      data: (typeof isoLocal === 'function') ? isoLocal(new Date())
+                                             : new Date().toISOString().slice(0, 10)
+    });
+    if (typeof saldoConta !== 'undefined' && saldoConta) m.criado = saldoConta.em - 1;
+    if (typeof guardar === 'function') guardar();
+    if (typeof desenhar === 'function') desenhar();
+    ultimoLote = [m.id];
+    juntarComAccao('Registado no mês: **' + (dif > 0 ? '+ ' : '− ') + dinCurto(Math.abs(dif)) +
+      '** · ⚖️ Acerto de saldo.\n\nO saldo na conta continua em ' +
+      dinCurto((typeof saldoAgora === 'function' ? saldoAgora() : 0)) + '.',
+      'Apagar isto', apagarUltimoLote);
+  }
+
   function tratar(t) {
-    /* Primeiro tenta ler-se como movimento. Só se não for é que segue para as
+    /* Um pedido sobre o que já lá está manda em tudo o resto. */
+    const pedido = (typeof entenderPedido === 'function') ? entenderPedido(t) : null;
+    if (pedido && tratarPedido(pedido)) return;
+
+    /* Depois tenta ler-se como movimento. Só se não for é que segue para as
        respostas escritas — assim "gastei 30 no continente" nunca é confundido
        com uma pergunta sobre mercearia. */
     const r = (typeof interpretar === 'function') ? interpretar(t) : { ok: false };
@@ -648,6 +857,8 @@ Pergunte à vontade.`, 'ele');
           'Enquanto isso pode lançar à mão no ➕ Lançar, que é grátis para sempre.', 'ele');
         return;
       }
+      if (r.tipo === 'saldo' && r.onde !== 'reserva') { dizerSaldoDaConta(r.valor); return; }
+
       const resposta = executarLeitura(r);
       if (resposta) {
         if (r.tipo === 'saldo') { juntar(resposta, 'ele'); return; }

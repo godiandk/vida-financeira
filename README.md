@@ -42,6 +42,22 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `firestore.rules` — regras de segurança da base de dados
 - `manifest.json` + `sw.js` + `icon-*.png` — tornam o site instalável como app
 
+## Dois números que não são a mesma coisa
+
+**"Livre até ao fim do mês"** é uma diferença: o que entrou menos o que saiu,
+neste mês. Num mês em que já se gastou e ainda não entrou o ordenado, é
+negativo — e está certo que seja. **Não é uma dívida.**
+
+**"Na conta"** é dinheiro: o que a pessoa tem agora para gastar. Só aparece
+depois de ela o dizer ("tenho 1000 no banco"), porque a aplicação não viu o
+mês em que ela começou e não tem como o adivinhar. Dito uma vez, mantém-se
+certo sozinho — cada saída desconta, cada entrada soma.
+
+Ter só o primeiro número era o defeito mais caro que esta aplicação teve: quem
+dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
+ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
+contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
+
 ## A fotografia do talão
 
 Fotografa-se o talão e a aplicação lê o total, a loja e o dia. A leitura é

@@ -31,6 +31,7 @@ const PLANO_CHAVE = 'vf:plano';
 const CONTAS_CHAVE = 'vf:contasfixas';
 const ARRANQUE_CHAVE = 'vf:arranque';
 const RESERVA_INICIAL_CHAVE = 'vf:reservainicial';
+const SALDO_CHAVE = 'vf:saldo';
 
 /* ---------- o dinheiro extra do ano, por país ----------
    Estava escrito "em junho e em novembro" em quatro sítios. É verdade em
@@ -116,6 +117,11 @@ const CATEGORIAS = {
     { id: 'contas',    nome: 'Contas e serviços',emoji: '🧾' },
     { id: 'dividas',   nome: 'Dívidas',         emoji: '💳' },
     { id: 'reserva',   nome: 'Guardei na reserva', emoji: '🔒' },
+    /* Um acerto é o que falta para as contas da app baterem com o dinheiro
+       verdadeiro. Não é um gasto: é a app a admitir que lhe escapou alguma
+       coisa. Fica à vista na lista do mês, como tudo o resto, e apaga-se
+       como tudo o resto. */
+    { id: 'acerto',    nome: 'Acerto de saldo', emoji: '⚖️' },
     { id: 'outros-s',  nome: 'Outros',          emoji: '📦' }
   ],
   entrada: [
@@ -125,6 +131,7 @@ const CATEGORIAS = {
     { id: 'juros',     nome: 'Juros e rendimentos', emoji: '📈' },
     { id: 'presente',  nome: 'Presente',        emoji: '🎁' },
     { id: 'reserva-tirei', nome: 'Tirei da reserva', emoji: '🔓' },
+    { id: 'acerto',    nome: 'Acerto de saldo', emoji: '⚖️' },
     { id: 'outros-e',  nome: 'Outros',          emoji: '📦' }
   ]
 };
@@ -350,6 +357,26 @@ let arranquePasso = 0;     // 0, 1, 2 = perguntas · 3 = a resposta
    pessoa guardou mil euros hoje, e no fim do mês a app dava-lhe os parabéns
    por uma coisa que não aconteceu. */
 let reservaInicial = 0;
+
+/* ============================================================
+   O saldo da conta
+
+   A reserva é dinheiro guardado. Isto é outra coisa: é o que a pessoa tem
+   agora para gastar, e é o número que ela quer ver quando pergunta "quanto
+   tenho?".
+
+   Faltava, e a falta era cara. Quem escrevia "tenho 1000 no banco" via a app
+   arrumar os mil na reserva e o número grande do ecrã continuar a dizer
+   −500 — que não é o dinheiro dela, é a diferença entre o que entrou e o que
+   saiu no mês. Duas coisas certas, lidas como uma contradição, e a conclusão
+   de quem lê é sempre a mesma: isto não percebe nada.
+
+   Guarda-se `{ valor, em }`: "no instante `em`, tinha `valor`". Daí para a
+   frente é a própria app que o mantém — cada saída desconta, cada entrada
+   soma. Assim o número nunca envelhece sozinho, e nunca é preciso pedir à
+   pessoa que o volte a escrever.
+   ============================================================ */
+let saldoConta = null;
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -754,6 +781,11 @@ function carregarLocal() {
   const ri = Number(localStorage.getItem(RESERVA_INICIAL_CHAVE));
   reservaInicial = (isFinite(ri) && ri > 0) ? Math.round(ri * 100) / 100 : 0;
 
+  const sc = lerJSON(SALDO_CHAVE, null);
+  if (sc && isFinite(Number(sc.valor)) && Number(sc.em) > 0) {
+    saldoConta = { valor: Math.round(Number(sc.valor) * 100) / 100, em: Number(sc.em) };
+  }
+
   const arr = lerJSON(ARRANQUE_CHAVE, null);
   if (arr) {
     const e = Number(arr.entra), s = Number(arr.essenciais);
@@ -795,6 +827,62 @@ function carregarLocal() {
       });
     }
   }
+}
+
+/* ------------------------------------------------------------
+   Quando é que um movimento foi lançado
+
+   Para o saldo se manter certo é preciso saber quais dos movimentos vieram
+   DEPOIS de a pessoa dizer quanto tinha. A data não serve: alguém pode
+   lançar hoje um gasto de ontem, e esse gasto já estava descontado no número
+   que ela leu no extracto.
+
+   O `id` traz a hora dentro — é `Date.now()` em base 36 — e os movimentos
+   novos passam a trazer também um `criado`, escrito por extenso. Não se lendo
+   nem um nem outro, conta como antigo: um movimento que não sabemos quando
+   nasceu não pode andar a mexer no saldo que a pessoa afirmou.
+   ------------------------------------------------------------ */
+const ANO_2000 = 946684800000;
+
+function quandoFoiLancado(m) {
+  if (m && typeof m.criado === 'number' && m.criado > ANO_2000) return m.criado;
+  const t = parseInt(String((m && m.id) || '').slice(0, 8), 36);
+  return (isFinite(t) && t > ANO_2000 && t < Date.now() + 86400000) ? t : 0;
+}
+
+/* O saldo de agora: o que a pessoa disse, mais o que entrou e menos o que
+   saiu desde que o disse. */
+function saldoAgora() {
+  if (!saldoConta) return null;
+  return Math.round((saldoConta.valor + movimentos.reduce((soma, m) => {
+    if (quandoFoiLancado(m) <= saldoConta.em) return soma;
+    return soma + (m.tipo === 'entrada' ? m.valor : -m.valor);
+  }, 0)) * 100) / 100;
+}
+
+/* Substitui, não soma. E fica com a hora, que é o que permite descontar dali
+   para a frente sem descontar duas vezes o que já estava descontado. */
+function definirSaldoConta(valor) {
+  const v = Number(valor);
+  if (!isFinite(v)) return null;
+  saldoConta = { valor: Math.round(v * 100) / 100, em: Date.now() };
+  try { localStorage.setItem(SALDO_CHAVE, JSON.stringify(saldoConta)); } catch (e) {}
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ saldoConta: saldoConta }, { merge: true }).catch(() => {});
+  }
+  desenhar();
+  return saldoConta.valor;
+}
+
+function esquecerSaldoConta() {
+  saldoConta = null;
+  try { localStorage.removeItem(SALDO_CHAVE); } catch (e) {}
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ saldoConta: null }, { merge: true }).catch(() => {});
+  }
+  desenhar();
 }
 
 /* Substitui, não soma: "tenho 1000" é o total de agora, não mais mil. */
@@ -1346,7 +1434,12 @@ function desenharTopo(r) {
   } else if (v.livre < 0) {
     elLivre.textContent = dinheiro(v.livre);
     elLivre.classList.add('neg');
-    elSub.textContent = 'Saiu mais ' + dinheiro(Math.abs(v.livre)) + ' do que entrou este mês.';
+    /* As três palavras do fim são o que faltava. Um mês com mais saídas do
+       que entradas é normal antes de entrar o ordenado, mas um número grande
+       e vermelho lê-se como uma dívida — e quem o lê assim vem perguntar
+       porque é que a aplicação lhe inventou um saldo negativo. */
+    elSub.textContent = 'Saiu mais ' + dinheiro(Math.abs(v.livre)) +
+      ' do que entrou este mês. Não é uma dívida.';
   } else {
     elLivre.textContent = dinheiro(v.livre);
     elLivre.classList.remove('neg');
@@ -1372,6 +1465,8 @@ function desenharTopo(r) {
     }
   }
 
+  desenharSaldoConta();
+
   document.getElementById('v-guardado').textContent = dinheiro(v.guardado);
 
   const elMeses = document.getElementById('v-reserva-meses');
@@ -1393,6 +1488,24 @@ function desenharTopo(r) {
   document.getElementById('resumo-linha').textContent = r.ehFuturo ? ''
     : ('Entrou ' + dinheiro(v.entrou) + '  ·  Saiu ' + dinheiro(v.saiu) +
        '  ·  Guardou ' + dinheiro(v.guardado));
+}
+
+/* A linha do dinheiro a sério.
+
+   Só existe depois de a pessoa dizer quanto tem — não se inventa um saldo a
+   partir dos movimentos, porque a app não viu o mês em que ela começou nem
+   sabe o que havia na conta antes disso. Dita a frase uma vez, fica certa
+   sozinha para sempre. */
+function desenharSaldoConta() {
+  const el = document.getElementById('v-conta');
+  if (!el) return;
+
+  const agora = saldoAgora();
+  if (agora === null) { el.hidden = true; el.textContent = ''; return; }
+
+  el.hidden = false;
+  el.className = 'linha-conta' + (agora < 0 ? ' neg' : '');
+  el.textContent = 'Na conta: ' + dinheiro(agora);
 }
 
 function desenharLembrete(r) {
@@ -3723,6 +3836,10 @@ function lancar(dados) {
     categoria: dados.categoria,
     descricao: (dados.descricao || '').slice(0, 120),
     data: dados.data,
+    /* A hora a que foi lançado, que não é a data a que aconteceu. É isto que
+       permite ao saldo da conta saber o que já estava descontado no número
+       que a pessoa leu no extracto e o que veio depois. */
+    criado: Date.now(),
     moeda: moeda
   };
   if (typeof dados.ess === 'boolean') m.ess = dados.ess;
@@ -4340,6 +4457,17 @@ function ligarNuvem() {
         if (isFinite(rn) && rn > 0 && rn !== reservaInicial) {
           reservaInicial = Math.round(rn * 100) / 100;
           try { localStorage.setItem(RESERVA_INICIAL_CHAVE, String(reservaInicial)); } catch (e) {}
+        }
+
+        /* Saldo da conta: ganha o mais recente dos dois lados. Aqui não se
+           pode juntar nem somar — é um retrato de um instante, e de dois
+           retratos o que vale é o último. */
+        const sn = dados.saldoConta;
+        if (sn && typeof sn === 'object' && isFinite(Number(sn.valor)) && Number(sn.em) > 0) {
+          if (!saldoConta || Number(sn.em) > saldoConta.em) {
+            saldoConta = { valor: Math.round(Number(sn.valor) * 100) / 100, em: Number(sn.em) };
+            try { localStorage.setItem(SALDO_CHAVE, JSON.stringify(saldoConta)); } catch (e) {}
+          }
         }
 
         const ar = dados.arranque;

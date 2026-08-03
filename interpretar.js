@@ -113,7 +113,22 @@ function acharValores(texto) {
     const mm = t.match(/((?:(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezasseis|dezesseis|dezassete|dezessete|dezoito|dezanove|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milhao|milhoes)(?:\s+e\s+|\s+)?)+)/);
     if (mm) {
       const v = numeroPorExtenso(mm[1]);
-      if (v) achados.push({ valor: v, inicio: mm.index, fim: mm.index + mm[1].length, texto: mm[1].trim() });
+
+      /* "um" e "uma" quase nunca são o número um: são o artigo. Em «isso não é
+         **um** saldo negativo, arruma isso» não há dinheiro nenhum — e, sem
+         esta linha, havia: a frase era lida como o valor 1 e o saldo da pessoa
+         passava a um euro. Foi mesmo o que aconteceu a quem escreveu isso à
+         aplicação, e o que ela respondeu a seguir — "menos um" — era o artigo
+         a ser tratado como dinheiro.
+
+         Para "um" contar como número tem de vir com a moeda à frente
+         ("um euro", "uma nota de..."), que é como as pessoas escrevem quando
+         é mesmo um. */
+      const soUm = /^(um|uma)$/.test(mm[1].trim());
+      const comMoeda = /^\s*(euros?|eur|reais?|real|r\$|€|\$)/.test(t.slice(mm.index + mm[1].length));
+      if (v && (!soUm || comMoeda)) {
+        achados.push({ valor: v, inicio: mm.index, fim: mm.index + mm[1].length, texto: mm[1].trim() });
+      }
     }
   }
   return achados;
@@ -177,7 +192,11 @@ const V_SAIDA = ['gastei','gastou','gastamos','gastei-me','gasto','gastar',
   'paguei','pagou','pagamos','pago','pagar',
   'comprei','comprou','compramos','compra ','comprar',
   'custou','custa','torrei','deixei','saiu','despesa','despesas',
-  'abasteci','meti','carreguei','levei','fiz compras','fui ao','fui a '];
+  'abasteci','meti','carreguei','levei','fiz compras','fui ao','fui a ',
+  /* Levantar dinheiro tira-o da conta — o que sai do banco sai do banco,
+     mesmo que fique no bolso. Faltava, e sem isto "levantei 200 no
+     multibanco" não era nada: nem gasto, nem saldo, nem resposta. */
+  'levantei','levantou','levantamento','retirei','retirou','saquei','sacou','saque'];
 const V_ENTRADA = ['recebi','recebeu','recebemos','recebo','recebido',
   'ganhei','ganhou','ganho','entrou','caiu','me pagaram','pagaram-me',
   'depositaram','veio','creditaram','recebimento','entrada de','vendi','vendeu'];
@@ -187,10 +206,46 @@ const V_ENTRADA = ['recebi','recebeu','recebemos','recebo','recebido',
    tem. */
 const FUTURO = ['vou ','vamos ','quero ','queria ','penso ','pretendo ','se eu ',
   'preciso de ','tenho de ','tenho que ','devia ','pensei em ','estou a pensar'];
-const V_SALDO = ['tenho','tinha','fiquei com','sobrou-me','tenho guardado','tenho de lado','no banco','na conta','na poupanca','de lado','guardado','poupado','na carteira','em casa'];
+/* ---------- dizer quanto se tem ----------
+
+   "Tenho 1000 no banco" não é um movimento: é um facto sobre o presente. E há
+   duas coisas muito diferentes que se dizem com as mesmas palavras:
+
+     "tenho 1000 no banco"      → é o dinheiro da conta, o que dá para gastar
+     "tenho 1000 de lado"       → é a reserva, dinheiro que está guardado
+
+   Isto esteve tudo no mesmo saco, e o resultado era o pior possível: alguém
+   dizia quanto tinha na conta, a app arrumava-o na reserva, e o número grande
+   do ecrã continuava a dizer outra coisa. A pessoa lia isso como "a ferramenta
+   não percebeu nada do que eu disse" — e tinha razão. */
+const V_SALDO = ['tenho','tinha','fiquei com','sobrou-me','sobrou me','me sobrou',
+  'estou com','ando com','restam','resta-me','resta me','me restam','sobra-me','sobra me',
+  'o meu saldo e','meu saldo e','o saldo e','saldo atual e','saldo actual e','saldo real e',
+  'no banco','na conta','na poupanca','de lado','guardado','poupado','na carteira','em casa'];
+
+/* Onde é que o dinheiro está. Sem nada dito, é a conta — é o caso comum, e é
+   o que a pessoa quer ver quando pergunta "quanto tenho?". */
+const ONDE_RESERVA = ['de lado','guardado','guardados','poupado','poupados','poupanca',
+  'reserva','pe de meia','pé de meia','mealheiro','emergencia'];
+const ONDE_CONTA = ['no banco','na conta','conta bancaria','multibanco','na carteira',
+  'em casa','na mao','a mao','em dinheiro','saldo'];
 
 function contem(t, lista) {
   return lista.some(k => t.includes(k));
+}
+
+/* 'conta' ou 'reserva'. Dito nenhum dos dois, é a conta: quem escreve "tenho
+   1000" está a falar do dinheiro que tem para viver, não de um pé-de-meia. */
+function ondeEstaODinheiro(t) {
+  const r = ONDE_RESERVA.filter(k => t.includes(k));
+  const c = ONDE_CONTA.filter(k => t.includes(k));
+  if (!r.length) return 'conta';
+  if (!c.length) return 'reserva';
+  /* Ditas as duas ("tenho 1000 no banco, de lado"), ganha a mais comprida —
+     a mesma regra que decide as categorias, e pela mesma razão. */
+  const maisR = r.reduce((a, b) => a.length >= b.length ? a : b);
+  const maisC = c.reduce((a, b) => a.length >= b.length ? a : b);
+  return maisR.length > maisC.length ? 'reserva' : 'conta';
 }
 
 /* ---------- datas ----------
@@ -320,6 +375,7 @@ function interpretar(texto, opcoes) {
   if (ehSaldo && !ehSaida && !ehEntrada) {
     return {
       ok: true, tipo: 'saldo',
+      onde: ondeEstaODinheiro(t),
       valor: valores[0].valor,
       texto: cru
     };
@@ -529,6 +585,107 @@ function calculadora(texto) {
 
 /* Para os testes correrem em node sem browser. No navegador esta linha não
    faz nada — `module` não existe e o `typeof` evita o erro. */
+/* ============================================================
+   O que a pessoa está a pedir
+
+   O `interpretar()` responde a uma pergunta só: "isto é um movimento?". E
+   durante muito tempo foi a única pergunta que a aplicação sabia fazer — tudo
+   o que não fosse um movimento caía numa lista de temas de ajuda.
+
+   O que isso fazia, na prática: alguém dizia "isso não é um saldo negativo,
+   arruma isso" e recebia de volta sete tópicos sobre reservas de emergência.
+   A pessoa dizia a mesma coisa por outras palavras, recebia os mesmos sete
+   tópicos, e concluía — com razão — que do outro lado não estava ninguém a
+   ouvir.
+
+   Isto trata do resto: corrigir, reclamar, perguntar quanto se tem. São
+   frases sem número ou com um número que não é um gasto, e cada uma tem uma
+   resposta certa que não é uma lista de tópicos.
+   ============================================================ */
+
+/* Palavras de quem está a mandar arranjar alguma coisa. */
+const PEDIR_ARRANJO = ['corrig', 'corrije', 'arruma', 'arranja', 'arranje',
+  'conserta', 'muda', 'mude', 'altera', 'altere', 'acerta', 'acerte', 'ajusta', 'ajuste',
+  'atualiza', 'actualiza', 'errado', 'errada', 'nao esta certo', 'nao ta certo',
+  'esta mal', 'ta mal', 'nao e isso', 'nao e esse', 'nao e assim', 'errei', 'enganei-me',
+  'me enganei', 'nao bate', 'esta errado', 'ta errado',
+  /* "o valor certo é X" — a forma mais directa de todas, e faltava. "certo"
+     sozinho não serve: "está certo!" é a pessoa a concordar. */
+  'valor certo e', 'o certo e', 'correto e', 'correcto e', 'certo sao', 'certo e de',
+  'na verdade e', 'na verdade sao', 'afinal e', 'afinal sao', 'e mesmo'];
+
+/* Quem diz isto está a falar do número grande do ecrã. */
+const FALA_DO_NEGATIVO = ['negativo', 'menos', 'vermelho', 'divida no ecra', 'saldo negativo'];
+
+const PERGUNTA_QUANTO = /\b(quanto (e que )?(eu )?tenho|quanto (e que )?(me )?(sobra|resta)|qual (e )?(o )?meu saldo|qual (e )?o saldo|quanto ha na conta|quanto tenho na conta)\b/;
+
+/* Frases que apontam para o último lançamento, e não para o saldo. */
+const FALA_DO_ULTIMO = ['ultimo', 'ultima', 'esse lancamento', 'aquele lancamento',
+  'o lancamento', 'a compra', 'aquela compra', 'essa compra', 'o gasto', 'aquele gasto'];
+
+/* ------------------------------------------------------------
+   Devolve o que a pessoa quer, ou null se isto não for para aqui.
+
+   { pedido: 'saldo-quanto' }                    — quanto tenho?
+   { pedido: 'corrigir-saldo',  valor }          — o certo é X
+   { pedido: 'corrigir-ultimo', valor }          — o último foi X, não Y
+   { pedido: 'queixa-saldo' }                    — "isso não é negativo", sem número
+   { pedido: 'queixa' }                          — "está errado", sem mais nada
+   ------------------------------------------------------------ */
+function entenderPedido(texto) {
+  const cru = String(texto || '').trim();
+  if (!cru) return null;
+  const t = semAcentos(cru).toLowerCase();
+
+  if (PERGUNTA_QUANTO.test(t)) return { pedido: 'saldo-quanto' };
+
+  const querArranjo = contem(t, PEDIR_ARRANJO);
+  const falaDoNegativo = contem(t, FALA_DO_NEGATIVO);
+  const valores = acharValores(cru);
+
+  /* Sem número: é uma reclamação. Não há nada a gravar, mas há muito a
+     explicar — e explicar é precisamente o que faltava. */
+  if (!valores.length) {
+    if (falaDoNegativo) return { pedido: 'queixa-saldo' };
+    if (querArranjo) return { pedido: 'queixa' };
+    return null;
+  }
+
+  /* Com número e com ordem de arranjo, falta saber o quê: o último
+     lançamento ou o saldo. Quem nomeia o lançamento está a falar dele — e
+     nomeá-lo chega, porque "o último foi 50, não 500" não traz mais nada. */
+  const falaDoUltimo = contem(t, FALA_DO_ULTIMO);
+  if (querArranjo || falaDoNegativo || falaDoUltimo) {
+    const bom = valorCorrigido(cru, t, valores);
+    if (bom === null) return null;
+    return {
+      pedido: falaDoUltimo ? 'corrigir-ultimo' : 'corrigir-saldo',
+      valor: bom,
+      onde: ondeEstaODinheiro(t)
+    };
+  }
+
+  return null;
+}
+
+/* Qual dos números da frase é o certo.
+
+   Numa correcção há quase sempre dois: o errado e o bom. E o que os separa
+   não é a ordem — é o "não". Em «era 50 e não 500» o bom vem primeiro; em
+   «não é 500, são 50» vem depois. Ficar com o último, como estava, dava 500
+   nos dois casos: a app gravava exactamente o número que a pessoa acabara de
+   dizer que estava errado. */
+function valorCorrigido(cru, t, valores) {
+  const recusados = valores.filter(v => {
+    const antes = t.slice(Math.max(0, v.inicio - 12), v.inicio);
+    return /\bnao\s+(e\s+|era\s+|sao\s+|foi\s+)?$/.test(antes);
+  });
+  const bons = valores.filter(v => recusados.indexOf(v) === -1);
+  const lista = bons.length ? bons : valores;
+  return lista.length ? lista[lista.length - 1].valor : null;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { interpretar, calculadora, acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
+  module.exports = { interpretar, calculadora, entenderPedido, ondeEstaODinheiro,
+    acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
 }
