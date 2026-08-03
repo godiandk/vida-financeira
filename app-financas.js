@@ -351,7 +351,12 @@ let contasEditando = false;// o ecrã de gestão está em modo de edição
    `entra` e `essenciais` são o que a pessoa DISSE, não o que foi medido. Ficam
    separados dos movimentos de propósito: assim que houver lançamentos a sério,
    é por eles que a app se guia, e isto passa a ser só o ponto de partida. */
-let arranque = { feito: false, dispensado: false, entra: null, essenciais: null };
+let arranque = {
+  feito: false, dispensado: false,
+  entra: null, essenciais: null,
+  comQuem: null, saldoMinha: null, saldoParceiro: null,
+  saldoEmergencia: null, divida: null, plano: null
+};
 let arranquePasso = 0;     // 0, 1, 2 = perguntas · 3 = a resposta
 
 /* O que já estava guardado antes de a aplicação existir. "Tenho 1000 no
@@ -843,7 +848,13 @@ function carregarLocal() {
       feito: !!arr.feito,
       dispensado: !!arr.dispensado,
       entra: (isFinite(e) && e > 0) ? e : null,
-      essenciais: (isFinite(s) && s >= 0) ? s : null
+      essenciais: (isFinite(s) && s >= 0) ? s : null,
+      comQuem: typeof arr.comQuem === 'string' ? arr.comQuem : null,
+      saldoMinha: numeroOuNada(arr.saldoMinha),
+      saldoParceiro: numeroOuNada(arr.saldoParceiro),
+      saldoEmergencia: numeroOuNada(arr.saldoEmergencia),
+      divida: numeroOuNada(arr.divida),
+      plano: typeof arr.plano === 'string' ? arr.plano : null
     };
   }
 
@@ -3323,27 +3334,139 @@ function actualizarParc(notaDivisao) {
 }
 
 /* ============================================================
-   PRIMEIRO ARRANQUE — duas perguntas e uma resposta
+   PRIMEIRO ARRANQUE
 
    A app abria com três zeros e uma frase a dizer que não se lançou nada.
    Um caderno em branco. Quem está com a corda ao pescoço não abre um caderno
    em branco duas vezes.
 
-   Duas perguntas, e a resposta na terceira folha. Duas e não seis: cada
-   pergunta a mais é gente que desiste, e com estas duas já se consegue dizer
-   a coisa que interessa — quanto sobra por dia.
+   Eram duas perguntas — quanto entra, quanto é o que não dá para não pagar —
+   e o princípio escrito aqui era "duas e não seis: cada pergunta a mais é
+   gente que desiste". Continua a ser verdade, e por isso o que se segue tem
+   de ser lido com cuidado: as perguntas passaram a sete.
 
-   Regras que isto respeita:
+   A razão é que faltavam factos sem os quais a app não podia responder ao que
+   lhe perguntam. Sem saber se a pessoa vive com alguém, "de quem era este
+   dinheiro?" não tem resposta. Sem saber o que há na conta hoje, o número
+   grande do ecrã é uma diferença que ninguém pede. Sem saber quanto se deve,
+   não há nada a dizer sobre dívidas.
+
+   O que impede isto de virar um formulário:
+   - Só as duas primeiras são obrigatórias. Todas as outras têm "Não sei" e
+     seguem em frente sem nada gravado.
+   - A pergunta do parceiro só existe para quem disse que vive com alguém.
+   - Sai-se a qualquer momento com "Agora não", e não se volta a ver isto.
+
+   E as regras de sempre:
    - Nada do que aqui se escreve vira movimento sem a pessoa confirmar que já
      aconteceu. Dizer "entram 900 por mês" não é dizer "recebi 900 hoje", e
      gravar um lançamento que não houve é escrever ficção nos dados dela.
    - O que ela disser fica marcado como dito, nunca como medido. Assim que
      houver lançamentos a sério, são eles que mandam.
-   - Dá para saltar. Quem não quiser responder carrega uma vez e nunca mais vê
-     isto.
    ============================================================ */
+
+/* Os planos. Não são estratégias de investimento: são a resposta à pergunta
+   "o que é que eu faço primeiro?", que é a única que interessa a quem está a
+   começar. Cada um muda o que a app põe à frente, e nada mais — não há aqui
+   nenhum produto a ser recomendado a ninguém. */
+const PLANOS = [
+  { id: 'respirar', nome: 'Chegar ao fim do mês',
+    ajuda: 'Primeiro parar de afundar. A app põe à frente o que sai e onde dá para cortar.' },
+  { id: 'reserva', nome: 'Juntar uma reserva',
+    ajuda: 'As contas estão a dar. Agora é juntar dinheiro para os imprevistos não virarem dívida.' },
+  { id: 'divida', nome: 'Sair das dívidas',
+    ajuda: 'Há prestações a pagar. A app põe à frente o que custam e quanto falta.' }
+];
+
+function nomeDoPlano(id) {
+  const p = PLANOS.filter(x => x.id === id)[0];
+  return p ? p.nome : '';
+}
+
+/* As perguntas, por ordem. `tipo` decide o que se desenha: um campo de número
+   ou botões. `sePrecisa` é o que faz a pergunta do parceiro não aparecer a
+   quem vive sozinho. */
+function passosDoArranque() {
+  const passos = [
+    { chave: 'entra', tipo: 'valor', obrigatoria: true,
+      titulo: 'Quanto entra por mês?',
+      ajuda: 'Tudo o que entra em casa, de todas as pessoas: salário, apoios, pensões, biscates. Um número aproximado chega.' },
+    { chave: 'essenciais', tipo: 'valor', obrigatoria: true,
+      titulo: 'E quanto é o que não dá para não pagar?',
+      ajuda: 'Casa, comida, luz, água, transporte, remédios. Só isso — o resto fica de fora. Se não souber ao certo, escreva o que lhe parecer.' },
+    { chave: 'comQuem', tipo: 'escolha',
+      titulo: 'Vive sozinho ou com alguém?',
+      ajuda: 'Isto serve para eu saber de quem é o dinheiro quando me disser "ela gastou 40 no mercado". Nada mais.',
+      opcoes: [
+        { id: 'so', nome: 'Sozinho(a)' },
+        { id: 'esposa', nome: 'Com a minha esposa' },
+        { id: 'marido', nome: 'Com o meu marido' },
+        { id: 'companheiro', nome: 'Com outra pessoa' }
+      ] },
+    { chave: 'saldoMinha', tipo: 'valor',
+      titulo: 'Quanto tem na sua conta agora?',
+      ajuda: 'O que está lá hoje. É este o número que passa a aparecer no Início — e a partir daqui sou eu que o mantenho certo.' },
+    { chave: 'saldoParceiro', tipo: 'valor',
+      sePrecisa: () => temParceiro(),
+      titulo: () => 'E quanto tem ' + nomeDoParceiro() + ' na conta dela?',
+      ajuda: 'Se não souber, salte. Dá para dizer mais tarde ao chat: "ela tem 800 na conta dela".' },
+    { chave: 'saldoEmergencia', tipo: 'valor',
+      titulo: 'E de lado, para emergências?',
+      ajuda: 'Dinheiro que não é para gastar este mês: poupança, pé-de-meia, o que estiver guardado. Se não houver nada, escreva 0.' },
+    { chave: 'divida', tipo: 'valor',
+      titulo: 'Quanto devem hoje, ao todo?',
+      ajuda: 'Cartões, crédito, prestações, dinheiro pedido a alguém. Somado. Se não dever nada, escreva 0 — é uma boa notícia e vale a pena vê-la escrita.' },
+    { chave: 'plano', tipo: 'escolha',
+      titulo: 'E o que quer fazer primeiro?',
+      ajuda: 'Pode mudar quando quiser. Serve só para eu saber o que lhe pôr à frente.',
+      opcoes: PLANOS.map(pl => ({ id: pl.id, nome: pl.nome, ajuda: pl.ajuda })) }
+  ];
+  return passos.filter(x => !x.sePrecisa || x.sePrecisa());
+}
+/* Um número respondido, ou `null` para "não sei". Zero é uma resposta — quem
+   escreve 0 na dívida está a dizer que não deve nada, e isso não é o mesmo que
+   não ter respondido. */
+function numeroOuNada(x) {
+  const n = Number(x);
+  return (x !== null && x !== undefined && x !== '' && isFinite(n) && n >= 0)
+    ? Math.round(n * 100) / 100 : null;
+}
+
 function precisaArranque() {
   return !arranque.feito && !arranque.dispensado && movimentos.length === 0;
+}
+
+/* O rodapé é sempre o mesmo: voltar atrás, ou sair de vez. Sair tem de estar
+   à vista em todas as folhas — a alternativa é alguém ficar preso num
+   formulário que não quer responder. */
+function rodapeDoArranque(passos) {
+  const zona = document.createElement('div');
+  zona.className = 'arr-rodape';
+  if (arranquePasso > 0) {
+    zona.appendChild(botao('‹ Voltar', 'arr-voltar', () => { arranquePasso--; desenhar(); }));
+  }
+  zona.appendChild(botao('Agora não', 'arr-voltar', () => {
+    arranque.dispensado = true;
+    guardarArranque();
+    desenhar();
+    abrirEcra('inicio');
+  }));
+  return zona;
+}
+
+/* O que a pessoa respondeu vira estado da app — e só isso. Nenhum movimento é
+   criado aqui: dizer "tenho 400 na conta" não é dizer "recebi 400 hoje". */
+function aplicarArranque() {
+  const n = k => (typeof arranque[k] === 'number' && isFinite(arranque[k])) ? arranque[k] : null;
+
+  if (n('saldoMinha') !== null) definirCarteira('minha', arranque.saldoMinha);
+  if (n('saldoParceiro') !== null && temParceiro()) definirCarteira('parceiro', arranque.saldoParceiro);
+  if (n('saldoEmergencia') !== null) definirReservaInicial(arranque.saldoEmergencia);
+  if (n('divida') !== null) definirDividaTotal(arranque.divida);
+  /* Não se marca `feito` aqui de propósito: quem marca é o `terminarArranque`,
+     no fim da folha da resposta. Marcá-lo agora escondia o ecrã inteiro e a
+     pessoa nunca chegava a ver o que as respostas dela deram. */
+  guardarArranque();
 }
 
 function desenharArranque() {
@@ -3355,16 +3478,8 @@ function desenharArranque() {
   ecra.hidden = false;
   corpo.innerHTML = '';
 
-  const passos = [
-    { chave: 'entra',
-      titulo: 'Quanto entra por mês?',
-      ajuda: 'Tudo o que entra em casa, de todas as pessoas: salário, apoios, pensões, biscates. Um número aproximado chega.' },
-    { chave: 'essenciais',
-      titulo: 'E quanto é o que não dá para não pagar?',
-      ajuda: 'Casa, comida, luz, água, transporte, remédios. Só isso — o resto fica de fora. Se não souber ao certo, escreva o que lhe parecer.' }
-  ];
+  const passos = passosDoArranque();
 
-  /* ---- as duas perguntas ---- */
   if (arranquePasso < passos.length) {
     const passo = passos[arranquePasso];
 
@@ -3374,12 +3489,52 @@ function desenharArranque() {
 
     const h = document.createElement('h2');
     h.className = 'arr-titulo';
-    h.textContent = passo.titulo;
+    h.textContent = typeof passo.titulo === 'function' ? passo.titulo() : passo.titulo;
 
     const aj = document.createElement('p');
     aj.className = 'arr-ajuda';
-    aj.textContent = passo.ajuda;
+    aj.textContent = typeof passo.ajuda === 'function' ? passo.ajuda() : passo.ajuda;
 
+    corpo.append(conta, h, aj);
+
+    const avancar = () => {
+      arranquePasso++;
+      guardarArranque();
+      if (arranquePasso >= passos.length) aplicarArranque();
+      desenhar();
+    };
+
+    /* ---- uma escolha entre botões ---- */
+    if (passo.tipo === 'escolha') {
+      const lista = document.createElement('div');
+      lista.className = 'arr-opcoes';
+      passo.opcoes.forEach(op => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'arr-opcao' + (arranque[passo.chave] === op.id ? ' escolhida' : '');
+        const n = document.createElement('b');
+        n.textContent = op.nome;
+        b.appendChild(n);
+        if (op.ajuda) {
+          const a = document.createElement('small');
+          a.textContent = op.ajuda;
+          b.appendChild(a);
+        }
+        b.addEventListener('click', () => {
+          arranque[passo.chave] = op.id;
+          /* A escolha de com quem se vive muda as perguntas que vêm a seguir,
+             por isso tem de ficar guardada antes de se contar os passos. */
+          if (passo.chave === 'comQuem') definirLar(op.id);
+          avancar();
+        });
+        lista.appendChild(b);
+      });
+      corpo.appendChild(lista);
+      corpo.appendChild(rodapeDoArranque(passos));
+      return;
+    }
+
+    /* ---- um número ---- */
     const campo = document.createElement('div');
     campo.className = 'arr-campo';
     const inp = document.createElement('input');
@@ -3392,38 +3547,33 @@ function desenharArranque() {
     campo.appendChild(inp);
 
     const seguir = () => {
-      const n = parseFloat(String(inp.value).replace(',', '.'));
+      const cru = String(inp.value).trim();
+      /* Vazio numa pergunta opcional é "não sei", e não um erro. Obrigar a
+         escrever um número que não se sabe é convidar a inventá-lo. */
+      if (!cru && !passo.obrigatoria) { arranque[passo.chave] = null; avancar(); return; }
+      const n = parseFloat(cru.replace(',', '.'));
       if (!isFinite(n) || n < 0) {
         mostrarAviso('Escreva um número, mesmo que seja por alto.', 'erro');
         inp.focus();
         return;
       }
       arranque[passo.chave] = Math.round(n * 100) / 100;
-      arranquePasso++;
-      guardarArranque();
-      desenhar();
+      avancar();
     };
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); seguir(); } });
 
-    const bt = botao(arranquePasso === passos.length - 1 ? 'Ver o que sobra' : 'Seguinte',
-                     'btn btn-gold arr-bt', seguir);
+    corpo.appendChild(campo);
+    corpo.appendChild(botao(arranquePasso === passos.length - 1 ? 'Ver as minhas contas' : 'Seguinte',
+                            'btn btn-gold arr-bt', seguir));
 
-    corpo.append(conta, h, aj, campo, bt);
-
-    if (arranquePasso > 0) {
-      corpo.appendChild(botao('‹ Voltar', 'arr-voltar', () => {
-        arranquePasso--;
-        desenhar();
-      }));
-    } else {
-      corpo.appendChild(botao('Agora não', 'arr-voltar', () => {
-        arranque.dispensado = true;
-        guardarArranque();
-        desenhar();
-        abrirEcra('inicio');
+    if (!passo.obrigatoria) {
+      corpo.appendChild(botao('Não sei — saltar', 'arr-saltar', () => {
+        arranque[passo.chave] = null;
+        avancar();
       }));
     }
 
+    corpo.appendChild(rodapeDoArranque(passos));
     setTimeout(() => { inp.focus(); inp.select(); }, 60);
     return;
   }

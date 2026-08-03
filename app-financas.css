@@ -667,3 +667,28 @@ ul.movs li:last-child{border-bottom:none}
 .lc-total{margin-top:6px;padding-top:8px;border-top:1px solid rgba(217,178,110,.12)}
 .lc-total .lc-nome{color:var(--cream)}
 .lc-divida .lc-nome{color:var(--cream-dim)}
+
+/* ---------- as escolhas do arranque ----------
+   Botões grandes e não um menu: quem responde a isto está muitas vezes num
+   telemóvel pequeno, de pé, e um <select> nativo com quatro linhas é onde as
+   pessoas desistem. */
+.arr-opcoes{display:grid;gap:10px;margin:18px 0 4px}
+.arr-opcao{
+  display:block;width:100%;text-align:left;cursor:pointer;
+  background:var(--ink-2);border:1px solid rgba(217,178,110,.24);
+  border-radius:14px;padding:15px 17px;font-family:inherit;color:var(--cream);
+  min-height:56px;
+}
+.arr-opcao b{display:block;font-size:.98rem;font-weight:700}
+.arr-opcao small{display:block;margin-top:3px;color:var(--cream-dim);font-size:.83rem;line-height:1.45}
+.arr-opcao:active{background:var(--ink-3)}
+.arr-opcao.escolhida{border-color:var(--gold);background:rgba(217,178,110,.1)}
+
+/* "Não sei" tem de estar à vista e não escondido: obrigar alguém a escrever um
+   número que não sabe é convidá-lo a inventá-lo, e um número inventado é pior
+   do que um espaço em branco. */
+.arr-saltar{
+  display:block;width:100%;margin-top:10px;background:none;border:none;cursor:pointer;
+  color:var(--cream-dim);font-family:inherit;font-size:.88rem;padding:10px;min-height:44px;
+}
+.arr-rodape{display:flex;gap:14px;justify-content:center;margin-top:14px}
