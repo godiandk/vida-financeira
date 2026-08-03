@@ -285,6 +285,58 @@ mal escrita no código, que o primeiro não vê. Nenhuma das duas falhas dá err
 no navegador — aparecem no telemóvel de alguém como um texto na língua errada
 ou uma palavra crua a meio de uma conversa sobre a renda.
 
+## A casa partilhada
+
+Um casal tem duas contas e umas contas de casa só. Cada pessoa tinha a sua
+cópia dos movimentos e as duas cópias não se falavam: quem lançava o mercado
+era quem se lembrava, e o outro via um mês incompleto e deixava de confiar no
+número.
+
+Hoje, nas **Ferramentas → Somos dois nesta casa**, um cria um código
+(`VF-CASA-4K7P-9RTM`), o outro escreve-o, e a partir daí o que um lança
+aparece no telemóvel do outro em segundos. É o `onSnapshot` do Firestore: não
+há botão de sincronizar, nem espera.
+
+Quatro decisões que valem mais do que a funcionalidade:
+
+**Uma casa, e não duas cópias a espelharem-se.** A tentação é cada telemóvel
+mandar a sua cópia ao outro. É onde estes sistemas se partem: duas cópias a
+acertarem uma pela outra discordam mais depressa do que se corrigem. Aqui há
+um documento e duas pessoas com a chave dele.
+
+**O código é um convite, não uma chave.** Vale 24 horas e uma vez só. Um
+código permanente que dá acesso às finanças de alguém acaba escrito num papel,
+num print, num grupo de família.
+
+**Sair é tão importante como entrar.** Qualquer um sai sozinho, agora, sem
+pedir licença, e leva tudo: os movimentos ficam no telemóvel de quem sai.
+Ninguém expulsa ninguém — cada um sai da sua ponta. Numa aplicação de dinheiro
+usada por casais isto não é arrumação: uma relação que acaba mal não pode
+deixar uma pessoa a ver as contas da outra, nem a ficar sem as suas.
+
+**Apagar deixa marca.** Os movimentos juntam-se pelo `id`, o que resolve dois
+telemóveis a lançar sem rede. Apagar é que é traiçoeiro: sem memória do que
+foi apagado, o movimento volta na sincronização seguinte, mandado pelo lado
+que não soube. Guarda-se o `id` do que se apagou (nunca o valor — esse já não
+é da conta de ninguém), e a marca ganha à cópia antiga. Se um apagou e o outro
+corrigiu o mesmo movimento, **apagar ganha**: um gasto a mais nas contas de
+uma casa é uma discussão; um número desactualizado é uma correcção repetida.
+
+A pertença não é uma lista dentro do documento — é um documento por pessoa em
+`lares/{id}/membros/{uid}`. A razão é uma limitação real do Firestore: quem
+está a entrar ainda não é membro, logo não pode ler o documento para se
+acrescentar a uma lista, e um `arrayUnion` não é visível às regras de
+segurança, que ficariam sem poder verificar o que está a ser escrito.
+
+O `teste-casa.mjs` corre 19 verificações sobre a parte que decide o que
+sobrevive a uma fusão — sem Firebase e sem ecrã, porque é a parte que se parte
+em silêncio: um movimento que desaparece não dá erro nenhum, só deixa a conta
+errada e a pessoa a achar que se enganou.
+
+> **Depois de actualizar o site, republique as regras** de `firestore.rules`
+> no painel do Firebase. Sem isso, a casa partilhada não funciona: o Firestore
+> recusa tudo o que ainda não tiver regra escrita — e isso é de propósito.
+
 ## As carteiras
 
 Uma pessoa sozinha tem uma conta. Um casal tem três: a dele, a dela, e o

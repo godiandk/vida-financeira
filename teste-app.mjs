@@ -119,7 +119,8 @@ await testar('as ferramentas estão arrumadas por pergunta', async () => {
   const grupos = await p.evaluate(() =>
     [...document.querySelectorAll('.ferr-grupo')].map(g => g.id));
   assert.deepEqual(grupos,
-    ['grupo-dividas', 'grupo-guardar', 'grupo-gastar', 'grupo-apoios', 'grupo-planear']);
+    ['grupo-dividas', 'grupo-guardar', 'grupo-gastar', 'grupo-apoios',
+     'grupo-casa', 'grupo-planear']);
 });
 
 await testar('cada ferramenta nasce fechada, com o nome e para que serve', async () => {
@@ -311,6 +312,26 @@ await testar('e nenhum cartão inventa uma história que não sabe', async () =>
     assert.ok(!/comecei do zero/i.test(c.baixo || ''),
       'o cartão diz "comecei do zero" a quem já tem dinheiro guardado');
   });
+});
+
+await testar('a casa partilhada tem porta nas ferramentas', async () => {
+  await p.click('.aba[data-ecra="mais"]');
+  await p.waitForTimeout(500);
+  const onde = await p.evaluate(() =>
+    document.getElementById('gaveta-casa')?.closest('.ferr-grupo')?.id);
+  assert.equal(onde, 'grupo-casa');
+});
+
+await testar('sem Firebase, a casa explica-se em vez de rebentar', async () => {
+  /* O navegador destes testes não chega ao Firebase. É de propósito: é o
+     estado de quem abre a aplicação sem conta, e a casa tem de dizer o que
+     falta em vez de aparecer vazia ou dar erro. */
+  const texto = await p.evaluate(() => {
+    const c = document.getElementById('casa-corpo');
+    return c ? (c.textContent || '').trim() : null;
+  });
+  assert.ok(texto && texto.length > 20, 'a caixa da casa está vazia');
+  assert.ok(/conta/i.test(texto), 'devia dizer que é preciso ter conta: ' + texto.slice(0, 80));
 });
 
 await testar('nada rebentou pelo caminho', async () => {

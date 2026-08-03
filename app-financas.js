@@ -718,6 +718,15 @@ function guardar() {
     // ecrã por causa disso — avisamos e seguimos só em memória.
     mostrarAviso('Não foi possível guardar neste navegador. Os movimentos ficam só até fechar a página.', 'erro');
   }
+  /* Havendo casa partilhada, é para lá que os movimentos vão — e numa
+     transacção, porque do outro lado pode estar outra pessoa a lançar no mesmo
+     segundo. O documento pessoal deixa de ser escrito enquanto a casa durar:
+     dois sítios com a mesma verdade é como se perde a verdade. */
+  if (typeof casaPronta === 'function' && casaPronta()) {
+    casaGuardar();
+    return;
+  }
+
   if (utilizador && window.db) {
     db.collection('utilizadores').doc(utilizador.uid)
       .set({ movimentos, actualizado: new Date().toISOString() }, { merge: true })
@@ -4642,6 +4651,10 @@ function apagarIds(ids) {
   const fora = {};
   ids.forEach(i => { fora[i] = true; });
   movimentos = movimentos.filter(x => !fora[x.id]);
+  /* Numa casa partilhada, apagar tem de deixar marca: sem ela, o telemóvel da
+     outra pessoa — que ainda tem o movimento — devolve-o na sincronização
+     seguinte, e o gasto que se apagou reaparece sozinho. */
+  if (typeof casaRegistarApagados === 'function') casaRegistarApagados(ids);
   guardar();
   desenhar();
 }
@@ -5066,6 +5079,9 @@ function linhasCSV() {
 function apagarTudo() {
   if (!confirm('Isto apaga TODOS os movimentos, de todos os meses. Tem a certeza?')) return;
   if (!confirm('Última confirmação: apagar tudo?')) return;
+  if (typeof casaRegistarApagados === 'function') {
+    casaRegistarApagados(movimentos.map(m => m.id));
+  }
   movimentos = [];
   guardar();
   desenhar();
