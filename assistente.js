@@ -366,12 +366,13 @@ function executarLeitura(r) {
   if (r.tipo === 'saldo') {
     ultimoLote = null;
 
-    /* "de lado", "guardado", "na poupança" — dinheiro parado. Vai para a
-       reserva, como sempre foi. */
+    /* "de lado", "guardado", "na poupança", "de emergência" — dinheiro
+       parado. É a carteira de emergência, que é o mesmo que a app sempre
+       chamou reserva. */
     if (r.onde === 'reserva') {
       if (typeof definirReservaInicial !== 'function') return null;
       definirReservaInicial(r.valor);
-      return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado. Passa a contar na sua reserva.\n\n' +
+      return 'Fica guardado que tem **' + dinCurto(r.valor) + '** de lado, na conta de emergência.\n\n' +
              'Não lancei isto como entrada — não é dinheiro que recebeu hoje, é dinheiro que já tinha.';
     }
 
@@ -389,6 +390,7 @@ function executarLeitura(r) {
     const dados = {
       tipo: l.tipo, valor: l.valor, categoria: l.categoria,
       descricao: l.descricao,
+      conta: l.conta || 'minha',
       data: (typeof isoLocal === 'function') ? isoLocal(l.data) : l.data.toISOString().slice(0, 10)
     };
     if (l.parcelas >= 2 && l.tipo === 'saida' && typeof lancarParcelado === 'function') {
@@ -705,14 +707,25 @@ Pergunte à vontade.`, 'ele');
      que já lá está, e essas palavras não aparecem em quem está só a lançar. */
   function tratarPedido(pedido) {
     if (pedido.pedido === 'saldo-quanto') {
-      const agora = (typeof saldoAgora === 'function') ? saldoAgora() : null;
-      if (agora === null) {
+      const vivas = (typeof CARTEIRAS !== 'undefined')
+        ? CARTEIRAS.filter(id => carteiras[id]) : [];
+      if (!vivas.length) {
         juntar('Ainda não sei quanto tem na conta — só sei o que me foi lançado.\n\n' +
           '**Diga-me o número** ("tenho 1000 no banco") e a partir daí mantenho-o ' +
           'certo sozinho: desconto o que gastar e somo o que entrar.', 'ele');
         return true;
       }
-      juntar('Tem **' + dinCurto(agora) + '** na conta.' + avisoDoNegativo(), 'ele');
+      if (vivas.length === 1) {
+        juntar('Tem **' + dinCurto(saldoDaCarteira(vivas[0])) + '** — ' +
+          nomeDaCarteira(vivas[0]).toLowerCase() + '.' + avisoDoNegativo(), 'ele');
+        return true;
+      }
+      const linhas = vivas.map(id => '· ' + nomeDaCarteira(id) + ': **' +
+        dinCurto(saldoDaCarteira(id)) + '**');
+      juntar('Ao todo, **' + dinCurto(saldoDeTudo()) + '**:\n\n' + linhas.join('\n') +
+        (dividaTotal && dividaTotal.valor > 0
+          ? '\n\nE devem **' + dinCurto(dividaTotal.valor) + '**.' : '') +
+        avisoDoNegativo(), 'ele');
       return true;
     }
 
@@ -777,15 +790,17 @@ Pergunte à vontade.`, 'ele');
      de "corrige para 1000". São a mesma frase dita de duas maneiras, e ter
      dois caminhos era o que fazia a app oferecer o acerto num caso e ficar
      calada no outro. */
-  function dizerSaldoDaConta(novo) {
-    if (typeof definirSaldoConta !== 'function') { juntar(explicarONegativo(), 'ele'); return; }
+  function dizerSaldoDaConta(novo, qual) {
+    if (typeof definirCarteira !== 'function') { juntar(explicarONegativo(), 'ele'); return; }
+    const id = (qual === 'parceiro' || qual === 'emergencia') ? qual : 'minha';
+    const como = (typeof nomeDaCarteira === 'function') ? nomeDaCarteira(id).toLowerCase() : 'na conta';
 
-    const antes = (typeof saldoAgora === 'function') ? saldoAgora() : null;
-    definirSaldoConta(novo);
+    const antes = (typeof saldoDaCarteira === 'function') ? saldoDaCarteira(id) : null;
+    definirCarteira(id, novo);
 
     if (antes === null) {
-      juntar('Fico a saber: **' + dinCurto(novo) + '** na conta.\n\n' +
-        'Já está no seu Início, em "Na conta". A partir daqui vou eu descontando o que ' +
+      juntar('Fico a saber: **' + dinCurto(novo) + '** — ' + como + '.\n\n' +
+        'Já está no seu Início. A partir daqui vou eu descontando o que ' +
         'gastar e somando o que entrar — não precisa de o escrever outra vez.' +
         avisoDoNegativo(), 'ele');
       return;
@@ -798,13 +813,13 @@ Pergunte à vontade.`, 'ele');
     }
 
     const falta = dif > 0;
-    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(novo) + '** na conta.', 'ele');
+    juntar('Corrigido: **' + dinCurto(antes) + ' → ' + dinCurto(novo) + '** — ' + como + '.', 'ele');
 
     juntarBotoes('Há **' + dinCurto(Math.abs(dif)) + '** de diferença que nunca foi lançado — ' +
       (falta ? 'dinheiro que entrou' : 'dinheiro que saiu') + ' sem eu saber.\n\n' +
       'Quer que eu registe isso no mês, para as contas baterem certo?',
       [
-        { rotulo: 'Sim, regista', tom: 'sim', aoClicar: () => { lancarAcerto(dif); return 'Registado'; } },
+        { rotulo: 'Sim, regista', tom: 'sim', aoClicar: () => { lancarAcerto(dif, id); return 'Registado'; } },
         { rotulo: 'Não, deixa', aoClicar: () => {
             juntar('Fica só o saldo corrigido, então. O mês continua como estava.', 'ele');
             return 'Ficou como estava';
@@ -812,7 +827,7 @@ Pergunte à vontade.`, 'ele');
       ]);
   }
 
-  function lancarAcerto(dif) {
+  function lancarAcerto(dif, id) {
     if (typeof lancar !== 'function') return;
     /* O acerto é lançado com a data de hoje e não muda o saldo da conta: esse
        já é o número certo, foi a pessoa que o disse. Por isso o movimento
@@ -822,19 +837,21 @@ Pergunte à vontade.`, 'ele');
       tipo: dif > 0 ? 'entrada' : 'saida',
       valor: Math.abs(dif),
       categoria: 'acerto',
+      conta: id || 'minha',
       descricao: 'Acerto de saldo',
       /* Data em texto, como todos os outros movimentos. Passar aqui um
          `Date` fazia a app rebentar mais tarde, na altura de a desenhar. */
       data: (typeof isoLocal === 'function') ? isoLocal(new Date())
                                              : new Date().toISOString().slice(0, 10)
     });
-    if (typeof saldoConta !== 'undefined' && saldoConta) m.criado = saldoConta.em - 1;
+    const c = (typeof carteiras !== 'undefined') ? carteiras[id || 'minha'] : null;
+    if (c) m.criado = c.em - 1;
     if (typeof guardar === 'function') guardar();
     if (typeof desenhar === 'function') desenhar();
     ultimoLote = [m.id];
     juntarComAccao('Registado no mês: **' + (dif > 0 ? '+ ' : '− ') + dinCurto(Math.abs(dif)) +
-      '** · ⚖️ Acerto de saldo.\n\nO saldo na conta continua em ' +
-      dinCurto((typeof saldoAgora === 'function' ? saldoAgora() : 0)) + '.',
+      '** · ⚖️ Acerto de saldo.\n\nO saldo continua em ' +
+      dinCurto((typeof saldoDaCarteira === 'function' ? saldoDaCarteira(id || 'minha') : 0)) + '.',
       'Apagar isto', apagarUltimoLote);
   }
 
@@ -857,7 +874,7 @@ Pergunte à vontade.`, 'ele');
           'Enquanto isso pode lançar à mão no ➕ Lançar, que é grátis para sempre.', 'ele');
         return;
       }
-      if (r.tipo === 'saldo' && r.onde !== 'reserva') { dizerSaldoDaConta(r.valor); return; }
+      if (r.tipo === 'saldo' && r.onde !== 'reserva') { dizerSaldoDaConta(r.valor, r.conta); return; }
 
       const resposta = executarLeitura(r);
       if (resposta) {

@@ -154,7 +154,7 @@ const LOJAS = [
   // ---- transporte ----
   { k: ['bp','cepsa','prio','repsol','galp'], cat: 'transporte', pais: 'pt' },
   { k: ['ipiranga','shell','petrobras','br mania','posto'], cat: 'transporte', pais: 'br' },
-  { k: ['uber','bolt','99','taxi','metro','autocarro','onibus','comboio','cp ','carris','passe','bilhete','gasolina','gasoleo','diesel','combustivel','etanol','alcool','portagem','pedagio','estacionamento','oficina','pneu'], cat: 'transporte' },
+  { k: ['uber','bolt','99','taxi','metro','autocarro','onibus','comboio','cp ','carris','passe','bilhete','gasolina','gasoleo','diesel','combustivel','etanol','alcool','portagem','pedagio','estacionamento','oficina','pneu','bomba','abasteci','abastecer'], cat: 'transporte' },
 
   // ---- saúde ----
   { k: ['farmacia','drogaria','drogasil','droga raia','pacheco','wells','continente saude'], cat: 'saude' },
@@ -196,7 +196,11 @@ const V_SAIDA = ['gastei','gastou','gastamos','gastei-me','gasto','gastar',
   /* Levantar dinheiro tira-o da conta — o que sai do banco sai do banco,
      mesmo que fique no bolso. Faltava, e sem isto "levantei 200 no
      multibanco" não era nada: nem gasto, nem saldo, nem resposta. */
-  'levantei','levantou','levantamento','retirei','retirou','saquei','sacou','saque'];
+  'levantei','levantou','levantamento','retirei','retirou','saquei','sacou','saque',
+  /* Tirar da poupança é dinheiro a sair de um sítio para outro. Sem estes,
+     "tirei 200 da poupança" não era nada — e é das frases mais comuns de quem
+     está a chegar ao fim do mês. */
+  'tirei','tirou','tiramos','usei','usou','usamos','mexi no','mexemos no'];
 const V_ENTRADA = ['recebi','recebeu','recebemos','recebo','recebido',
   'ganhei','ganhou','ganho','entrou','caiu','me pagaram','pagaram-me',
   'depositaram','veio','creditaram','recebimento','entrada de','vendi','vendeu'];
@@ -229,6 +233,34 @@ const ONDE_RESERVA = ['de lado','guardado','guardados','poupado','poupados','pou
   'reserva','pe de meia','pé de meia','mealheiro','emergencia'];
 const ONDE_CONTA = ['no banco','na conta','conta bancaria','multibanco','na carteira',
   'em casa','na mao','a mao','em dinheiro','saldo'];
+
+/* ---------- de quem é o dinheiro ----------
+
+   Num casal há três bolsos: o dele, o dela, e o que está de lado para
+   emergências. Quando alguém escreve "a minha mulher gastou 40 no lidl", o
+   gasto é verdadeiro mas não saiu da conta de quem está a escrever — e somar
+   tudo ao mesmo sítio faz o mês fechar com um saldo que não é o de ninguém.
+
+   Sem nada dito é a conta de quem escreve, que é o caso quase sempre. Ninguém
+   vai escrever "da minha conta" a cada café, e obrigá-lo a isso era trocar um
+   erro raro por um estorvo diário. */
+const DO_PARCEIRO = ['minha mulher','minha esposa','minha companheira','minha patroa',
+  'meu marido','meu homem','meu companheiro','meu esposo',
+  'a mulher','a esposa','o marido',
+  'conta dela','conta dele','cartao dela','cartao dele','dinheiro dela','dinheiro dele',
+  'ela gastou','ele gastou','ela pagou','ele pagou','ela comprou','ele comprou',
+  'ela recebeu','ele recebeu','ela ganhou','ele ganhou'];
+
+const DA_EMERGENCIA = ['emergencia','do fundo','no fundo','da reserva','na reserva',
+  'da poupanca','na poupanca','dos guardados','do pe de meia','do mealheiro',
+  'do que estava de lado','do dinheiro de lado'];
+
+/* 'minha' | 'parceiro' | 'emergencia' */
+function deQuemEODinheiro(t) {
+  if (contem(t, DA_EMERGENCIA)) return 'emergencia';
+  if (contem(t, DO_PARCEIRO)) return 'parceiro';
+  return 'minha';
+}
 
 function contem(t, lista) {
   return lista.some(k => t.includes(k));
@@ -373,9 +405,13 @@ function interpretar(texto, opcoes) {
      parte porque gravá-lo como entrada dizia que a pessoa recebeu hoje mil
      euros, e isso é falso — ela só disse que os tem. */
   if (ehSaldo && !ehSaida && !ehEntrada) {
+    const quem = deQuemEODinheiro(t);
     return {
       ok: true, tipo: 'saldo',
-      onde: ondeEstaODinheiro(t),
+      /* "tenho 300 de lado" e "temos 300 na conta de emergência" são a mesma
+         coisa dita de duas maneiras. */
+      onde: (quem === 'emergencia') ? 'reserva' : ondeEstaODinheiro(t),
+      conta: quem,
       valor: valores[0].valor,
       texto: cru
     };
@@ -407,6 +443,10 @@ function interpretar(texto, opcoes) {
       categoria: cGlobal.cat,
       descricao: bonito(cGlobal.rotulo),
       data: data,
+      /* De que bolso saiu. Vale para a frase toda: quem escreve "a minha
+         mulher gastou 30 no lidl e 12 na farmácia" está a falar dos dois
+         gastos dela, não de um dela e outro seu. */
+      conta: deQuemEODinheiro(t),
       parcelas: (valores.length === 1) ? parcelas : 0
     };
   });
@@ -686,6 +726,6 @@ function valorCorrigido(cru, t, valores) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { interpretar, calculadora, entenderPedido, ondeEstaODinheiro,
+  module.exports = { interpretar, calculadora, entenderPedido, ondeEstaODinheiro, deQuemEODinheiro,
     acharValores, numeroDeTexto, numeroPorExtenso, acharData, acharCategoria };
 }

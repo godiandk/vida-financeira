@@ -32,6 +32,9 @@ const CONTAS_CHAVE = 'vf:contasfixas';
 const ARRANQUE_CHAVE = 'vf:arranque';
 const RESERVA_INICIAL_CHAVE = 'vf:reservainicial';
 const SALDO_CHAVE = 'vf:saldo';
+const CARTEIRAS_CHAVE = 'vf:carteiras';
+const LAR_CHAVE = 'vf:lar';
+const DIVIDA_CHAVE = 'vf:dividatotal';
 
 /* ---------- o dinheiro extra do ano, por país ----------
    Estava escrito "em junho e em novembro" em quatro sítios. É verdade em
@@ -377,6 +380,51 @@ let reservaInicial = 0;
    pessoa que o volte a escrever.
    ============================================================ */
 let saldoConta = null;
+
+/* ============================================================
+   As carteiras
+
+   Uma pessoa sozinha tem uma conta. Um casal tem três: a dele, a dela, e o
+   dinheiro de emergência que é dos dois. E quando alguém pergunta "de onde
+   saiu isso?", a resposta importa — foi da minha conta ou da conta dela? Foi
+   dos guardados? Sem separar, o mês fecha e ninguém sabe de quem era o
+   dinheiro que acabou.
+
+   Três carteiras chegam, e são estas porque são as que existem na cabeça das
+   pessoas. Mais do que isto era um plano de contas, e um plano de contas não
+   se pede a quem está a tentar chegar ao fim do mês.
+
+   A `emergencia` é a mesma coisa que a app já chamava reserva. Não se criou
+   um conceito novo por cima de um que já existia: mudou-se o nome para o que
+   as pessoas dizem, e o número é o mesmo.
+   ============================================================ */
+const CARTEIRAS = ['minha', 'parceiro', 'emergencia'];
+
+let carteiras = {};      /* id → { valor, em } — só as que a pessoa declarou */
+let lar = { comQuem: 'so' };   /* 'so' | 'esposa' | 'marido' | 'companheiro' */
+let dividaTotal = null;  /* { valor, em } — quanto se deve hoje, dito pela pessoa */
+
+/* Como se chama a outra pessoa, para a app falar como se fala em casa. */
+function nomeDoParceiro() {
+  if (lar.comQuem === 'esposa') return 'a sua esposa';
+  if (lar.comQuem === 'marido') return 'o seu marido';
+  if (lar.comQuem === 'companheiro') return 'a outra pessoa';
+  return '';
+}
+
+function nomeDaCarteira(id) {
+  if (id === 'emergencia') return 'Emergência';
+  if (id === 'parceiro') {
+    if (lar.comQuem === 'esposa') return 'Conta dela';
+    if (lar.comQuem === 'marido') return 'Conta dele';
+    return 'A outra conta';
+  }
+  return temParceiro() ? 'A minha conta' : 'Na conta';
+}
+
+function temParceiro() {
+  return lar.comQuem === 'esposa' || lar.comQuem === 'marido' || lar.comQuem === 'companheiro';
+}
 
 /* Barra de etiquetas já calculada, com o mês em que o foi. Ausente = usar
    as sementes. Recalcula-se uma vez por mês e mais nada: uma barra que o
@@ -786,6 +834,8 @@ function carregarLocal() {
     saldoConta = { valor: Math.round(Number(sc.valor) * 100) / 100, em: Number(sc.em) };
   }
 
+  lerCarteiras();
+
   const arr = lerJSON(ARRANQUE_CHAVE, null);
   if (arr) {
     const e = Number(arr.entra), s = Number(arr.essenciais);
@@ -850,39 +900,134 @@ function quandoFoiLancado(m) {
   return (isFinite(t) && t > ANO_2000 && t < Date.now() + 86400000) ? t : 0;
 }
 
-/* O saldo de agora: o que a pessoa disse, mais o que entrou e menos o que
-   saiu desde que o disse. */
-function saldoAgora() {
-  if (!saldoConta) return null;
-  return Math.round((saldoConta.valor + movimentos.reduce((soma, m) => {
-    if (quandoFoiLancado(m) <= saldoConta.em) return soma;
+/* De que carteira saiu (ou para qual entrou) um movimento. Sem nada dito, é a
+   de quem está a escrever — é o caso da esmagadora maioria, e obrigar toda a
+   gente a dizer "da minha conta" em cada café seria absurdo. */
+function contaDoMovimento(m) {
+  const c = m && m.conta;
+  return CARTEIRAS.indexOf(c) !== -1 ? c : 'minha';
+}
+
+/* O saldo de uma carteira: o que a pessoa disse que lá tinha, mais o que
+   entrou e menos o que saiu DESSA carteira desde que o disse. */
+function saldoDaCarteira(id) {
+  const c = carteiras[id];
+  if (!c) return null;
+  return Math.round((c.valor + movimentos.reduce((soma, m) => {
+    if (quandoFoiLancado(m) <= c.em) return soma;
+    if (contaDoMovimento(m) !== id) return soma;
     return soma + (m.tipo === 'entrada' ? m.valor : -m.valor);
   }, 0)) * 100) / 100;
+}
+
+/* O dinheiro todo do lar, para quem quer o número de uma vez. */
+function saldoDeTudo() {
+  const vivas = CARTEIRAS.filter(id => carteiras[id]);
+  if (!vivas.length) return null;
+  return Math.round(vivas.reduce((s, id) => s + saldoDaCarteira(id), 0) * 100) / 100;
+}
+
+/* A conta de quem escreve. Mantém o nome antigo porque é a que quase todo o
+   código pergunta. */
+function saldoAgora() {
+  return saldoDaCarteira('minha');
+}
+
+function definirCarteira(id, valor) {
+  const v = Number(valor);
+  if (!isFinite(v) || CARTEIRAS.indexOf(id) === -1) return null;
+  carteiras[id] = { valor: Math.round(v * 100) / 100, em: Date.now() };
+
+  /* A emergência e a antiga "reserva inicial" são o mesmo dinheiro. Mantêm-se
+     a par para os ecrãs que ainda falam de reserva não passarem a mentir. */
+  if (id === 'emergencia') {
+    reservaInicial = carteiras[id].valor;
+    try { localStorage.setItem(RESERVA_INICIAL_CHAVE, String(reservaInicial)); } catch (e) {}
+  }
+  if (id === 'minha') saldoConta = carteiras[id];
+
+  guardarCarteiras();
+  desenhar();
+  return carteiras[id].valor;
+}
+
+function esquecerCarteira(id) {
+  delete carteiras[id];
+  if (id === 'minha') saldoConta = null;
+  guardarCarteiras();
+  desenhar();
+}
+
+function definirDividaTotal(valor) {
+  const v = Number(valor);
+  if (!isFinite(v) || v < 0) return null;
+  dividaTotal = { valor: Math.round(v * 100) / 100, em: Date.now() };
+  guardarCarteiras();
+  desenhar();
+  return dividaTotal.valor;
+}
+
+function definirLar(comQuem) {
+  lar = { comQuem: comQuem };
+  guardarCarteiras();
+  desenhar();
+}
+
+function guardarCarteiras() {
+  try {
+    localStorage.setItem(CARTEIRAS_CHAVE, JSON.stringify(carteiras));
+    localStorage.setItem(LAR_CHAVE, JSON.stringify(lar));
+    localStorage.setItem(DIVIDA_CHAVE, JSON.stringify(dividaTotal));
+    if (carteiras.minha) localStorage.setItem(SALDO_CHAVE, JSON.stringify(carteiras.minha));
+    else localStorage.removeItem(SALDO_CHAVE);
+  } catch (e) {}
+  if (utilizador && window.db) {
+    db.collection('utilizadores').doc(utilizador.uid)
+      .set({ carteiras: carteiras, lar: lar, dividaTotal: dividaTotal,
+             saldoConta: carteiras.minha || null }, { merge: true }).catch(() => {});
+  }
+}
+
+/* Lê as carteiras do aparelho, e traz para dentro delas o que a app já sabia
+   antes de elas existirem: o saldo da conta e a reserva. Quem já usava a
+   aplicação não tem de escrever nada outra vez. */
+function lerCarteiras() {
+  const c = lerJSON(CARTEIRAS_CHAVE, null);
+  carteiras = {};
+  if (c && typeof c === 'object') {
+    CARTEIRAS.forEach(id => {
+      const x = c[id];
+      if (x && isFinite(Number(x.valor)) && Number(x.em) > 0) {
+        carteiras[id] = { valor: Math.round(Number(x.valor) * 100) / 100, em: Number(x.em) };
+      }
+    });
+  }
+
+  const l = lerJSON(LAR_CHAVE, null);
+  if (l && typeof l.comQuem === 'string') lar = { comQuem: l.comQuem };
+
+  const d = lerJSON(DIVIDA_CHAVE, null);
+  if (d && isFinite(Number(d.valor)) && Number(d.em) > 0) {
+    dividaTotal = { valor: Math.round(Number(d.valor) * 100) / 100, em: Number(d.em) };
+  }
+
+  if (!carteiras.minha && saldoConta) carteiras.minha = saldoConta;
+  if (!carteiras.emergencia && reservaInicial > 0) {
+    /* A reserva não trazia hora nenhuma. Fica com a de agora, que é o mais
+       conservador: nenhum movimento passado lhe mexe. */
+    carteiras.emergencia = { valor: reservaInicial, em: Date.now() };
+  }
+  saldoConta = carteiras.minha || null;
 }
 
 /* Substitui, não soma. E fica com a hora, que é o que permite descontar dali
    para a frente sem descontar duas vezes o que já estava descontado. */
 function definirSaldoConta(valor) {
-  const v = Number(valor);
-  if (!isFinite(v)) return null;
-  saldoConta = { valor: Math.round(v * 100) / 100, em: Date.now() };
-  try { localStorage.setItem(SALDO_CHAVE, JSON.stringify(saldoConta)); } catch (e) {}
-  if (utilizador && window.db) {
-    db.collection('utilizadores').doc(utilizador.uid)
-      .set({ saldoConta: saldoConta }, { merge: true }).catch(() => {});
-  }
-  desenhar();
-  return saldoConta.valor;
+  return definirCarteira('minha', valor);
 }
 
 function esquecerSaldoConta() {
-  saldoConta = null;
-  try { localStorage.removeItem(SALDO_CHAVE); } catch (e) {}
-  if (utilizador && window.db) {
-    db.collection('utilizadores').doc(utilizador.uid)
-      .set({ saldoConta: null }, { merge: true }).catch(() => {});
-  }
-  desenhar();
+  esquecerCarteira('minha');
 }
 
 /* Substitui, não soma: "tenho 1000" é o total de agora, não mais mil. */
@@ -890,6 +1035,10 @@ function definirReservaInicial(valor) {
   const v = Number(valor);
   reservaInicial = (isFinite(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
   try { localStorage.setItem(RESERVA_INICIAL_CHAVE, String(reservaInicial)); } catch (e) {}
+  /* Mesmo dinheiro, dois nomes. Actualizar só um deles era pôr a app a
+     dizer dois números diferentes para a mesma coisa. */
+  carteiras.emergencia = { valor: reservaInicial, em: Date.now() };
+  guardarCarteiras();
   if (utilizador && window.db) {
     db.collection('utilizadores').doc(utilizador.uid)
       .set({ reservaInicial: reservaInicial }, { merge: true }).catch(() => {});
@@ -1500,12 +1649,60 @@ function desenharSaldoConta() {
   const el = document.getElementById('v-conta');
   if (!el) return;
 
-  const agora = saldoAgora();
-  if (agora === null) { el.hidden = true; el.textContent = ''; return; }
+  const vivas = CARTEIRAS.filter(id => carteiras[id]);
+  if (!vivas.length) { el.hidden = true; el.innerHTML = ''; return; }
 
   el.hidden = false;
-  el.className = 'linha-conta' + (agora < 0 ? ' neg' : '');
-  el.textContent = 'Na conta: ' + dinheiro(agora);
+  el.className = 'linha-conta';
+  el.innerHTML = '';
+
+  vivas.forEach(id => {
+    const v = saldoDaCarteira(id);
+    const linha = document.createElement('div');
+    linha.className = 'lc-linha';
+
+    const nome = document.createElement('span');
+    nome.className = 'lc-nome';
+    nome.textContent = nomeDaCarteira(id);
+
+    const val = document.createElement('b');
+    val.className = 'lc-val' + (v < 0 ? ' neg' : '');
+    val.textContent = dinheiro(v);
+
+    linha.append(nome, val);
+    el.appendChild(linha);
+  });
+
+  /* O total só faz sentido havendo mais do que um bolso — com um só, repetir
+     o mesmo número duas vezes é ruído. */
+  if (vivas.length > 1) {
+    const tot = document.createElement('div');
+    tot.className = 'lc-linha lc-total';
+    const nome = document.createElement('span');
+    nome.className = 'lc-nome';
+    nome.textContent = 'Ao todo';
+    const val = document.createElement('b');
+    const t = saldoDeTudo();
+    val.className = 'lc-val' + (t < 0 ? ' neg' : '');
+    val.textContent = dinheiro(t);
+    tot.append(nome, val);
+    el.appendChild(tot);
+  }
+
+  /* A dívida entra aqui e não noutro cartão: quem tem dívida precisa de a ver
+     ao lado do que tem, não numa página à parte que nunca abre. */
+  if (dividaTotal && dividaTotal.valor > 0) {
+    const dv = document.createElement('div');
+    dv.className = 'lc-linha lc-divida';
+    const nome = document.createElement('span');
+    nome.className = 'lc-nome';
+    nome.textContent = 'Devemos';
+    const val = document.createElement('b');
+    val.className = 'lc-val neg';
+    val.textContent = dinheiro(dividaTotal.valor);
+    dv.append(nome, val);
+    el.appendChild(dv);
+  }
 }
 
 function desenharLembrete(r) {
@@ -3840,6 +4037,8 @@ function lancar(dados) {
        permite ao saldo da conta saber o que já estava descontado no número
        que a pessoa leu no extracto e o que veio depois. */
     criado: Date.now(),
+    /* De que carteira saiu. Sem nada dito é a de quem escreve. */
+    conta: CARTEIRAS.indexOf(dados.conta) !== -1 ? dados.conta : 'minha',
     moeda: moeda
   };
   if (typeof dados.ess === 'boolean') m.ess = dados.ess;
@@ -4466,9 +4665,39 @@ function ligarNuvem() {
         if (sn && typeof sn === 'object' && isFinite(Number(sn.valor)) && Number(sn.em) > 0) {
           if (!saldoConta || Number(sn.em) > saldoConta.em) {
             saldoConta = { valor: Math.round(Number(sn.valor) * 100) / 100, em: Number(sn.em) };
-            try { localStorage.setItem(SALDO_CHAVE, JSON.stringify(saldoConta)); } catch (e) {}
+            carteiras.minha = saldoConta;
           }
         }
+
+        /* Carteiras: cada uma decide por si, pelo retrato mais recente. Um
+           telemóvel pode ter a conta dela actualizada e o outro a de
+           emergência — juntar carteira a carteira fica com o melhor dos dois,
+           em vez de o bloco mais recente apagar o outro. */
+        const cn = dados.carteiras;
+        if (cn && typeof cn === 'object') {
+          CARTEIRAS.forEach(id => {
+            const x = cn[id];
+            if (!x || !isFinite(Number(x.valor)) || !(Number(x.em) > 0)) return;
+            if (!carteiras[id] || Number(x.em) > carteiras[id].em) {
+              carteiras[id] = { valor: Math.round(Number(x.valor) * 100) / 100, em: Number(x.em) };
+            }
+          });
+          saldoConta = carteiras.minha || saldoConta;
+        }
+        if (dados.lar && typeof dados.lar.comQuem === 'string' && lar.comQuem === 'so') {
+          lar = { comQuem: dados.lar.comQuem };
+        }
+        const dn = dados.dividaTotal;
+        if (dn && isFinite(Number(dn.valor)) && Number(dn.em) > 0 &&
+            (!dividaTotal || Number(dn.em) > dividaTotal.em)) {
+          dividaTotal = { valor: Math.round(Number(dn.valor) * 100) / 100, em: Number(dn.em) };
+        }
+        try {
+          localStorage.setItem(CARTEIRAS_CHAVE, JSON.stringify(carteiras));
+          localStorage.setItem(LAR_CHAVE, JSON.stringify(lar));
+          localStorage.setItem(DIVIDA_CHAVE, JSON.stringify(dividaTotal));
+          if (carteiras.minha) localStorage.setItem(SALDO_CHAVE, JSON.stringify(carteiras.minha));
+        } catch (e) {}
 
         const ar = dados.arranque;
         if (ar && typeof ar === 'object') {

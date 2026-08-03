@@ -656,8 +656,14 @@ ul.movs li:last-child{border-bottom:none}
    diferença (entrou menos saiu) e pode ser negativo num mês normal; o de
    baixo é dinheiro. Quem lê só o de cima acha que está a dever. */
 .linha-conta{
-  margin-top:12px;padding-top:12px;
+  margin-top:12px;padding-top:10px;
   border-top:1px solid rgba(217,178,110,.18);
-  font-weight:800;font-size:1.02rem;color:var(--up);
 }
-.linha-conta.neg{color:var(--down)}
+.lc-linha{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:3px 0}
+.lc-nome{color:var(--cream-dim);font-size:.84rem}
+.lc-val{font-weight:800;font-size:1.02rem;color:var(--up)}
+.lc-val.neg{color:var(--down)}
+/* O total separa-se do que o compõe, senão lê-se como mais uma conta. */
+.lc-total{margin-top:6px;padding-top:8px;border-top:1px solid rgba(217,178,110,.12)}
+.lc-total .lc-nome{color:var(--cream)}
+.lc-divida .lc-nome{color:var(--cream-dim)}

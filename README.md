@@ -58,6 +58,28 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
+## As carteiras
+
+Uma pessoa sozinha tem uma conta. Um casal tem três: a dele, a dela, e o
+dinheiro de emergência que é dos dois. Quando alguém pergunta "de onde saiu
+isso?", a resposta importa — e sem separar, o mês fecha e ninguém sabe de quem
+era o dinheiro que acabou.
+
+O chat percebe de que bolso se está a falar:
+
+| o que se escreve | de onde sai |
+|---|---|
+| "gastei 30 no continente" | da minha conta |
+| "a minha mulher gastou 40 no lidl" | da conta dela |
+| "ela recebeu 900 de salário" | entra na conta dela |
+| "tirei 200 da poupança" | da conta de emergência |
+
+Três e não mais: mais do que isto era um plano de contas, e um plano de contas
+não se pede a quem está a tentar chegar ao fim do mês. A conta de emergência é
+a mesma coisa que a app já chamava reserva — mudou o nome para o que as pessoas
+dizem, o número é o mesmo, e quem já usava a aplicação não tem de escrever nada
+outra vez.
+
 ## A fotografia do talão
 
 Fotografa-se o talão e a aplicação lê o total, a loja e o dia. A leitura é

@@ -14,7 +14,7 @@
    outro domínio e têm de ir sempre à rede.
    ============================================================ */
 
-const VERSAO = 'vida-financeira-v40';
+const VERSAO = 'vida-financeira-v41';
 
 /* O motor de leitura de talões vive numa cache à parte, e de propósito sem a
    versão do site no nome. São 4 MB que a pessoa autorizou descarregar uma vez;
