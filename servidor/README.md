@@ -16,7 +16,9 @@ Uma IA precisa de uma chave secreta. Uma chave secreta dentro de um ficheiro
 público não é secreta: qualquer pessoa a abre com o botão direito do rato. Em
 dias estaria a ser usada por estranhos, e a factura vinha para quem a pôs lá.
 
-Este servidor é a caixa onde essa chave fica fechada. É a peça mais pequena
+Este servidor é a caixa onde essa chave fica fechada — ou, na via grátis, a
+peça que fala com o modelo que corre dentro da própria Cloudflare e por isso
+não precisa de chave nenhuma. É a peça mais pequena
 possível que resolve o problema, e não faz mais nada.
 
 ## O que ele faz, e o que não faz
@@ -37,7 +39,54 @@ Não faz:
   calcular e a corrigir de graça, sem internet e sem contar a ninguém. A IA só
   entra quando as regras dizem "não percebi".
 
-## O que é preciso da sua parte
+## Há dois caminhos, e um deles não tem factura
+
+| | `worker-gratis.js` | `worker.js` |
+|---|---|---|
+| onde corre o modelo | dentro da Cloudflare | na Anthropic |
+| contas a criar | **uma** (Cloudflare) | duas (Cloudflare + Anthropic) |
+| cartão | **nenhum** | sim, na Anthropic |
+| quanto dá por dia | ~1.300 respostas (10.000 neurónios grátis) | o que se pagar |
+| quando acaba | responde "não dá" e o chat segue pelas regras | continua, e a factura sobe |
+| qualidade | boa para conversa de contas; frases mais curtas | melhor |
+
+**Comece pelo grátis.** É a mesma aplicação, com as mesmas regras escritas, e a
+única diferença que a pessoa nota é a resposta ser mais seca. Se um dia isso
+incomodar, troca-se o ficheiro do worker por o outro e põe-se o cartão — o
+`ia.js` e a aplicação não mudam uma linha.
+
+## A via grátis (sem cartão)
+
+1. **dash.cloudflare.com** → criar conta → Workers & Pages → Create → Worker
+2. Cole lá o **`worker-gratis.js`** deste directório
+3. Settings → **Bindings** → Add → **Workers AI** → nome da variável: `IA`
+   (é assim que o worker chega ao modelo; sem esta ligação ele não sabe onde
+   perguntar)
+4. Settings → **Variables**:
+
+   | nome | o que é |
+   |---|---|
+   | `FIREBASE_PROJECTO` | `vida-financeira-faf77` |
+   | `ORIGENS` | `https://godiandk.github.io` |
+
+5. Settings → **Rate Limiting** → 20 pedidos por 86400 segundos, ligado ao
+   worker com o nome `TRAVAO`
+6. Ponha o endereço que o painel lhe dá no `ia.js`, na linha do `IA_ENDERECO`
+
+**Não adicione cartão nenhum à conta da Cloudflare.** É isso — e só isso — que
+garante que isto nunca lhe custa dinheiro: sem cartão, quando os 10.000
+neurónios do dia acabam, a Cloudflare recusa em vez de cobrar. O worker
+devolve "não dá", o `ia.js` desiste sem se queixar, e o chat responde pelas
+regras como responde hoje.
+
+### Porque não o Gemini, que dá mais de graça
+
+Dá, e também não pede cartão. Mas no plano grátis do Google as perguntas e as
+respostas podem ser usadas para melhorar os produtos deles. A página inicial
+desta aplicação promete que o que se lá escreve não sai daqui, e isso não se
+troca por uns cêntimos.
+
+## A via paga
 
 ### 1. Conta na Anthropic (tem cartão)
 
