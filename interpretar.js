@@ -358,9 +358,22 @@ function contemPalavra(t, lista) {
    que aparecem em qualquer frase e não se confundem entre si. */
 const MARCAS_LINGUA = {
   en: ['i', 'my', 'the', 'have', 'spent', 'paid', 'bought', 'got', 'and', 'on', 'at',
-       'how', 'much', 'wrong', 'fix', 'account', 'balance', 'wife', 'husband', 'today'],
+       'how', 'much', 'wrong', 'fix', 'account', 'balance', 'wife', 'husband', 'today',
+       /* As de cima chegam para lançar um gasto, que era o que isto tinha de
+          fazer. Para perguntar uma coisa não chegavam: "how much does this
+          cost" trazia só 'how' e 'much'. Estas são as de fazer perguntas. */
+       'this', 'that', 'is', 'are', 'am', 'was', 'should', 'want', 'need', 'can',
+       'money', 'save', 'saving', 'savings', 'left', 'nothing', 'cost', 'costs',
+       'debt', 'invest', 'week', 'month', 'year'],
   es: ['yo', 'mi', 'el', 'la', 'tengo', 'gaste', 'pague', 'compre', 'cuanto', 'cuenta',
-       'saldo', 'esposa', 'marido', 'hoy', 'ayer', 'dinero', 'arregla', 'corrige'],
+       'saldo', 'esposa', 'marido', 'hoy', 'ayer', 'dinero', 'arregla', 'corrige',
+       /* "no me sobra nada a fin de mes" não trazia nenhuma das de cima e caía
+          em português — que é o empate — e a pessoa recebia três parágrafos
+          numa língua que não é a sua, sobre a coisa que mais lhe custava
+          perguntar. 'fin' e 'me sobra' são o que a distingue de "não sobra". */
+       'fin', 'me sobra', 'no me', 'estoy', 'quiero', 'puedo', 'necesito',
+       'deuda', 'deudas', 'tarjeta', 'ahorrar', 'ahorro', 'donde', 'invierto',
+       'ganar', 'trabajo', 'alquiler'],
   pt: ['eu', 'meu', 'minha', 'tenho', 'gastei', 'paguei', 'comprei', 'quanto', 'conta',
        'saldo', 'esposa', 'marido', 'hoje', 'ontem', 'dinheiro', 'arruma', 'corrige', 'nao']
 };

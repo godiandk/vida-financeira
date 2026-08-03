@@ -1,0 +1,9 @@
+{
+  "name": "vida-financeira-servidor",
+  "private": true,
+  "type": "module",
+  "description": "Os workers da IA. Isto está aqui por uma razão pequena: sem 'type: module', o Node lê os ficheiros .js como se fossem de 2010 e recusa o 'export default' que a Cloudflare exige. Não é configuração de nada — é o que permite correr os testes.",
+  "scripts": {
+    "test": "node teste-worker.mjs"
+  }
+}

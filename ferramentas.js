@@ -431,7 +431,15 @@ function eur(v) {
     style: 'currency', currency: moedaActual(), minimumFractionDigits: 2
   }).format(isFinite(v) ? v : 0);
 }
-function num(id) {
+/* Chamava-se `num`. E o `app-financas.js`, carregado antes deste, tambem tem
+   um `num` — o que formata um numero com uma casa decimal. Dois ficheiros da
+   mesma pagina, dois `num` globais, e o segundo a apagar o primeiro em
+   silencio: o cartao da Reserva pedia `num(0,39)` a formatar e recebia
+   `campo(0,39)` a procurar um campo com esse id, que nao existe. Devolvia 0.
+   Resultado: quem tinha 240 euros de lado via "0 meses" e "0 de uma semana de
+   despesas essenciais" — a aplicacao a dizer-lhe que o que ele juntou nao
+   conta. Nao dava erro nenhum na consola. */
+function campo(id) {
   const el = document.getElementById(id);
   if (!el) return 0;
   const v = parseFloat(String(el.value).replace(',', '.'));
@@ -561,9 +569,9 @@ function removerChave() {
 
 /* ---------- 1. Quanto rende guardar todos os meses ---------- */
 function calcPoupanca() {
-  const mensal = num('p-mensal');
-  const anos = Math.max(1, Math.min(40, num('p-anos') || 1));
-  const taxa = num('p-taxa') / 100;
+  const mensal = campo('p-mensal');
+  const anos = Math.max(1, Math.min(40, campo('p-anos') || 1));
+  const taxa = campo('p-taxa') / 100;
   const meses = anos * 12;
   const i = taxa / 12;
 
@@ -585,10 +593,10 @@ function calcPoupanca() {
 
 /* ---------- 2. De quanto precisa a minha reserva ---------- */
 function calcReserva() {
-  const essenciais = num('r-essenciais');
-  const meses = Math.max(1, Math.min(12, num('r-meses') || 3));
-  const jaTem = num('r-tenho');
-  const porMes = num('r-pormes');
+  const essenciais = campo('r-essenciais');
+  const meses = Math.max(1, Math.min(12, campo('r-meses') || 3));
+  const jaTem = campo('r-tenho');
+  const porMes = campo('r-pormes');
 
   const alvo = essenciais * meses;
   const falta = Math.max(0, alvo - jaTem);
@@ -610,9 +618,9 @@ function calcReserva() {
 
 /* ---------- 3. Vale a pena parcelar ---------- */
 function calcParcelar() {
-  const pronto = num('q-pronto');
-  const vezes = Math.max(1, Math.round(num('q-vezes') || 1));
-  const prestacao = num('q-prestacao');
+  const pronto = campo('q-pronto');
+  const vezes = Math.max(1, Math.round(campo('q-vezes') || 1));
+  const prestacao = campo('q-prestacao');
 
   const total = prestacao * vezes;
   const aMais = total - pronto;
@@ -641,8 +649,8 @@ function calcParcelar() {
 function calcDividas() {
   const linhas = [];
   for (let k = 1; k <= 3; k++) {
-    const v = num('d-valor' + k);
-    const t = num('d-taxa' + k);
+    const v = campo('d-valor' + k);
+    const t = campo('d-taxa' + k);
     if (v > 0) linhas.push({ n: k, valor: v, taxa: t });
   }
   if (!linhas.length) {
@@ -665,8 +673,8 @@ function calcDividas() {
 
 /* ---------- 5. Taxa de esforço da habitação ---------- */
 function calcEsforco() {
-  const rendimento = num('e-rendimento');
-  const habitacao = num('e-habitacao');
+  const rendimento = campo('e-rendimento');
+  const habitacao = campo('e-habitacao');
   if (rendimento <= 0) {
     resultado('e-out', [], 'Escreva o rendimento do agregado.');
     return;
@@ -685,8 +693,8 @@ function calcEsforco() {
 
 /* ---------- 6. O custo de um hábito ---------- */
 function calcHabito() {
-  const valor = num('h-valor');
-  const vezes = num('h-vezes');
+  const valor = campo('h-valor');
+  const vezes = campo('h-vezes');
   const semana = valor * vezes;
   const mes = semana * 4.345;   // média de semanas num mês
   const ano = semana * 52;
@@ -700,9 +708,9 @@ function calcHabito() {
 
 /* ---------- 7. PREMIUM · Plano de 12 meses ---------- */
 function calcPlano12() {
-  const rendimento = num('a-rendimento');
-  const essenciais = num('a-essenciais');
-  const extra = num('a-extra');
+  const rendimento = campo('a-rendimento');
+  const essenciais = campo('a-essenciais');
+  const extra = campo('a-extra');
   const folga = rendimento - essenciais;
 
   if (folga <= 0) {
@@ -751,7 +759,7 @@ function mesNome(n) {
 
 /* ---------- 8. PREMIUM · Comparar dois caminhos ---------- */
 function calcCenarios() {
-  const anos = Math.max(1, Math.min(40, num('c-anos') || 5));
+  const anos = Math.max(1, Math.min(40, campo('c-anos') || 5));
   const meses = anos * 12;
 
   function fim(mensal, taxa) {
@@ -759,8 +767,8 @@ function calcCenarios() {
     return i === 0 ? mensal * meses : mensal * ((Math.pow(1 + i, meses) - 1) / i);
   }
 
-  const a = fim(num('c-mensalA'), num('c-taxaA'));
-  const b = fim(num('c-mensalB'), num('c-taxaB'));
+  const a = fim(campo('c-mensalA'), campo('c-taxaA'));
+  const b = fim(campo('c-mensalB'), campo('c-taxaB'));
   const dif = Math.abs(a - b);
   const melhor = a >= b ? 'A' : 'B';
 
@@ -773,10 +781,10 @@ function calcCenarios() {
 
 /* ---------- 9. PREMIUM · Quanto tempo até à independência ---------- */
 function calcIndependencia() {
-  const gastoAnual = num('i-gasto') * 12;
-  const patrimonio = num('i-tenho');
-  const poupancaAnual = num('i-poupo') * 12;
-  const taxa = num('i-taxa') / 100;
+  const gastoAnual = campo('i-gasto') * 12;
+  const patrimonio = campo('i-tenho');
+  const poupancaAnual = campo('i-poupo') * 12;
+  const taxa = campo('i-taxa') / 100;
   const alvo = gastoAnual * 25;   // regra dos 4%, dita como pressuposto
 
   if (poupancaAnual <= 0 && patrimonio < alvo) {
@@ -936,4 +944,248 @@ document.addEventListener('DOMContentLoaded', () => {
      já ter acesso — e a primeira impressão de quem se inscreveu é a de que
      não recebeu nada. */
   window.addEventListener('vf:acesso-mudou', aplicarEstadoPremium);
+});
+
+/* ============================================================
+   ARRUMAR AS FERRAMENTAS POR PERGUNTA, E NÃO POR PREÇO
+
+   Estavam as nove numa lista, abertas, uma debaixo da outra, agrupadas por
+   "Gratuitas" e "Assinatura". Duas coisas erradas nisso, e a segunda é a
+   grave.
+
+   A primeira: nove formulários abertos são cinco mil pixéis de campos de
+   preencher. Quem chega não vê nove ferramentas — vê uma parede. E numa
+   parede não se procura: desiste-se.
+
+   A segunda: **"Gratuitas" e "Assinatura" é a nossa maneira de as arrumar,
+   não a de quem as usa.** Ninguém acorda a pensar "hoje quero uma ferramenta
+   gratuita". Acorda a dever dinheiro, ou sem conseguir guardar nada, ou com a
+   renda a pesar de mais. Arrumadas assim, é preciso ler as nove para saber
+   qual é a nossa; arrumadas pela pergunta, chega-se lá pelo título do grupo.
+
+   Passam a ser cinco grupos, cada um com a pergunta escrita como as pessoas a
+   fazem, e cada ferramenta fechada com uma linha a dizer para que serve. A
+   página deixa de ser uma parede e passa a ser um índice.
+
+   O conteúdo é o próprio, mudado de sítio — nada é copiado, os `id` são os
+   mesmos, e todo o código que já existia continua a encontrar o que procura.
+   ============================================================ */
+
+/* Cada grupo: a pergunta, e o que lá vai dentro. As `ferramentas` são pelas
+   letras dos botões de calcular (p-calc, r-calc, …), e as `seccoes` são ecrãs
+   inteiros que existiam noutro sítio e agora vivem aqui. */
+const GRUPOS_FERR = [
+  { id: 'dividas', emoji: '⛓️', chave: 'ferr.g.dividas',
+    ferramentas: ['d', 'q'], seccoes: ['ecra-divida'] },
+
+  { id: 'guardar', emoji: '🛟', chave: 'ferr.g.guardar',
+    ferramentas: ['r', 'p'], seccoes: ['gaveta-investir'] },
+
+  { id: 'gastar', emoji: '✂️', chave: 'ferr.g.gastar',
+    ferramentas: ['e', 'h'], seccoes: [] },
+
+  { id: 'apoios', emoji: '🎁', chave: 'ferr.g.apoios',
+    ferramentas: [], seccoes: ['ecra-apoios'] },
+
+  { id: 'planear', emoji: '🗓️', chave: 'ferr.g.planear',
+    ferramentas: ['a', 'c', 'i'], seccoes: [] }
+];
+
+function tf(chave, omissao) {
+  const v = (typeof T === 'function') ? T(chave) : chave;
+  return (v && v !== chave) ? v : omissao;
+}
+
+/* Uma ferramenta deixa de ser um formulário aberto e passa a ser uma linha
+   com o nome, uma frase a dizer para que serve, e um `›`. Quem quer, abre. */
+function encaixotarFerramenta(bloco) {
+  if (!bloco || bloco.tagName === 'DETAILS') return bloco;
+
+  const h3 = bloco.querySelector('h3');
+  const sub = bloco.querySelector('.sub');
+  const selo = bloco.querySelector('.selo');
+
+  const titulo = h3 ? h3.innerHTML : '';
+  const linha = sub ? sub.textContent.trim() : '';
+  const eSelo = selo ? selo.textContent.trim() : '';
+
+  if (h3) h3.remove();
+  if (sub) sub.remove();
+  if (selo) selo.remove();
+
+  const caixa = document.createElement('details');
+  caixa.className = bloco.className + ' ferr-caixa';
+
+  const cabeca = document.createElement('summary');
+  cabeca.className = 'ferr-cabeca';
+  cabeca.innerHTML =
+    '<span class="ferr-nome">' + titulo + '</span>' +
+    (linha ? '<span class="ferr-para">' + linha + '</span>' : '') +
+    (eSelo ? '<span class="ferr-selo">🔒 ' + eSelo + '</span>' : '') +
+    '<span class="ferr-seta" aria-hidden="true">›</span>';
+
+  caixa.appendChild(cabeca);
+  while (bloco.firstChild) caixa.appendChild(bloco.firstChild);
+  bloco.replaceWith(caixa);
+  return caixa;
+}
+
+/* Uma secção que era um ecrã inteiro — a dívida, os apoios, o render — entra
+   aqui como mais uma caixa, com o mesmo aspecto das outras. Para quem usa,
+   não há diferença nenhuma entre "uma calculadora" e "um ecrã": é tudo uma
+   coisa que se abre e que serve para alguma coisa. */
+function encaixotarSeccao(id, titulo, linha) {
+  const origem = document.getElementById(id);
+  if (!origem) return null;
+
+  const caixa = document.createElement('details');
+  caixa.className = 'ferramenta ferr-caixa';
+  caixa.id = 'caixa-' + id;
+
+  const cabeca = document.createElement('summary');
+  cabeca.className = 'ferr-cabeca';
+  cabeca.innerHTML =
+    '<span class="ferr-nome">' + titulo + '</span>' +
+    (linha ? '<span class="ferr-para">' + linha + '</span>' : '') +
+    '<span class="ferr-seta" aria-hidden="true">›</span>';
+  caixa.appendChild(cabeca);
+
+  /* Do ecrã antigo vem o conteúdo de dentro dos `.wrap`, sem o título nem o
+     subtítulo dele: quem já leu o nome na caixa não precisa de o ler outra
+     vez dois centímetros abaixo. */
+  const corpo = document.createElement('div');
+  corpo.className = 'ferr-corpo';
+  const wraps = origem.querySelectorAll('.wrap');
+  const fonte = wraps.length ? wraps : [origem];
+  [...fonte].forEach(w => {
+    [...w.children].forEach(n => {
+      if (n.classList && (n.classList.contains('ecra-titulo') || n.classList.contains('ecra-sub'))) {
+        n.remove(); return;
+      }
+      corpo.appendChild(n);
+    });
+  });
+  caixa.appendChild(corpo);
+
+  if (origem.classList.contains('ecra')) origem.remove();
+  else origem.replaceWith(document.createComment(id + ' arrumado nas ferramentas'));
+
+  return caixa;
+}
+
+function arrumarFerramentas() {
+  const ecra = document.getElementById('ecra-mais') || document.getElementById('ferramentas-pagina');
+  if (!ecra || ecra.dataset.arrumado) return;
+
+  const wrap = ecra.querySelector('.wrap') || ecra;
+  const zona = document.createElement('div');
+  zona.className = 'ferr-grupos';
+
+  /* Cada caixa leva um emoji, e não por enfeite: numa lista de onze linhas,
+     é o que se vê antes de se ler. Quem procura a dos apoios acha o presente
+     três vezes mais depressa do que acha a palavra "apoios". */
+  const ic = e => '<span class="ic">' + e + '</span> ';
+  const TITULOS = {
+    'ecra-divida':    [ic('📉') + tf('ferr.c.divida', 'O que a dívida custa'), tf('ferr.c.dividasub', 'Quanto está a pagar de juros, com as taxas do seu país.')],
+    'gaveta-investir':[ic('🏦') + tf('inv.titulo', 'Pôr o dinheiro a render'), tf('ferr.c.investirsub', 'Onde é que o dinheiro está garantido, e quanto rende.')],
+    'ecra-apoios':    [ic('🎁') + tf('ferr.c.apoios', 'Apoios que talvez não receba'), tf('ferr.c.apoiossub', 'Quatro perguntas, e a lista do que pode pedir no seu país.')]
+  };
+
+  GRUPOS_FERR.forEach(g => {
+    const caixas = [];
+
+    g.ferramentas.forEach(letra => {
+      const botao = document.getElementById(letra + '-calc');
+      const bloco = botao && botao.closest('.ferramenta');
+      if (bloco) caixas.push(encaixotarFerramenta(bloco));
+    });
+
+    g.seccoes.forEach(id => {
+      const t = TITULOS[id] || [id, ''];
+      /* A gaveta do "render" não é um ecrã: é um `details` que já existe. */
+      const jaGaveta = document.getElementById(id);
+      if (jaGaveta && jaGaveta.tagName === 'DETAILS') {
+        jaGaveta.className = 'ferramenta ferr-caixa';
+        const s = jaGaveta.querySelector('summary');
+        if (s) {
+          s.className = 'ferr-cabeca';
+          s.innerHTML = '<span class="ferr-nome">' + t[0] + '</span>' +
+                        '<span class="ferr-para">' + t[1] + '</span>' +
+                        '<span class="ferr-seta" aria-hidden="true">›</span>';
+        }
+        caixas.push(jaGaveta);
+        return;
+      }
+      /* Na pagina solta o "render" nao e' uma gaveta nem um ecra: e' uma
+         ferramenta como as outras, com o corpo desenhado la' dentro. */
+      const dentro = document.getElementById('investir-corpo');
+      if (id === 'gaveta-investir' && dentro) {
+        const bloco = dentro.closest('.ferramenta');
+        if (bloco) { caixas.push(encaixotarFerramenta(bloco)); return; }
+      }
+
+      const c = encaixotarSeccao(id, t[0], t[1]);
+      if (c) caixas.push(c);
+    });
+
+    if (!caixas.length) return;
+
+    const seccao = document.createElement('section');
+    seccao.className = 'ferr-grupo';
+    seccao.id = 'grupo-' + g.id;
+
+    const cab = document.createElement('div');
+    cab.className = 'ferr-grupo-cab';
+    cab.innerHTML =
+      '<h2><span class="ferr-grupo-ic" aria-hidden="true">' + g.emoji + '</span>' +
+      tf(g.chave, g.id) + '</h2>' +
+      '<p>' + tf(g.chave + '.sub', '') + '</p>';
+    seccao.appendChild(cab);
+
+    caixas.forEach(c => seccao.appendChild(c));
+    zona.appendChild(seccao);
+  });
+
+  /* A zona nova entra a seguir ao subtítulo da página e antes de tudo o resto
+     — o que sobrar (a caixa da chave, o painel de desbloqueio) fica em baixo,
+     que é onde uma coisa de pagamentos deve estar numa página de ferramentas
+     que são quase todas grátis. */
+  const depoisDe = wrap.querySelector('.ecra-sub') || wrap.querySelector('.lead');
+  if (depoisDe && depoisDe.parentNode === wrap) depoisDe.after(zona);
+  else wrap.prepend(zona);
+
+  /* As molduras antigas ficaram vazias: a grelha das nove, os rótulos
+     "Gratuitas"/"Assinatura", e os títulos que apresentavam grupos que já não
+     existem. Tudo o que era apresentação da arrumação velha sai — o que
+     apresenta a nova está escrito nos cabeçalhos dos grupos, e dizer a mesma
+     coisa duas vezes em sítios diferentes é como se faz uma página parecer
+     maior do que é. */
+  [...wrap.children].forEach(e => {
+    if (e === zona || zona.contains(e)) return;
+    if (e.classList.contains('ferr-grid') && !e.children.length) e.remove();
+    else if (e.classList.contains('eyebrow')) e.remove();
+    else if (e.tagName === 'H2' || e.classList.contains('lead')) e.remove();
+  });
+
+  ecra.dataset.arrumado = '1';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  /* Depois do resto: o `investir.js` e o `divida.js` desenham o que é deles
+     no arranque, e mudar-lhes o sítio antes disso deixava caixas vazias. */
+  setTimeout(arrumarFerramentas, 0);
+
+  /* Mudar de língua não volta a arrumar nada — só reescreve o que está
+     escrito. Voltar a mover blocos com a pessoa a olhar para eles seria uma
+     página a saltar por baixo do dedo. */
+  window.addEventListener('vf:lingua-mudou', () => {
+    GRUPOS_FERR.forEach(g => {
+      const cab = document.querySelector('#grupo-' + g.id + ' .ferr-grupo-cab');
+      if (!cab) return;
+      cab.innerHTML =
+        '<h2><span class="ferr-grupo-ic" aria-hidden="true">' + g.emoji + '</span>' +
+        tf(g.chave, g.id) + '</h2>' +
+        '<p>' + tf(g.chave + '.sub', '') + '</p>';
+    });
+  });
 });

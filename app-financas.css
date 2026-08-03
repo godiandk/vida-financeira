@@ -307,6 +307,11 @@ ul.movs li:last-child{border-bottom:none}
 .balanco-linha{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   font-size:.86rem;color:var(--cream-dim);margin:0 0 18px;
+  /* Estavam duas frases sublinhadas a flutuar entre dois cartões, sem nada à
+     volta que dissesse que eram a mesma coisa. Uma pergunta tem de se ver que
+     é uma pergunta, e tem de se ver onde acaba. */
+  background:rgba(255,255,255,.03);border:1px solid rgba(217,178,110,.14);
+  border-radius:14px;padding:12px 14px;
 }
 .balanco-linha[hidden]{display:none}
 .bloco-balanco{margin-bottom:26px}

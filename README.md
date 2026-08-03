@@ -23,6 +23,8 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `interpretar.js` — lê o que a pessoa escreve ("gastei 30 no continente") e
   faz as contas do chat ("12x de 45,90 ou 480 a pronto?")
 - `assistente.js` — o chat: lança, calcula e responde
+- `respostas.js` — as respostas longas do chat nas quatro línguas (a reserva,
+  a dívida, os apoios, por onde começar); só é carregado pela aplicação
 - `divida.js` — o que uma dívida custa, com as taxas de referência por país
 - `excel.js` — gera um ficheiro .xlsx à mão, sem bibliotecas
 - `partilha.js` — desenha o cartão que se manda para o grupo
@@ -63,41 +65,120 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
-## A IA — escrita, e desligada
+## A IA — ligada, e sem factura
 
-Em `servidor/` está o que falta para haver uma IA a sério: um Worker da
-Cloudflare que guarda a chave da Anthropic, confirma que quem pergunta tem
-conta (assinatura do Firebase verificada com as chaves públicas da Google),
-trava quem pergunta de mais, e não guarda conversa nenhuma.
+Está a correr em `https://vf-ia.wly-vianna.workers.dev`, um Worker da
+Cloudflare com o código de `servidor/worker-gratis.js`. Confirma que quem
+pergunta tem conta (assinatura do Firebase verificada com as chaves públicas
+da Google), trava em 20 perguntas por pessoa e por dia, e não guarda conversa
+nenhuma.
 
-**Não está a correr.** O `ia.js` tem o endereço do servidor vazio, e enquanto
-estiver vazio a aplicação nem tenta — funciona exactamente como hoje. Para
-existir são precisas duas contas do dono do projecto: Anthropic (com cartão) e
-Cloudflare (grátis). Os passos e os custos estão em `servidor/README.md`.
+**O que sai do telemóvel** são contas e nunca o extracto: quanto entra, quanto
+leva o essencial, quantos meses de reserva, se há dívida, e as três categorias
+onde o dinheiro se está a ir. Nunca a lista de movimentos, nem o nome de uma
+loja, nem uma data, nem uma fotografia. "Gasta 38% em mercado" responde à
+pergunta; "comprou 23,40 no Continente a 12 de Março" só serve a quem quer
+saber por onde a pessoa anda.
+
+**O que o modelo escreve é lido antes de sair.** Promessas de retorno, marcas
+de banco ou de cripto a serem recomendadas, culpa atirada a quem não chega ao
+fim do mês, pedidos de senha, e o modelo a fazer-se passar pelo fundador — tudo
+isso é recusado. Recusado uma vez, pede-se outra; à segunda, cala-se e o chat
+responde pela resposta escrita à mão. A revisão erra de propósito para o lado
+de recusar: o custo de recusar de mais é uma resposta melhor escrita.
+
+E o modelo **não se apresenta como pessoa nenhuma.** O chat tem o nome e a
+história do fundador porque as respostas escritas são dele; pôr as mesmas
+palavras na boca de um modelo, e sobre o dinheiro de quem pergunta, seria outra
+coisa.
+
+O modelo corre dentro da própria Cloudflare, nos 10.000 neurónios por dia que
+ela dá de graça. Não há chave da Anthropic e **não há cartão na conta** — é
+isso, e não o número, que faz isto não poder gerar factura: acabada a quota do
+dia, a Cloudflare recusa em vez de cobrar, o worker devolve 429 e o chat
+responde pelas regras como respondia antes de haver IA.
+
+Para conferir o que está ligado, um GET ao endereço responde com uma linha de
+estado. Há também o `servidor/worker.js`, que faz o mesmo pela Anthropic e é
+melhor a escrever — esse tem cartão, e por isso não responde sem travão
+ligado. Os passos dos dois estão em `servidor/README.md`.
 
 E a IA entra em último lugar, sempre. Primeiro as regras — corrigir, lançar,
 calcular, responder — que são grátis, instantâneas, funcionam sem internet e
 não contam a ninguém o que se perguntou. A IA só é chamada quando as regras
 dizem "não percebi".
 
-## Uma página, e não nove ecrãs
+## Cinco sítios, e cada um com um trabalho
 
-A aplicação tinha nove ecrãs. Para ver quanto foi o mês mudava-se de
-separador; para lançar um gasto, outro; para abrir uma calculadora, outro.
-Cada coisa estava no seu sítio e o conjunto não estava em sítio nenhum —
-ninguém tem na cabeça o mapa de nove ecrãs de uma aplicação de contas.
+A aplicação teve nove ecrãs, e depois teve um só — tudo em gavetas dentro do
+Início. As duas versões estavam erradas pela mesma razão, e a segunda pior do
+que a primeira: nove ecrãs não se guardam na cabeça, e uma página onde cabe
+tudo não é uma página arrumada, é uma gaveta de cozinha.
 
-Hoje há um sítio só. Lançar, o mês, as contas fixas, a dívida, os apoios e as
-ferramentas são **gavetas** dentro do Início. O conteúdo não é copiado: é o
-próprio, mudado de sítio por um script, com os mesmos `id` — todo o resto do
-código continua a encontrar o que procura sem se lhe ter mexido numa linha.
+O Início chegou a ter **cinco ecrãs e meio de altura e 169 coisas em que
+tocar**, e o número que a pessoa abriu a aplicação para ver — o que sobra até
+ao fim do mês — só aparecia depois de um anúncio, de uma saudação e de duas
+perguntas.
 
-A barra de baixo deixou de trocar de ecrã e passou a abrir a gaveta certa e a
-levar até ela. Continua a servir de mapa, e agora o mapa é de uma página só.
+Hoje são cinco, e a barra de baixo diz quais:
 
-O chat fica de fora, e de propósito: é uma conversa de altura inteira, com a
-caixa de escrita colada ao fundo. Metido numa gaveta de uma página que rola,
-deixava de se poder usar.
+| | serve para |
+|---|---|
+| **Início** | o mês desta pessoa: o que sobra, o que guardou, o que há a pagar |
+| **Lançar** | pôr um gasto ou uma entrada |
+| **Mês** | tudo o que entrou e saiu, para onde foi, e as contas que se repetem |
+| **Ferramentas** | as calculadoras, a dívida, os apoios e o "onde pôr a render" |
+| **Escrever** | o chat |
+
+O Início é o primeiro porque é o início. Esteve em segundo, com o chat à
+frente — a casa da aplicação atrás de uma das coisas que lá se fazem.
+
+Debaixo dos números há um menu de cinco linhas, todas com o mesmo aspecto,
+cada uma a dizer o que é e para que serve. Iguais de propósito: quando cada
+destino tem a sua cor e o seu tamanho, deixa-se de comparar destinos e passa-se
+a comparar botões.
+
+E o banner promocional passou para **debaixo** dos cartões do mês. Mesmo sendo
+de uma coisa grátis, mesmo sendo nosso, não se põe um anúncio à frente do
+dinheiro de quem chega.
+
+O conteúdo não é copiado: é o próprio, mudado de sítio por um script, com os
+mesmos `id` — todo o resto do código continua a encontrar o que procura sem se
+lhe ter mexido numa linha.
+
+## As ferramentas arrumadas pela pergunta, e não pelo preço
+
+Eram nove formulários abertos, uns debaixo dos outros, agrupados em
+"Gratuitas" e "Assinatura". Cinco mil pixéis de campos por preencher — e numa
+parede não se procura, desiste-se.
+
+E "gratuitas" e "assinatura" é a nossa maneira de as arrumar, não a de quem as
+usa. Ninguém acorda a pensar "hoje quero uma ferramenta gratuita". Acorda a
+dever dinheiro, ou sem conseguir guardar nada, ou com a renda a pesar de mais.
+
+Passaram a ser cinco grupos, com a pergunta escrita como as pessoas a fazem —
+**"Estou a dever dinheiro"**, **"Quero guardar dinheiro"**, **"Quero gastar
+menos"**, **"Dinheiro que talvez já seja seu"**, **"Planear os próximos
+anos"** — e cada ferramenta fechada, com o nome, um emoji e uma linha a dizer
+para que serve. A página deixou de ser uma parede e passou a ser um índice: de
+8.800 pixéis para 3.600, e o mesmo conteúdo lá todo.
+
+## O `num` que valia zero
+
+Dois ficheiros da mesma página tinham uma função global chamada `num`. O
+`app-financas.js` formatava um número com uma casa decimal; o `ferramentas.js`,
+carregado depois, lia um campo pelo `id`. O segundo apagava o primeiro em
+silêncio.
+
+Resultado: o cartão da Reserva pedia para formatar `0,39` e recebia uma busca
+por um campo com esse nome, que não existe. Devolvia zero. **Quem tinha 240 €
+de lado via "0 meses"** — e, no plano, "0 de uma semana de despesas
+essenciais". O cartão da partilha dizia o mesmo. Nenhum erro na consola, nada
+partido à vista: só a aplicação a dizer a alguém que o que ele juntou não
+conta.
+
+O `teste-app.mjs` abre a aplicação num Chromium do tamanho de um telemóvel e
+falha se isso voltar a acontecer.
 
 ## Quatro línguas
 
@@ -126,10 +207,43 @@ a mesma língua e não são o mesmo texto — "telemóvel" e "celular", "ecrã" 
 como estrangeiro na sua própria aplicação de contas. O `br` só escreve o que é
 mesmo diferente e o resto cai no `pt`.
 
-**O que ainda está só em português** são as respostas longas — os textos de
-ajuda sobre reservas, dívidas e apoios — e as páginas do site fora da
-aplicação. O trabalho do dia-a-dia está nas quatro; explicar em quatro é o
-passo seguinte.
+E **explica** nas quatro. As respostas longas — a reserva, a dívida, os
+apoios, por onde começar, e a própria apresentação do chat — estão nas quatro
+línguas, no `respostas.js`. Não é tradução à letra: onde há ajuda gratuita
+para dívidas não é a mesma entidade em Portugal, no Brasil ou em Espanha, e
+traduzir o nome de uma lei portuguesa seria dar a alguém uma morada que não
+existe. Também o dinheiro muda de pontuação — `1.500,00 €` e `€1,500.00` são o
+mesmo número e nenhum deles se lê bem a quem não cresceu com ele.
+
+Isto vive em ficheiro próprio e não no `idiomas.js` porque o `idiomas.js` é
+carregado pela página de entrada e pelas ferramentas, que não têm chat. Quem
+abre a página inicial com dados contados não tem de descarregar ensaios que
+não vai ler.
+
+**O que ainda está só em português** são as páginas do site fora da aplicação
+— `index.html`, `metodo.html`, `sobre.html`. O trabalho do dia-a-dia e as
+explicações estão nas quatro.
+
+Os testes deste projecto:
+
+```
+node teste-idiomas.mjs     # as quatro línguas têm as mesmas frases e os mesmos buracos
+node teste-chat.mjs        # o chat vai buscar a frase certa, na língua de quem escreveu
+node servidor/teste-worker.mjs   # os dois workers da IA, com um Firebase de mentira
+node teste-app.mjs         # a aplicação aberta num telemóvel a sério (precisa de servidor)
+```
+
+O último precisa de duas coisas antes de correr: `python3 -m http.server 8899`
+noutra consola, e `npm i playwright` uma vez. Abre a aplicação num Chromium de
+390 pixéis de largura, com movimentos lançados, e carrega nas coisas como uma
+pessoa carrega — porque mover conteúdo com um script é a maneira mais fácil de
+partir um botão sem dar por isso: não dá erro nenhum, só deixa de haver ali
+nada.
+
+O primeiro apanha a chave que só existe em português; o segundo apanha a chave
+mal escrita no código, que o primeiro não vê. Nenhuma das duas falhas dá erro
+no navegador — aparecem no telemóvel de alguém como um texto na língua errada
+ou uma palavra crua a meio de uma conversa sobre a renda.
 
 ## As carteiras
 

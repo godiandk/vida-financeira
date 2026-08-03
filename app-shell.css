@@ -68,14 +68,20 @@ body.app-shell .app-float{display:none}
 }
 .ecra-sub{color:var(--cream-dim);font-size:.88rem;margin-bottom:20px}
 
-/* ---------- saudação ---------- */
-.saudacao{
-  background:linear-gradient(135deg,rgba(217,178,110,.16),rgba(217,178,110,.03));
-  border:1px solid rgba(217,178,110,.28);border-radius:20px;
-  padding:20px 22px;margin-bottom:18px;
+/* ---------- saudação ----------
+   Era um cartão de duzentos e cinquenta pixeis a dizer "boa tarde" e a
+   explicar o que a aplicação faz — todos os dias, à mesma pessoa, por cima do
+   número que ela veio ver. Um cartão é para o que se lê; isto lê-se de
+   passagem. Passa a ser uma linha. */
+.saudacao{margin:2px 0 14px}
+.saudacao h2{
+  font-family:'Playfair Display',serif;font-size:1.12rem;margin:0;
+  color:var(--cream);font-weight:600;line-height:1.3
 }
-.saudacao h2{font-family:'Playfair Display',serif;font-size:1.3rem;margin:0 0 4px;color:var(--cream)}
-.saudacao p{color:var(--cream-dim);font-size:.9rem;margin:0}
+/* A explicação só faz falta a quem ainda não lançou nada — e essa pessoa tem
+   o arranque e o banner a dizerem-lho. Para quem já usa, é uma linha lida
+   trezentas vezes. */
+.saudacao p{display:none}
 
 /* ---------- acção principal ---------- */
 .accao-grande{
@@ -218,4 +224,43 @@ body.app-shell .app-float{display:none}
 @media(max-width:400px){
   .gv-corpo{padding:14px 13px 18px}
   .gaveta > summary{padding:15px 14px}
+}
+
+/* ============================================================
+   O MENU DO INÍCIO
+
+   Cinco linhas iguais, cada uma com um ícone, um nome e uma frase a dizer
+   para que serve. Iguais de propósito: quando cada destino tem a sua cor e o
+   seu tamanho, a pessoa deixa de comparar destinos e passa a comparar
+   botões — e o que era um menu passa a ser uma montra.
+   ============================================================ */
+.menu-casa{margin:26px 0 18px}
+.menu-tit{
+  font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--cream-dim);margin:0 0 12px;font-weight:700
+}
+.menu-linha{
+  width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+  padding:15px 16px;margin-bottom:10px;text-align:left;
+  background:rgba(255,255,255,.032);
+  border:1px solid rgba(217,178,110,.16);border-radius:16px;
+  color:var(--cream);cursor:pointer;
+  transition:border-color .16s ease, background .16s ease, transform .12s ease
+}
+.menu-linha:active{transform:scale(.985)}
+.menu-linha:hover{border-color:rgba(217,178,110,.34);background:rgba(255,255,255,.055)}
+.menu-linha .ic{font-size:1.5rem;line-height:1;width:30px;text-align:center}
+.menu-linha .txt{display:block;min-width:0}
+.menu-linha .txt b{display:block;font-size:1.02rem;font-weight:700;line-height:1.3;margin-bottom:2px}
+.menu-linha .txt small{
+  display:block;color:var(--cream-dim);font-size:.84rem;line-height:1.4;
+  font-weight:400
+}
+.menu-linha .seta{font-size:1.4rem;color:var(--gold-soft);opacity:.7}
+
+/* As contas fixas passaram a viver no fim do Mês; a linha separa-as do que
+   já aconteceu, para não parecerem mais movimentos. */
+.zona-contas{
+  margin-top:34px;padding-top:26px;
+  border-top:1px solid rgba(217,178,110,.16)
 }

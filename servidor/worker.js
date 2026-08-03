@@ -65,16 +65,39 @@ const JWKS = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@sys
 export default {
   async fetch(pedido, env) {
     /* ---- de onde se aceita ---- */
+    const permitida = origensDe(env);
     const origem = pedido.headers.get('Origin') || '';
-    const permitida = (env.ORIGENS || '').split(',').map(s => s.trim()).filter(Boolean);
-    const cabecalhos = {
-      'Access-Control-Allow-Origin': permitida.indexOf(origem) !== -1 ? origem : permitida[0] || '',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Content-Type': 'application/json'
-    };
+    const cabecalhos = cabecalhosDe(origem, permitida);
+
     if (pedido.method === 'OPTIONS') return new Response(null, { headers: cabecalhos });
+
+    /* Abrir o endereço no navegador diz o que está ligado e o que falta. Não
+       diz a chave, nem parte dela: só se existe. */
+    if (pedido.method === 'GET') {
+      return responder(200, {
+        servico: 'vida-financeira-ia',
+        modelo: MODELO,
+        chave: !!env.ANTHROPIC_KEY,
+        projecto: !!env.FIREBASE_PROJECTO,
+        origens: permitida.length,
+        travao: qualTravao(env),
+        porDia: POR_DIA
+      }, cabecalhos);
+    }
+
     if (pedido.method !== 'POST') return responder(405, { erro: 'metodo' }, cabecalhos);
+
+    /* Um pedido de um sítio que não é o nosso pára aqui. O navegador já o
+       travava por causa do CORS, mas quem chama isto de um terminal não tem
+       navegador nenhum a travá-lo — e aqui, ao contrário do worker grátis,
+       cada pedido que passa é dinheiro de alguém. */
+    if (permitida.length && origem && permitida.indexOf(origem) === -1) {
+      return responder(403, { erro: 'origem' }, cabecalhos);
+    }
+
+    if (!env.ANTHROPIC_KEY) return responder(503, { erro: 'sem-chave' }, cabecalhos);
+    if (!env.FIREBASE_PROJECTO) return responder(503, { erro: 'sem-projecto' }, cabecalhos);
+    if (qualTravao(env) === 'nenhum') return responder(503, { erro: 'sem-travao' }, cabecalhos);
 
     /* ---- quem está a perguntar ---- */
     const auth = pedido.headers.get('Authorization') || '';
@@ -89,9 +112,8 @@ export default {
     }
 
     /* ---- travão ---- */
-    if (env.TRAVAO) {
-      const { success } = await env.TRAVAO.limit({ key: uid });
-      if (!success) return responder(429, { erro: 'demasiadas', porDia: POR_DIA }, cabecalhos);
+    if (!await deixarPassar(env, uid)) {
+      return responder(429, { erro: 'demasiadas', porDia: POR_DIA }, cabecalhos);
     }
 
     /* ---- a pergunta ---- */
@@ -135,8 +157,80 @@ export default {
   }
 };
 
+function origensDe(env) {
+  return String(env.ORIGENS || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function cabecalhosDe(origem, permitida) {
+  return {
+    'Access-Control-Allow-Origin': permitida.indexOf(origem) !== -1 ? origem : (permitida[0] || ''),
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+}
+
 function responder(estado, corpo, cabecalhos) {
   return new Response(JSON.stringify(corpo), { status: estado, headers: cabecalhos });
+}
+
+/* ------------------------------------------------------------
+   O travão
+
+   O travão de fábrica dos Workers — o `.limit()` — só conta em janelas de 10
+   ou 60 segundos e não se configura pelo painel. Não serve para 20 por dia,
+   nem para quem publica isto copiando um ficheiro para o navegador. Serve um
+   KV: uma gaveta de chave-valor criada no painel em dois cliques, com um
+   número por pessoa e por dia que se apaga sozinho.
+
+   Aqui, ao contrário do worker grátis, um contador em baixo não deixa passar.
+   São duas contas diferentes: lá o tecto é o dos neurónios e o pior que
+   acontece é acabarem mais cedo; aqui cada pedido tem factura, e uma factura
+   sem travão pode ser esvaziada por alguém com tempo livre. Quando o KV falha,
+   a IA cala-se e o chat responde pelas regras — como respondia antes de haver
+   IA nenhuma.
+   ------------------------------------------------------------ */
+function qualTravao(env) {
+  const t = env.TRAVAO;
+  if (!t) return 'nenhum';
+  if (typeof t.limit === 'function') return 'ratelimit';
+  if (typeof t.get === 'function' && typeof t.put === 'function') return 'kv';
+  return 'nenhum';
+}
+
+async function deixarPassar(env, uid) {
+  const tipo = qualTravao(env);
+
+  if (tipo === 'ratelimit') {
+    try {
+      const { success } = await env.TRAVAO.limit({ key: uid });
+      return !!success;
+    } catch (e) { return false; }
+  }
+
+  if (tipo === 'kv') {
+    const chave = 'p:' + uid + ':' + new Date().toISOString().slice(0, 10);
+    let quantas = 0;
+    try {
+      quantas = parseInt(await env.TRAVAO.get(chave), 10) || 0;
+    } catch (e) {
+      return false;
+    }
+    if (quantas >= POR_DIA) return false;
+    try {
+      await env.TRAVAO.put(chave, String(quantas + 1), { expirationTtl: 172800 });
+    } catch (e) {
+      /* Não se conseguiu contar. Numa conta com cartão, isso é motivo para
+         parar: um contador que não conta é o mesmo que não haver contador. */
+      return false;
+    }
+    return true;
+  }
+
+  /* Sem travão nenhum, este worker não responde. Não é rigidez: é que o
+     endereço é público, qualquer pessoa cria conta na aplicação em meio
+     minuto, e do outro lado está um cartão. */
+  return false;
 }
 
 /* ------------------------------------------------------------
@@ -150,6 +244,28 @@ function responder(estado, corpo, cabecalhos) {
    Verifica-se a assinatura com as chaves públicas da Google, o emissor, o
    destinatário (o projecto) e a validade. Não há atalhos aqui.
    ------------------------------------------------------------ */
+let chavesGuardadas = null;
+let chavesAte = 0;
+
+async function chavesDaGoogle() {
+  const agora = Date.now();
+  if (chavesGuardadas && agora < chavesAte) return chavesGuardadas;
+
+  const resposta = await fetch(JWKS);
+  if (!resposta.ok) throw new Error('jwks');
+  const dados = await resposta.json();
+
+  /* A Google diz quanto tempo é que estas chaves valem. Respeitá-lo poupa um
+     pedido a cada pergunta e continua a rodar as chaves quando ela as roda. */
+  const controlo = resposta.headers.get('cache-control') || '';
+  const encontrado = controlo.match(/max-age=(\d+)/);
+  const segundos = encontrado ? Math.min(parseInt(encontrado[1], 10), 86400) : 3600;
+
+  chavesGuardadas = dados;
+  chavesAte = agora + segundos * 1000;
+  return dados;
+}
+
 async function uidDoToken(token, projecto) {
   const [cabeca64, corpo64, assinatura64] = token.split('.');
   if (!cabeca64 || !corpo64 || !assinatura64) throw new Error('formato');
@@ -157,17 +273,23 @@ async function uidDoToken(token, projecto) {
   const cabeca = JSON.parse(b64(cabeca64));
   const corpo = JSON.parse(b64(corpo64));
 
+  /* Sem esta linha, um token que diga "alg: none" chegava aqui a ser tratado
+     como um token a sério. A verificação abaixo apanhava-o à mesma, mas uma
+     porta não se deixa encostada por a seguinte estar fechada. */
+  if (cabeca.alg !== 'RS256') throw new Error('algoritmo');
+
   const agora = Math.floor(Date.now() / 1000);
-  if (corpo.exp <= agora) throw new Error('expirado');
+  if (!(corpo.exp > agora)) throw new Error('expirado');
   if (corpo.aud !== projecto) throw new Error('projecto');
   if (corpo.iss !== 'https://securetoken.google.com/' + projecto) throw new Error('emissor');
   if (!corpo.sub) throw new Error('sem-sub');
 
-  const chaves = await (await fetch(JWKS)).json();
+  const chaves = await chavesDaGoogle();
   const jwk = (chaves.keys || []).find(k => k.kid === cabeca.kid);
   if (!jwk) throw new Error('chave');
 
-  const chave = await crypto.subtle.importKey('jwk', jwk,
+  const chave = await crypto.subtle.importKey('jwk',
+    { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
 
   const assinada = new TextEncoder().encode(cabeca64 + '.' + corpo64);
