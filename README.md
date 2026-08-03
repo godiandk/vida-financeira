@@ -12,7 +12,7 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
 - `index.html` — página de entrada (o que é, o que faz, como começar)
 - `app/` — a aplicação, em ecrãs: Escrever, Início, Lançar, Mês, Ferramentas
 - `app.html` — reencaminha para `app/` (endereços antigos continuam a abrir)
-- `ferramentas.html` — as nove calculadoras, também acessíveis dentro da app
+- `ferramentas.html` — as dez calculadoras, também acessíveis dentro da app
 - `conta.html` — entrar / criar conta (Firebase Authentication, opcional)
 - `metodo.html` · `sobre.html` · `premium.html` — conteúdo e explicações
 - `admin.html` — painel de administração (chaves, facturação, acessos)
@@ -36,6 +36,11 @@ sem App Store, sem Play Store, sem APK) e **não pede dados do banco**.
   talão, depois de lhe ser dito o tamanho. Ficam numa cache própria do
   service worker, que sobrevive às versões do site — publicar uma correcção
   não pode custar quatro megabytes a quem tem dados contados.
+- `investir.js` — onde é que o dinheiro está garantido em Portugal e no
+  Brasil, com a fonte e a data de cada taxa, e a calculadora do juro composto
+  com o imposto já descontado. Nomeia-se o instrumento e nunca a marca; nenhum
+  banco, corretora, fundo ou cripto entra aqui, e há um teste que falha se
+  algum entrar
 - `ferramentas.js` — as calculadoras, a ajuda e o acesso de assinatura
 - `site.js` — menu, moeda por país, sessão e registo do service worker
 - `firebase-config.js` — ligação ao Firebase (**opcional**, ver abaixo)
