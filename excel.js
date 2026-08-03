@@ -117,26 +117,54 @@ function dataSerie(iso) {
   return Math.floor(d / 86400000) + 25569;
 }
 
-/* Uma célula. `tipo` é 't' texto, 'n' número, 'd' data. */
-function celula(ref, valor, tipo) {
+/* Uma célula.
+
+   `tipo`:  't' texto · 'n' número · 'd' data · 'h' cabeçalho
+            'f' soma (fórmula a sério) · 'fh' soma na linha de totais
+            'hn' célula da linha de totais que não é número
+
+   As somas vão como fórmula e não como número escrito à mão. A diferença
+   aparece no dia em que alguém apaga uma linha: com fórmula, o total muda
+   sozinho; com um número, a folha passa a mentir e ninguém dá por isso. Vai
+   também o valor já calculado, para quem abrir o ficheiro num leitor que não
+   calcula fórmulas ver o número à mesma. */
+function celula(ref, valor, tipo, formula) {
+  if (tipo === 'f' || tipo === 'fh') {
+    const v = Number(valor);
+    return '<c r="' + ref + '" s="' + (tipo === 'fh' ? 4 : 2) + '">' +
+           '<f>' + xmlEscapar(formula) + '</f>' +
+           '<v>' + (isFinite(v) ? v : 0) + '</v></c>';
+  }
   if (tipo === 'n') {
     const v = Number(valor);
     if (!isFinite(v)) return '<c r="' + ref + '"/>';
     return '<c r="' + ref + '" s="2"><v>' + v + '</v></c>';
+  }
+  /* Uma percentagem com o formato do dinheiro sai da folha como "46,10 €", e
+     quem lê fica a achar que gastou quarenta e seis euros em habitação num mês
+     em que gastou seiscentos e quarenta e oito. */
+  if (tipo === 'p' || tipo === 'ph') {
+    const v = Number(valor);
+    if (!isFinite(v)) return '<c r="' + ref + '"/>';
+    return '<c r="' + ref + '" s="' + (tipo === 'ph' ? 7 : 6) + '"><v>' + v + '</v></c>';
   }
   if (tipo === 'd') {
     const s = dataSerie(valor);
     if (s === null) return '<c r="' + ref + '" t="inlineStr"><is><t>' + xmlEscapar(valor) + '</t></is></c>';
     return '<c r="' + ref + '" s="3"><v>' + s + '</v></c>';
   }
-  return '<c r="' + ref + '" t="inlineStr"' + (tipo === 'h' ? ' s="1"' : '') +
+  if (tipo === 'hn' && typeof valor === 'number') {
+    return '<c r="' + ref + '" s="4"><v>' + valor + '</v></c>';
+  }
+  const estilo = tipo === 'h' ? ' s="1"' : (tipo === 'hn' ? ' s="5"' : '');
+  return '<c r="' + ref + '" t="inlineStr"' + estilo +
          '><is><t>' + xmlEscapar(valor) + '</t></is></c>';
 }
 
 /* ---------- a folha ---------- */
-function folhaXml(linhas) {
+function folhaXml(linhas, filtro) {
   const corpo = linhas.map((linha, i) => {
-    const cs = linha.map((c, j) => celula(letraColuna(j) + (i + 1), c.v, c.t)).join('');
+    const cs = linha.map((c, j) => celula(letraColuna(j) + (i + 1), c.v, c.t, c.f)).join('');
     return '<row r="' + (i + 1) + '">' + cs + '</row>';
   }).join('');
 
@@ -164,7 +192,13 @@ function folhaXml(linhas) {
     '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>' +
     '</sheetView></sheetViews>' +
     cols +
-    '<sheetData>' + corpo + '</sheetData></worksheet>';
+    '<sheetData>' + corpo + '</sheetData>' +
+    /* O filtro no cabeçalho é o que transforma trezentas linhas numa folha em
+       que se pode procurar: "mostra-me só o mercado", "só o que saiu da conta
+       dela". Vai depois do `sheetData` porque é aí que o esquema o quer, e um
+       leitor exigente recusa o ficheiro inteiro se vier antes. */
+    (filtro ? '<autoFilter ref="' + xmlEscapar(filtro) + '"/>' : '') +
+    '</worksheet>';
 }
 
 /* Formatos: o 164 é dinheiro com dois decimais e o 165 é a data em dia/mês/ano
@@ -177,26 +211,39 @@ function estilosXml(moeda) {
 
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    '<numFmts count="2">' +
+    '<numFmts count="3">' +
       '<numFmt numFmtId="164" formatCode="' + fmtMoeda + '"/>' +
       '<numFmt numFmtId="165" formatCode="dd/mm/yyyy"/>' +
+      '<numFmt numFmtId="166" formatCode="0.0&quot;%&quot;"/>' +
     '</numFmts>' +
-    '<fonts count="2">' +
+    '<fonts count="3">' +
       '<font><sz val="11"/><name val="Calibri"/></font>' +
       '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+      '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
     '</fonts>' +
     '<fills count="3">' +
       '<fill><patternFill patternType="none"/></fill>' +
       '<fill><patternFill patternType="gray125"/></fill>' +
       '<fill><patternFill patternType="solid"><fgColor rgb="FF1E3A2F"/><bgColor indexed="64"/></patternFill></fill>' +
     '</fills>' +
-    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    /* Um risco por cima da linha dos totais. É o que separa, à vista, o que
+       são movimentos do que é a soma deles — sem isso, a última linha lê-se
+       como mais um movimento, e uma folha de contas onde o total parece um
+       gasto é uma folha que engana. */
+    '<borders count="2">' +
+      '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left/><right/><top style="thin"><color rgb="FF9C7A3C"/></top><bottom/><diagonal/></border>' +
+    '</borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-    '<cellXfs count="4">' +
+    '<cellXfs count="8">' +
       '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
       '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
       '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
       '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+      '<xf numFmtId="164" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' +
+      '<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>' +
+      '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+      '<xf numFmtId="166" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' +
     '</cellXfs>' +
     /* Sem o estilo "Normal" declarado, os leitores avisam que o livro não tem
        estilo por omissão e aplicam o deles. Funciona à mesma, mas é um aviso a
@@ -251,7 +298,8 @@ function construirXlsx(folhas, moeda) {
   ];
 
   folhas.forEach((f, i) => {
-    ficheiros.push({ nome: 'xl/worksheets/sheet' + (i + 1) + '.xml', conteudo: folhaXml(f.linhas) });
+    const filtro = f.filtro ? f.filtro + f.linhas.length : null;
+    ficheiros.push({ nome: 'xl/worksheets/sheet' + (i + 1) + '.xml', conteudo: folhaXml(f.linhas, filtro) });
   });
 
   return fazerZip(ficheiros);
