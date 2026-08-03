@@ -65,17 +65,24 @@ dizia quanto tinha no banco via-o arrumado na reserva e o número grande do
 ecrã continuar a mostrar outra coisa. Duas coisas verdadeiras, lidas como uma
 contradição — e a conclusão de quem lê é sempre a mesma: isto não percebe nada.
 
-## A IA — escrita, e desligada
+## A IA — ligada, e sem factura
 
-Em `servidor/` está o que falta para haver uma IA a sério: um Worker da
-Cloudflare que guarda a chave da Anthropic, confirma que quem pergunta tem
-conta (assinatura do Firebase verificada com as chaves públicas da Google),
-trava quem pergunta de mais, e não guarda conversa nenhuma.
+Está a correr em `https://vf-ia.wly-vianna.workers.dev`, um Worker da
+Cloudflare com o código de `servidor/worker-gratis.js`. Confirma que quem
+pergunta tem conta (assinatura do Firebase verificada com as chaves públicas
+da Google), trava em 20 perguntas por pessoa e por dia, não guarda conversa
+nenhuma, e **não recebe a lista de movimentos** — só um resumo de três linhas.
 
-**Não está a correr.** O `ia.js` tem o endereço do servidor vazio, e enquanto
-estiver vazio a aplicação nem tenta — funciona exactamente como hoje. Para
-existir são precisas duas contas do dono do projecto: Anthropic (com cartão) e
-Cloudflare (grátis). Os passos e os custos estão em `servidor/README.md`.
+O modelo corre dentro da própria Cloudflare, nos 10.000 neurónios por dia que
+ela dá de graça. Não há chave da Anthropic e **não há cartão na conta** — é
+isso, e não o número, que faz isto não poder gerar factura: acabada a quota do
+dia, a Cloudflare recusa em vez de cobrar, o worker devolve 429 e o chat
+responde pelas regras como respondia antes de haver IA.
+
+Para conferir o que está ligado, um GET ao endereço responde com uma linha de
+estado. Há também o `servidor/worker.js`, que faz o mesmo pela Anthropic e é
+melhor a escrever — esse tem cartão, e por isso não responde sem travão
+ligado. Os passos dos dois estão em `servidor/README.md`.
 
 E a IA entra em último lugar, sempre. Primeiro as regras — corrigir, lançar,
 calcular, responder — que são grátis, instantâneas, funcionam sem internet e

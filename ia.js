@@ -32,8 +32,14 @@
    receber um conselho sobre o fim do mês.
    ============================================================ */
 
-/* ← O endereço do worker. Vazio = desligado. */
-const IA_ENDERECO = '';
+/* ← O endereço do worker. Vazio = desligado.
+
+   Deixou de estar vazio a 3 de Agosto de 2026. Do outro lado está o
+   `servidor/worker-gratis.js`, a correr na Cloudflare com o modelo dela — sem
+   chave da Anthropic, sem cartão na conta e, por isso, sem factura possível.
+   Quando os neurónios do dia acabarem, ele responde 429, isto lê "não", e o
+   chat segue pelas regras como seguia ontem. */
+const IA_ENDERECO = 'https://vf-ia.wly-vianna.workers.dev';
 
 const IA_ESPERA = 20000;   /* ao fim disto, desiste-se e responde-se sem ela */
 
