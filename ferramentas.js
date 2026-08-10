@@ -137,7 +137,8 @@ function desenharDicasDeCampo() {
     if (!campo || campo.querySelector('.campo-dica')) return;
     const s = document.createElement('small');
     s.className = 'campo-dica';
-    s.textContent = 'Já preenchido — se não souber o seu, deixe assim.';
+    s.setAttribute('data-t', 'ferr.a.deixar');
+    s.textContent = tf('ferr.a.deixar', 'Já preenchido — se não souber o seu, deixe assim.');
     campo.appendChild(s);
   });
 }
@@ -157,21 +158,38 @@ function desenharAjuda() {
     const a = AJUDA[pre];
 
     /* O "para que serve" toma o lugar do subtítulo — é o mesmo sítio, e a
-       frase que lá estava descrevia o método em vez de dizer para quem é. */
+       frase que lá estava descrevia o método em vez de dizer para quem é.
+
+       Vai dentro de um `<span data-t>` e não como texto solto por duas razões:
+       o `encaixotarFerramenta()` copia isto para a linha da caixa, e o
+       `traduzirPagina()` precisa de o encontrar quando alguém troca de língua
+       sem recarregar. Sem o span, as nove ferramentas ficavam em português
+       para quem tem a aplicação noutra língua — que foi o que aconteceu
+       durante meses. */
     const sub = ferr.querySelector('.sub');
-    if (sub && a.para) sub.textContent = a.para;
+    if (sub && a.para) {
+      const chave = 'ferr.t.' + pre + '.sub';
+      sub.innerHTML = '<span data-t="' + chave + '"></span>';
+      sub.firstChild.textContent = tf(chave, a.para);
+    }
 
     const d = document.createElement('details');
     d.className = 'ajuda';
 
     const s = document.createElement('summary');
-    s.textContent = 'Como se preenche — com um exemplo';
+    s.setAttribute('data-t', 'ferr.a.resumo');
+    s.textContent = tf('ferr.a.resumo', 'Como se preenche — com um exemplo');
     d.appendChild(s);
 
+    /* Os textos longos da ajuda levam `<b>` no meio, por isso vão por
+       `innerHTML` e não podem passar pelo `data-t` (que escreve `textContent`
+       e comia as negras). Redesenham-se de raiz quando a língua muda — é o que
+       o `vf:lingua-mudou` aqui em baixo faz. */
     const ul = document.createElement('ul');
-    a.campos.forEach(([rot, txt]) => {
+    a.campos.forEach(([rot, txt], n) => {
       const li = document.createElement('li');
-      li.innerHTML = '<b>' + rot + '</b> — ' + txt;
+      li.innerHTML = '<b>' + tf('ferr.a.' + pre + '.c' + n + '.r', rot) + '</b> — ' +
+                     tf('ferr.a.' + pre + '.c' + n + '.t', txt);
       ul.appendChild(li);
     });
     d.appendChild(ul);
@@ -179,11 +197,32 @@ function desenharAjuda() {
     if (a.exemplo) {
       const ex = document.createElement('p');
       ex.className = 'ajuda-ex';
-      ex.innerHTML = a.exemplo;
+      ex.innerHTML = tf('ferr.a.' + pre + '.ex', a.exemplo);
       d.appendChild(ex);
     }
 
     campos.parentNode.insertBefore(d, campos);
+  });
+}
+
+/* Trocar de língua com a ajuda já desenhada. O `traduzirPagina()` trata do que
+   tem `data-t`; a lista e o exemplo trazem `<b>` lá dentro e por isso são
+   refeitos à mão. Guarda-se quais estavam abertas: fechar a gaveta que a
+   pessoa tinha aberto, só porque mudou de língua, é perder-lhe o sítio. */
+function redesenharAjuda() {
+  const abertas = new Set();
+  document.querySelectorAll('.ferramenta .ajuda').forEach(d => {
+    const btn = d.closest('.ferramenta') &&
+                d.closest('.ferramenta').querySelector('[id$="-calc"]');
+    if (btn && d.open) abertas.add(btn.id.charAt(0));
+    d.remove();
+  });
+  desenharAjuda();
+  abertas.forEach(pre => {
+    const btn = document.getElementById(pre + '-calc');
+    const d = btn && btn.closest('.ferramenta') &&
+              btn.closest('.ferramenta').querySelector('.ajuda');
+    if (d) d.open = true;
   });
 }
 
@@ -1011,9 +1050,14 @@ function encaixotarFerramenta(bloco) {
   const sub = bloco.querySelector('.sub');
   const selo = bloco.querySelector('.selo');
 
+  /* `innerHTML` e não `textContent`, e não é indiferente: o nome e a frase
+     trazem lá dentro um `<span data-t="…">`, e é esse span que faz a caixa
+     mudar de língua quando alguém troca de língua sem recarregar a página.
+     Com `textContent` vinha só o texto, o span ficava para trás, e as nove
+     calculadoras congelavam na língua em que a página abriu. */
   const titulo = h3 ? h3.innerHTML : '';
-  const linha = sub ? sub.textContent.trim() : '';
-  const eSelo = selo ? selo.textContent.trim() : '';
+  const linha = sub ? sub.innerHTML.trim() : '';
+  const eSelo = selo ? selo.innerHTML.trim() : '';
 
   if (h3) h3.remove();
   if (sub) sub.remove();
@@ -1034,6 +1078,25 @@ function encaixotarFerramenta(bloco) {
   while (bloco.firstChild) caixa.appendChild(bloco.firstChild);
   bloco.replaceWith(caixa);
   return caixa;
+}
+
+/* Os nomes das secções que vieram de fora — a dívida, os apoios, o render, a
+   casa, o IRS. Calculam-se cada vez que se pedem, e não uma vez à partida:
+   as traduções mudam quando alguém troca de língua, e uma tabela guardada em
+   memória ficava com os nomes da língua em que a página abriu.
+
+   Cada caixa leva um emoji, e não por enfeite: numa lista de onze linhas, é o
+   que se vê antes de se ler. Quem procura a dos apoios acha o presente três
+   vezes mais depressa do que acha a palavra "apoios". */
+function TITULOS_SECCAO() {
+  const ic = e => '<span class="ic">' + e + '</span> ';
+  return {
+    'ecra-divida':    [ic('📉') + tf('ferr.c.divida', 'O que a dívida custa'), tf('ferr.c.dividasub', 'Quanto está a pagar de juros, com as taxas do seu país.')],
+    'gaveta-investir':[ic('🏦') + tf('inv.titulo', 'Pôr o dinheiro a render'), tf('ferr.c.investirsub', 'Onde é que o dinheiro está garantido, e quanto rende.')],
+    'ecra-apoios':    [ic('🎁') + tf('ferr.c.apoios', 'Apoios que talvez não receba'), tf('ferr.c.apoiossub', 'Quatro perguntas, e a lista do que pode pedir no seu país.')],
+    'gaveta-casa':    [ic('🏠') + tf('casa.titulo', 'A nossa casa'), tf('casa.sub', 'As mesmas contas nos dois telemóveis, em tempo real.')],
+    'gaveta-irs':     [ic('🧾') + tf('irs.titulo', 'O meu IRS'), tf('irs.sub', 'Quanto vai receber ou pagar, e o que lhe falta pedir.')]
+  };
 }
 
 /* Uma secção que era um ecrã inteiro — a dívida, os apoios, o render — entra
@@ -1087,17 +1150,7 @@ function arrumarFerramentas() {
   const zona = document.createElement('div');
   zona.className = 'ferr-grupos';
 
-  /* Cada caixa leva um emoji, e não por enfeite: numa lista de onze linhas,
-     é o que se vê antes de se ler. Quem procura a dos apoios acha o presente
-     três vezes mais depressa do que acha a palavra "apoios". */
-  const ic = e => '<span class="ic">' + e + '</span> ';
-  const TITULOS = {
-    'ecra-divida':    [ic('📉') + tf('ferr.c.divida', 'O que a dívida custa'), tf('ferr.c.dividasub', 'Quanto está a pagar de juros, com as taxas do seu país.')],
-    'gaveta-investir':[ic('🏦') + tf('inv.titulo', 'Pôr o dinheiro a render'), tf('ferr.c.investirsub', 'Onde é que o dinheiro está garantido, e quanto rende.')],
-    'ecra-apoios':    [ic('🎁') + tf('ferr.c.apoios', 'Apoios que talvez não receba'), tf('ferr.c.apoiossub', 'Quatro perguntas, e a lista do que pode pedir no seu país.')],
-    'gaveta-casa':    [ic('🏠') + tf('casa.titulo', 'A nossa casa'), tf('casa.sub', 'As mesmas contas nos dois telemóveis, em tempo real.')],
-    'gaveta-irs':     [ic('🧾') + tf('irs.titulo', 'O meu IRS'), tf('irs.sub', 'Quanto vai receber ou pagar, e o que lhe falta pedir.')]
-  };
+  const TITULOS = TITULOS_SECCAO();
 
   GRUPOS_FERR.forEach(g => {
     const caixas = [];
@@ -1195,5 +1248,22 @@ document.addEventListener('DOMContentLoaded', () => {
         tf(g.chave, g.id) + '</h2>' +
         '<p>' + tf(g.chave + '.sub', '') + '</p>';
     });
+
+    /* As três secções que vieram de fora (a dívida, os apoios, o render) têm
+       o nome escrito na caixa como texto solto, posto pelo `TITULOS`. Sem
+       isto ficavam na língua em que a página abriu, ao lado de tudo o resto
+       já traduzido — que é pior do que estar tudo por traduzir. */
+    Object.keys(TITULOS_SECCAO()).forEach(id => {
+      const alvo = document.getElementById(id) || document.getElementById('caixa-' + id);
+      const cab = alvo && alvo.querySelector('.ferr-cabeca');
+      if (!cab) return;
+      const t = TITULOS_SECCAO()[id];
+      const nome = cab.querySelector('.ferr-nome');
+      const para = cab.querySelector('.ferr-para');
+      if (nome) nome.innerHTML = t[0];
+      if (para) para.textContent = t[1];
+    });
+
+    redesenharAjuda();
   });
 });

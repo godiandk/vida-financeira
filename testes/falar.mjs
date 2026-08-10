@@ -89,12 +89,11 @@ ok(/free until/i.test(rot), 'e os rótulos também');
    gaveta que hoje e' um separador — e falhava sem se ver, porque o
    `correr.sh` nao sabia falhar.
 
-   ATENCAO, e esta parte e' um defeito a serio e nao uma mudanca de nomes:
-   so' se verificam aqui os grupos e as tres seccoes que passam pelo `tf()`.
-   Os nomes das nove calculadoras vem de `<h3>` escritos a' mao no HTML, sem
-   `data-t`, e por isso continuam em portugues para quem tem a aplicacao em
-   ingles ou em espanhol. Falta-lhes chave de traducao, e esta' apontado no
-   CLAUDE.md. */
+   As nove calculadoras tambem ja' se traduzem — nomes, frases, etiquetas dos
+   campos, botoes, e a ajuda toda com os exemplos. Estiveram meses em
+   portugues para toda a gente porque eram `<h3>` escritos a' mao no HTML sem
+   `data-t`, e ninguem tinha dado por isso: e' um defeito que so' se ve' na
+   lingua em que nao se testa. E' este bloco que impede que volte. */
 await p.click('.aba[data-ecra="mais"]'); await p.waitForTimeout(400);
 const grupos=await p.locator('.ferr-grupo-cab h2').allInnerTexts();
 console.log('   grupos:', grupos.join(' · ').replace(/\n/g,' '));
@@ -103,7 +102,29 @@ ok(grupos.join(' ').toLowerCase().includes('tax return season'),
 const caixas=await p.locator('.ferr-nome').allInnerTexts();
 console.log('   caixas :', caixas.map(x=>x.replace(/\n/g,' ')).join(' · '));
 ok(caixas.join(' ').toLowerCase().includes('my tax return'),
-   'e as seccoes que tem chave de traducao tambem');
+   'e as seccoes que vieram de fora tambem');
+ok(caixas.join(' ').toLowerCase().includes('is paying in instalments worth it'),
+   'e as nove calculadoras tambem');
+
+/* Nenhuma frase portuguesa pode sobrar no meio do ingles. Procuram-se palavras
+   que so' existem em portugues e que estavam mesmo la' antes: os nomes, as
+   frases de "para quem e'", as etiquetas dos campos e a ajuda. */
+await p.evaluate(()=>document.querySelectorAll('#ecra-mais details').forEach(d=>{d.open=true;}));
+await p.waitForTimeout(300);
+const tudo=await p.locator('#ecra-mais').innerText();
+const restos=['Vale a pena','Como se preenche','Guardo por mês','Já preenchido',
+              'Quanto rende','Preço a pronto','a loja diga','Calcular'];
+const sobrou=restos.filter(x=>tudo.includes(x));
+ok(sobrou.length===0, 'nao sobra portugues no meio do ingles'+(sobrou.length?' (sobrou: '+sobrou.join(', ')+')':''));
+
+/* E o mesmo ao trocar de lingua sem recarregar: o `ferramentas.js` tem de
+   refazer a ajuda, que traz `<b>` la' dentro e nao passa pelo `data-t`. */
+await p.evaluate(()=>definirIdioma('es')); await p.waitForTimeout(600);
+const esp2=await p.locator('#ecra-mais').innerText();
+ok(/Merece la pena pagar a plazos/.test(esp2), 'trocar para espanhol traduz as calculadoras na hora');
+ok(/Cómo se rellena/.test(esp2), 'e a ajuda tambem, que e desenhada a mao');
+ok(!/Como se preenche/.test(esp2), 'e nao fica nenhuma em portugues por tras');
+await p.evaluate(()=>definirIdioma('en')); await p.waitForTimeout(600);
 ok(await p.evaluate(()=>document.documentElement.lang)==='en', 'e a página declara-se em inglês');
 await p.close();
 

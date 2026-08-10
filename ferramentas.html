@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css?v=64">
-<link rel="stylesheet" href="ferramentas.css?v=64">
+<link rel="stylesheet" href="estilo.css?v=65">
+<link rel="stylesheet" href="ferramentas.css?v=65">
 </head>
 <body>
 
@@ -67,81 +67,81 @@
 
         <!-- 1 -->
         <div class="ferramenta">
-          <h3><span class="ic">🪙</span> Quanto rende guardar todos os meses</h3>
-          <p class="sub">O que se junta ao fim de alguns anos, e quanto disso veio do juro.</p>
+          <h3><span class="ic">🪙</span> <span data-t="ferr.t.p">Quanto rende guardar todos os meses</span></h3>
+          <p class="sub"><span data-t="ferr.t.p.sub">O que se junta ao fim de alguns anos, e quanto disso veio do juro.</span></p>
           <div class="campos">
-            <div class="field"><label for="p-mensal">Guardo por mês</label><input id="p-mensal" type="text" inputmode="decimal" value="50"></div>
-            <div class="field"><label for="p-anos">Durante (anos)</label><input id="p-anos" type="text" inputmode="numeric" value="5"></div>
-            <div class="field larga"><label for="p-taxa">Rende por ano (%)</label><input id="p-taxa" type="text" inputmode="decimal" value="2"></div>
+            <div class="field"><label for="p-mensal" data-t="ferr.campo.p-mensal">Guardo por mês</label><input id="p-mensal" type="text" inputmode="decimal" value="50"></div>
+            <div class="field"><label for="p-anos" data-t="ferr.campo.p-anos">Durante (anos)</label><input id="p-anos" type="text" inputmode="numeric" value="5"></div>
+            <div class="field larga"><label for="p-taxa" data-t="ferr.campo.p-taxa">Rende por ano (%)</label><input id="p-taxa" type="text" inputmode="decimal" value="2"></div>
           </div>
-          <button class="btn btn-gold" id="p-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="p-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="p-out"></div>
         </div>
 
         <!-- 2 -->
         <div class="ferramenta">
-          <h3><span class="ic">🛟</span> De quanto precisa a minha reserva</h3>
-          <p class="sub">Medida em meses de despesa essencial, que é a única unidade que diz alguma coisa.</p>
+          <h3><span class="ic">🛟</span> <span data-t="ferr.t.r">De quanto precisa a minha reserva</span></h3>
+          <p class="sub"><span data-t="ferr.t.r.sub">Medida em meses de despesa essencial, que é a única unidade que diz alguma coisa.</span></p>
           <div class="campos">
-            <div class="field"><label for="r-essenciais">Essenciais por mês</label><input id="r-essenciais" type="text" inputmode="decimal" value="600"></div>
-            <div class="field"><label for="r-meses">Quero (meses)</label><input id="r-meses" type="text" inputmode="numeric" value="3"></div>
-            <div class="field"><label for="r-tenho">Já tenho</label><input id="r-tenho" type="text" inputmode="decimal" value="0"></div>
-            <div class="field"><label for="r-pormes">Guardo por mês</label><input id="r-pormes" type="text" inputmode="decimal" value="50"></div>
+            <div class="field"><label for="r-essenciais" data-t="ferr.campo.r-essenciais">Essenciais por mês</label><input id="r-essenciais" type="text" inputmode="decimal" value="600"></div>
+            <div class="field"><label for="r-meses" data-t="ferr.campo.r-meses">Quero (meses)</label><input id="r-meses" type="text" inputmode="numeric" value="3"></div>
+            <div class="field"><label for="r-tenho" data-t="ferr.campo.r-tenho">Já tenho</label><input id="r-tenho" type="text" inputmode="decimal" value="0"></div>
+            <div class="field"><label for="r-pormes" data-t="ferr.campo.r-pormes">Guardo por mês</label><input id="r-pormes" type="text" inputmode="decimal" value="50"></div>
           </div>
-          <button class="btn btn-gold" id="r-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="r-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="r-out"></div>
         </div>
 
         <!-- 3 -->
         <div class="ferramenta">
-          <h3><span class="ic">💳</span> Vale a pena parcelar?</h3>
-          <p class="sub">Sem perguntar taxa de juro nenhuma: é o total menos o preço a pronto.</p>
+          <h3><span class="ic">💳</span> <span data-t="ferr.t.q">Vale a pena parcelar?</span></h3>
+          <p class="sub"><span data-t="ferr.t.q.sub">Sem perguntar taxa de juro nenhuma: é o total menos o preço a pronto.</span></p>
           <div class="campos">
-            <div class="field"><label for="q-pronto">Preço a pronto</label><input id="q-pronto" type="text" inputmode="decimal" value="480"></div>
-            <div class="field"><label for="q-vezes">Em quantas vezes</label><input id="q-vezes" type="text" inputmode="numeric" value="12"></div>
-            <div class="field larga"><label for="q-prestacao">Valor de cada prestação</label><input id="q-prestacao" type="text" inputmode="decimal" value="45,90"></div>
+            <div class="field"><label for="q-pronto" data-t="ferr.campo.q-pronto">Preço a pronto</label><input id="q-pronto" type="text" inputmode="decimal" value="480"></div>
+            <div class="field"><label for="q-vezes" data-t="ferr.campo.q-vezes">Em quantas vezes</label><input id="q-vezes" type="text" inputmode="numeric" value="12"></div>
+            <div class="field larga"><label for="q-prestacao" data-t="ferr.campo.q-prestacao">Valor de cada prestação</label><input id="q-prestacao" type="text" inputmode="decimal" value="45,90"></div>
           </div>
-          <button class="btn btn-gold" id="q-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="q-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="q-out"></div>
         </div>
 
         <!-- 4 -->
         <div class="ferramenta">
-          <h3><span class="ic">⛓️</span> Por onde começar a pagar dívidas</h3>
-          <p class="sub">Compara o caminho que poupa mais com o caminho que se abandona menos.</p>
+          <h3><span class="ic">⛓️</span> <span data-t="ferr.t.d">Por onde começar a pagar dívidas</span></h3>
+          <p class="sub"><span data-t="ferr.t.d.sub">Compara o caminho que poupa mais com o caminho que se abandona menos.</span></p>
           <div class="campos">
-            <div class="field"><label for="d-valor1">Dívida 1</label><input id="d-valor1" type="text" inputmode="decimal" value="300"></div>
-            <div class="field"><label for="d-taxa1">Juro anual (%)</label><input id="d-taxa1" type="text" inputmode="decimal" value="18"></div>
-            <div class="field"><label for="d-valor2">Dívida 2</label><input id="d-valor2" type="text" inputmode="decimal" value="1200"></div>
-            <div class="field"><label for="d-taxa2">Juro anual (%)</label><input id="d-taxa2" type="text" inputmode="decimal" value="9"></div>
-            <div class="field"><label for="d-valor3">Dívida 3</label><input id="d-valor3" type="text" inputmode="decimal" value="0"></div>
-            <div class="field"><label for="d-taxa3">Juro anual (%)</label><input id="d-taxa3" type="text" inputmode="decimal" value="0"></div>
+            <div class="field"><label for="d-valor1" data-t="ferr.campo.d-valor1">Dívida 1</label><input id="d-valor1" type="text" inputmode="decimal" value="300"></div>
+            <div class="field"><label for="d-taxa1" data-t="ferr.campo.d-taxa1">Juro anual (%)</label><input id="d-taxa1" type="text" inputmode="decimal" value="18"></div>
+            <div class="field"><label for="d-valor2" data-t="ferr.campo.d-valor2">Dívida 2</label><input id="d-valor2" type="text" inputmode="decimal" value="1200"></div>
+            <div class="field"><label for="d-taxa2" data-t="ferr.campo.d-taxa2">Juro anual (%)</label><input id="d-taxa2" type="text" inputmode="decimal" value="9"></div>
+            <div class="field"><label for="d-valor3" data-t="ferr.campo.d-valor3">Dívida 3</label><input id="d-valor3" type="text" inputmode="decimal" value="0"></div>
+            <div class="field"><label for="d-taxa3" data-t="ferr.campo.d-taxa3">Juro anual (%)</label><input id="d-taxa3" type="text" inputmode="decimal" value="0"></div>
           </div>
-          <button class="btn btn-gold" id="d-calc" type="button">Comparar</button>
+          <button class="btn btn-gold" id="d-calc" type="button" data-t="ferr.bt.comparar">Comparar</button>
           <div class="res" id="d-out"></div>
         </div>
 
         <!-- 5 -->
         <div class="ferramenta">
-          <h3><span class="ic">🏠</span> Quanto pesa a habitação</h3>
-          <p class="sub">A percentagem do que entra em casa que vai para renda ou prestação.</p>
+          <h3><span class="ic">🏠</span> <span data-t="ferr.t.e">Quanto pesa a habitação</span></h3>
+          <p class="sub"><span data-t="ferr.t.e.sub">A percentagem do que entra em casa que vai para renda ou prestação.</span></p>
           <div class="campos">
-            <div class="field"><label for="e-rendimento">Entra em casa por mês</label><input id="e-rendimento" type="text" inputmode="decimal" value="1000"></div>
-            <div class="field"><label for="e-habitacao">Renda ou prestação</label><input id="e-habitacao" type="text" inputmode="decimal" value="450"></div>
+            <div class="field"><label for="e-rendimento" data-t="ferr.campo.e-rendimento">Entra em casa por mês</label><input id="e-rendimento" type="text" inputmode="decimal" value="1000"></div>
+            <div class="field"><label for="e-habitacao" data-t="ferr.campo.e-habitacao">Renda ou prestação</label><input id="e-habitacao" type="text" inputmode="decimal" value="450"></div>
           </div>
-          <button class="btn btn-gold" id="e-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="e-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="e-out"></div>
         </div>
 
         <!-- 6 -->
         <div class="ferramenta">
-          <h3><span class="ic">☕</span> O custo de um hábito</h3>
-          <p class="sub">Uma despesa pequena e repetida, vista ao ano.</p>
+          <h3><span class="ic">☕</span> <span data-t="ferr.t.h">O custo de um hábito</span></h3>
+          <p class="sub"><span data-t="ferr.t.h.sub">Uma despesa pequena e repetida, vista ao ano.</span></p>
           <div class="campos">
-            <div class="field"><label for="h-valor">Custa de cada vez</label><input id="h-valor" type="text" inputmode="decimal" value="1,20"></div>
-            <div class="field"><label for="h-vezes">Vezes por semana</label><input id="h-vezes" type="text" inputmode="numeric" value="10"></div>
+            <div class="field"><label for="h-valor" data-t="ferr.campo.h-valor">Custa de cada vez</label><input id="h-valor" type="text" inputmode="decimal" value="1,20"></div>
+            <div class="field"><label for="h-vezes" data-t="ferr.campo.h-vezes">Vezes por semana</label><input id="h-vezes" type="text" inputmode="numeric" value="10"></div>
           </div>
-          <button class="btn btn-gold" id="h-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="h-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="h-out"></div>
         </div>
 
@@ -184,15 +184,15 @@
 
         <!-- 7 -->
         <div class="ferramenta premium">
-          <span class="selo">Assinatura</span>
-          <h3><span class="ic">🗓️</span> Plano de 12 meses</h3>
-          <p class="sub">Mês a mês, com os subsídios contados onde entram.</p>
+          <span class="selo" data-t="ferr.selo">Assinatura</span>
+          <h3><span class="ic">🗓️</span> <span data-t="ferr.t.a">Plano de 12 meses</span></h3>
+          <p class="sub"><span data-t="ferr.t.a.sub">Mês a mês, com os subsídios contados onde entram.</span></p>
           <div class="campos">
-            <div class="field"><label for="a-rendimento">Entra por mês</label><input id="a-rendimento" type="text" inputmode="decimal" value="1000"></div>
-            <div class="field"><label for="a-essenciais">Essenciais por mês</label><input id="a-essenciais" type="text" inputmode="decimal" value="820"></div>
-            <div class="field larga"><label for="a-extra">Subsídio, quando há (cada um)</label><input id="a-extra" type="text" inputmode="decimal" value="0"></div>
+            <div class="field"><label for="a-rendimento" data-t="ferr.campo.a-rendimento">Entra por mês</label><input id="a-rendimento" type="text" inputmode="decimal" value="1000"></div>
+            <div class="field"><label for="a-essenciais" data-t="ferr.campo.a-essenciais">Essenciais por mês</label><input id="a-essenciais" type="text" inputmode="decimal" value="820"></div>
+            <div class="field larga"><label for="a-extra" data-t="ferr.campo.a-extra">Subsídio, quando há (cada um)</label><input id="a-extra" type="text" inputmode="decimal" value="0"></div>
           </div>
-          <button class="btn btn-gold" id="a-calc" type="button">Fazer o plano</button>
+          <button class="btn btn-gold" id="a-calc" type="button" data-t="ferr.bt.plano">Fazer o plano</button>
           <div class="res" id="a-out"></div>
           <ul class="plano-lista" id="a-tabela"></ul>
           <div class="cadeado js-se-gratis">
@@ -204,17 +204,17 @@
 
         <!-- 8 -->
         <div class="ferramenta premium">
-          <span class="selo">Assinatura</span>
-          <h3><span class="ic">⚖️</span> Comparar dois caminhos</h3>
-          <p class="sub">Duas decisões lado a lado, para ver qual pesa mais.</p>
+          <span class="selo" data-t="ferr.selo">Assinatura</span>
+          <h3><span class="ic">⚖️</span> <span data-t="ferr.t.c">Comparar dois caminhos</span></h3>
+          <p class="sub"><span data-t="ferr.t.c.sub">Duas decisões lado a lado, para ver qual pesa mais.</span></p>
           <div class="campos">
-            <div class="field"><label for="c-mensalA">A · por mês</label><input id="c-mensalA" type="text" inputmode="decimal" value="50"></div>
-            <div class="field"><label for="c-taxaA">A · rende (%)</label><input id="c-taxaA" type="text" inputmode="decimal" value="2"></div>
-            <div class="field"><label for="c-mensalB">B · por mês</label><input id="c-mensalB" type="text" inputmode="decimal" value="80"></div>
-            <div class="field"><label for="c-taxaB">B · rende (%)</label><input id="c-taxaB" type="text" inputmode="decimal" value="1"></div>
-            <div class="field larga"><label for="c-anos">Durante (anos)</label><input id="c-anos" type="text" inputmode="numeric" value="10"></div>
+            <div class="field"><label for="c-mensalA" data-t="ferr.campo.c-mensalA">A · por mês</label><input id="c-mensalA" type="text" inputmode="decimal" value="50"></div>
+            <div class="field"><label for="c-taxaA" data-t="ferr.campo.c-taxaA">A · rende (%)</label><input id="c-taxaA" type="text" inputmode="decimal" value="2"></div>
+            <div class="field"><label for="c-mensalB" data-t="ferr.campo.c-mensalB">B · por mês</label><input id="c-mensalB" type="text" inputmode="decimal" value="80"></div>
+            <div class="field"><label for="c-taxaB" data-t="ferr.campo.c-taxaB">B · rende (%)</label><input id="c-taxaB" type="text" inputmode="decimal" value="1"></div>
+            <div class="field larga"><label for="c-anos" data-t="ferr.campo.c-anos">Durante (anos)</label><input id="c-anos" type="text" inputmode="numeric" value="10"></div>
           </div>
-          <button class="btn btn-gold" id="c-calc" type="button">Comparar</button>
+          <button class="btn btn-gold" id="c-calc" type="button" data-t="ferr.bt.comparar">Comparar</button>
           <div class="res" id="c-out"></div>
           <div class="cadeado js-se-gratis">
             <span class="cad-ic">🔒</span>
@@ -225,16 +225,16 @@
 
         <!-- 9 -->
         <div class="ferramenta premium">
-          <span class="selo">Assinatura</span>
-          <h3><span class="ic">🎯</span> Quantos anos até não precisar de trabalhar</h3>
-          <p class="sub">Aritmética com os seus números — não é previsão nem conselho.</p>
+          <span class="selo" data-t="ferr.selo">Assinatura</span>
+          <h3><span class="ic">🎯</span> <span data-t="ferr.t.i">Quantos anos até não precisar de trabalhar</span></h3>
+          <p class="sub"><span data-t="ferr.t.i.sub">Aritmética com os seus números — não é previsão nem conselho.</span></p>
           <div class="campos">
-            <div class="field"><label for="i-gasto">Gasto por mês</label><input id="i-gasto" type="text" inputmode="decimal" value="900"></div>
-            <div class="field"><label for="i-poupo">Poupo por mês</label><input id="i-poupo" type="text" inputmode="decimal" value="150"></div>
-            <div class="field"><label for="i-tenho">Tenho hoje</label><input id="i-tenho" type="text" inputmode="decimal" value="2000"></div>
-            <div class="field"><label for="i-taxa">Rende por ano (%)</label><input id="i-taxa" type="text" inputmode="decimal" value="3"></div>
+            <div class="field"><label for="i-gasto" data-t="ferr.campo.i-gasto">Gasto por mês</label><input id="i-gasto" type="text" inputmode="decimal" value="900"></div>
+            <div class="field"><label for="i-poupo" data-t="ferr.campo.i-poupo">Poupo por mês</label><input id="i-poupo" type="text" inputmode="decimal" value="150"></div>
+            <div class="field"><label for="i-tenho" data-t="ferr.campo.i-tenho">Tenho hoje</label><input id="i-tenho" type="text" inputmode="decimal" value="2000"></div>
+            <div class="field"><label for="i-taxa" data-t="ferr.campo.i-taxa">Rende por ano (%)</label><input id="i-taxa" type="text" inputmode="decimal" value="3"></div>
           </div>
-          <button class="btn btn-gold" id="i-calc" type="button">Calcular</button>
+          <button class="btn btn-gold" id="i-calc" type="button" data-t="ferr.bt.calcular">Calcular</button>
           <div class="res" id="i-out"></div>
           <div class="cadeado js-se-gratis">
             <span class="cad-ic">🔒</span>
@@ -314,11 +314,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=64"></script>
-<script src="site.js?v=64"></script>
-<script src="interpretar.js?v=64"></script>
-<script src="idiomas.js?v=64"></script>
-<script src="investir.js?v=64"></script>
-<script src="ferramentas.js?v=64"></script>
+<script src="firebase-config.js?v=65"></script>
+<script src="site.js?v=65"></script>
+<script src="interpretar.js?v=65"></script>
+<script src="idiomas.js?v=65"></script>
+<script src="investir.js?v=65"></script>
+<script src="ferramentas.js?v=65"></script>
 </body>
 </html>
