@@ -102,14 +102,15 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
 
 ## O que está por fazer
 
-- **Faltam duas tabelas ao IRS.** No `irs.js`, cada bloco do `IRS_REF` tem
-  `verificado` e `fonte`. Estão conferidos contra o Diário da República e
-  contra a tabela oficial da AT: os escalões, a dedução específica, o mínimo
-  de existência, os limites das deduções, o tecto global e a taxa de
-  solidariedade. Faltam dois, e estão a `null` de propósito — os coeficientes
-  do regime simplificado (artigo 31.º) e a escada dos dez anos do IRS Jovem
-  (o folheto da AT). Enquanto estiverem a `null`, a gaveta escreve por cima do
-  resultado que os números estão por confirmar, e é assim que fica.
+- **As tabelas do IRS estão todas conferidas.** No `irs.js`, cada bloco do
+  `IRS_REF` tem `verificado` e `fonte` com endereço. As sete foram lidas na
+  fonte: os escalões e a taxa de solidariedade no Diário da República, a
+  dedução específica, o mínimo de existência, os limites das deduções e o
+  tecto global na tabela oficial da AT, os coeficientes do artigo 31.º na
+  página do código, e a escada dos dez anos no folheto do IRS Jovem. Por isso
+  o aviso laranja deixou de aparecer — e há um teste que falha no dia em que
+  alguém acrescentar uma tabela sem a conferir, o que o faz voltar sozinho.
+  **Mudam todos os anos com a Lei do Orçamento.**
 - **Falta o Benefício Municipal.** Apareceu numa simulação a sério do Portal
   das Finanças: 16,84 € numa colecta de 1.478,34 €, que são exactamente 2,5%
   da colecta já deduzida. É a *participação variável no IRS* — o município tem

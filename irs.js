@@ -197,34 +197,48 @@ const IRS_REF = {
   },
 
   simplificado: {
-    /* ---- AINDA POR CONFIRMAR, E DE PROPÓSITO ----
+    /* ---- CONFERIDO NO TEXTO DO ARTIGO 31.º ----
 
-       A página da AT que confirmou tudo o resto não traz os coeficientes: diz
-       só "rendimentos determinados com base nas regras do regime
-       simplificado". Estes três números vêm do artigo 31.º e das duas fontes
-       que concordaram entre si — o que não é o mesmo que estarem conferidos.
+       Esteve por confirmar de propósito durante muito tempo: os três números
+       vinham de duas fontes que concordavam entre si, o que não é o mesmo que
+       estarem lidos na lei. Agora estão, na página do próprio código na AT.
 
-       Falta ir ao texto do artigo 31.º do CIRS. Enquanto não for, a ferramenta
-       escreve por cima do resultado que os recibos verdes estão por confirmar,
-       e faz bem. */
-    verificado: null,
-    fonte: 'artigo 31.º do CIRS — por ler no texto da lei',
-    /* Três coeficientes e não dois: vender coisas é tributado a 15%, os
-       serviços da tabela do artigo 151.º a 75%, e os outros serviços a 35%. */
+       E ao lê-la apareceu um quarto que faltava — o 0,95 — e uma precisão no
+       primeiro: os 15% não são só de vender coisas, valem também para a
+       restauração, bebidas e hotelaria, e para os criptoactivos. Quem tem um
+       café estava a ser tributado a 35% por esta ferramenta em vez de 15%: mais
+       do dobro do rendimento tributável. */
+    verificado: '2026-08-10',
+    fonte: 'artigo 31.º n.º 1 do CIRS · https://info.portaldasfinancas.gov.pt/' +
+           'pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs31.aspx',
+    /* a) vender coisas, restauração, bebidas, hotelaria e criptoactivos */
     vendas: 0.15,
+    /* b) as profissões da tabela do artigo 151.º */
     servicos: 0.75,
-    outros: 0.35
+    /* c) as restantes prestações de serviços */
+    outros: 0.35,
+    /* d) mineração de criptoactivos, propriedade intelectual e industrial */
+    propriedade: 0.95
   },
 
   jovem: {
-    /* O tecto e o IAS estão confirmados — 55 × 522,50 = 28.737,50 €, e o IAS
-       está na página da AT. A escada dos dez anos ainda não: a AT remete para
-       um folheto à parte, e é esse que falta ler. */
-    verificado: null,
-    fonte: 'artigo 12.º-B do CIRS · IAS confirmado em ' + IRS_FONTE_AT +
-           ' · falta ler o folheto do IRS Jovem 2025 para a escada dos dez anos',
+    /* ---- CONFERIDO NO FOLHETO DA AT ----
+
+       A escada dos dez anos estava escrita de memória e bateu certa: 100% no
+       primeiro ano, 75% no segundo, terceiro e quarto, 50% no quinto, sexto e
+       sétimo, 25% no oitavo, nono e décimo. O tecto são 55 × IAS = 28.737,50 €.
+
+       Dez anos e não cinco, e sem olhar a habilitações — foi o que mudou com o
+       Orçamento de 2025, e é a parte que mais gente ainda não sabe. */
+    verificado: '2026-08-10',
+    fonte: 'artigo 12.º-B do CIRS · folheto «IRS Jovem — 2025» da AT · ' +
+           'https://info.portaldasfinancas.gov.pt/pt/apoio_contribuinte/' +
+           'Folhetos_informativos/Documents/Folheto_IRS_jovem_2025.pdf',
     isencao: [1.00, 0.75, 0.75, 0.75, 0.50, 0.50, 0.50, 0.25, 0.25, 0.25],
     tectoIAS: 55,
+    /* Até aos 35 anos a 31 de Dezembro, e sem ser dependente de ninguém. Não
+       entra na conta — entra na pergunta que o ecrã tem de fazer. */
+    idadeMaxima: 35,
     /* O IRS Estudante, que é outra coisa e quase ninguém sabe que existe: um
        dependente que estude e trabalhe não é tributado até 5 × IAS. */
     estudanteIAS: 5
@@ -590,8 +604,16 @@ function irsRendimentoLiquido(t) {
 
   /* Recibos verdes no regime simplificado: só uma parte é tributada, e o
      resto é assumido como despesa sem ter de se provar. */
-  const coef = (t.recibosTipo === 'outros')
-    ? IRS_REF.simplificado.outros : IRS_REF.simplificado.servicos;
+  /* Os quatro do artigo 31.º. O que está no ecrã hoje só oferece dois, mas o
+     motor conhece os quatro — e quem tem um café ou vive de direitos de autor
+     tem um coeficiente muito diferente do de quem presta serviços. */
+  const COEF = {
+    vendas: IRS_REF.simplificado.vendas,
+    servicos: IRS_REF.simplificado.servicos,
+    outros: IRS_REF.simplificado.outros,
+    propriedade: IRS_REF.simplificado.propriedade
+  };
+  const coef = COEF[t.recibosTipo] || IRS_REF.simplificado.servicos;
   const rvTributavel = arred(rv * coef);
 
   let isento = 0;
@@ -687,6 +709,17 @@ function irsDeducoes(g, nSujeitos, nDependentes, nAscendentes, opcoes) {
     linha('Pensão de alimentos', g.alimentos, c.alimentos.pct, c.alimentos.tecto, true)
   ].filter(l => l.valor > 0 || l.gasto > 0);
 
+  /* As linhas que a caça encontrou. Vêm já calculadas porque cada uma tem a
+     sua regra — o IVA dos passes volta a 100% e o dos medicamentos veterinários
+     a 35%, dentro do mesmo tecto de 250 €, e isso não cabe numa percentagem
+     única. Cada uma diz de que lado do tecto global está. */
+  (o.extra || []).forEach(x => {
+    if (x && x.valor > 0) linhas.push({
+      nome: x.nome, gasto: null, valor: arred(x.valor), tecto: null, sobra: 0,
+      travavel: !!x.travavel
+    });
+  });
+
   const soma = f => arred(linhas.filter(f).reduce((s, l) => s + l.valor, 0));
   return {
     linhas: linhas,
@@ -747,7 +780,8 @@ function irsCalcular(d) {
     d.ascendentes || 0, {
       coletavel: coletavelDeReferencia,
       monoparental: !!d.monoparental,
-      idades: d.idades
+      idades: d.idades,
+      extra: d.extra
     });
 
   /* O tecto de tudo junto. Sem isto o simulador prometia a quem tem
@@ -797,6 +831,131 @@ function irsMelhorOpcao(d) {
     diferenca: Math.abs(diferenca)
   };
 }
+
+/* ============================================================
+   A CAÇA — o dinheiro que está lá e ninguém pede
+
+   O simulador das Finanças é grátis e é exacto. Nunca lhe ganhamos em
+   precisão, e não é para aí que esta ferramenta deve olhar.
+
+   O que ele não faz é perguntar. Ele calcula o que a pessoa declarou; não lhe
+   diz que o pai que vive com ela vale 635 €, nem que o passe do autocarro
+   devolve o IVA todo e não 15%. Ninguém lho diz — e por isso muita gente
+   entrega uma declaração correcta e mais pobre do que devia.
+
+   São oito perguntas de sim ou não. Cada uma tem um número ao lado, e todos
+   estes números foram lidos na tabela oficial da AT — nenhum é estimado. Uma
+   caça ao tesouro em que o mapa está certo.
+
+   Regra ao escrever isto: pergunta-se pela vida, não pela lei. Não é "tem
+   ascendentes em comunhão de habitação"; é "vive consigo o seu pai, a sua mãe
+   ou um sogro?". Quem sabe responder à segunda é toda a gente.
+   ============================================================ */
+function irsCacaLista() {
+  const c = IRS_REF.coleta;
+  return [
+    { id: 'asc', pergunta: 'Vive consigo o seu pai, a sua mãe, ou um sogro?',
+      ajuda: 'Só conta se essa pessoa não receber mais do que a pensão mínima. ' +
+             'Se for só uma, a dedução é maior — e quase ninguém sabe que isto existe.',
+      tipo: 'quantos', vale: n => n === 1 ? c.ascendente.sozinho : c.ascendente.fixo * n,
+      ate: c.ascendente.sozinho },
+
+    { id: 'defic', pergunta: 'Alguém do agregado tem incapacidade de 60% ou mais?',
+      ajuda: 'Precisa de atestado médico de incapacidade multiuso. É a maior ' +
+             'dedução que existe, e a que mais gente deixa por pedir.',
+      tipo: 'quantos', vale: n => c.deficiencia.sujeito * n, ate: c.deficiencia.sujeito },
+
+    { id: 'lar', pergunta: 'Paga lar, ou apoio ao domicílio, para alguém da família?',
+      ajuda: 'Conta o lar de um pai ou de uma avó, mesmo que não viva consigo.',
+      tipo: 'gasto', pct: c.lares.pct, tecto: c.lares.tecto, ate: c.lares.tecto },
+
+    { id: 'domestica', pergunta: 'Tem alguém a trabalhar em sua casa, com descontos?',
+      ajuda: 'Empregada doméstica declarada na Segurança Social. Só conta se ' +
+             'estiver declarada.',
+      tipo: 'gasto', pct: c.domestico.pct, tecto: c.domestico.tecto, ate: c.domestico.tecto },
+
+    { id: 'alimentos', pergunta: 'Paga pensão de alimentos a um filho que não vive consigo?',
+      ajuda: 'Tem de estar fixada por tribunal ou por acordo homologado. Esta ' +
+             'não tem tecto nenhum.',
+      tipo: 'gasto', pct: c.alimentos.pct, tecto: Infinity, ate: null },
+
+    { id: 'passes', pergunta: 'Compra passe de autocarro, metro ou comboio?',
+      ajuda: 'Nos passes o IVA volta <b>todo</b> — 100%, e não os 15% das outras ' +
+             'facturas. Peça sempre com o número.',
+      tipo: 'iva', pct: c.ivaFaturas.pctPasses, tecto: c.ivaFaturas.tecto,
+      ate: c.ivaFaturas.tecto },
+
+    { id: 'veterinario', pergunta: 'Tem animais, e leva-os ao veterinário?',
+      ajuda: 'As consultas contam como as outras facturas, e nos medicamentos ' +
+             'de uso veterinário o IVA volta a 35%.',
+      tipo: 'iva', pct: c.ivaFaturas.pctVeterinarios, tecto: c.ivaFaturas.tecto,
+      ate: c.ivaFaturas.tecto },
+
+    { id: 'ginasio', pergunta: 'Anda no ginásio, ou alguém da casa faz desporto pago?',
+      ajuda: 'Ginásios, clubes e ensino desportivo entram no IVA das facturas. ' +
+             'Peça com o número.',
+      tipo: 'iva', pct: c.ivaFaturas.pct, tecto: c.ivaFaturas.tecto,
+      ate: c.ivaFaturas.tecto }
+  ];
+}
+
+/* Quanto vale cada resposta, e quanto vale tudo junto. Devolve só o que tem
+   valor: uma lista de oito zeros não é um achado, é ruído.
+
+   O tecto do IVA das facturas é um só para todas — passes, veterinário e
+   ginásio partilham os mesmos 250 €. Somá-los cada um até 250 prometia
+   750 € que a lei não dá. */
+function irsCaca(respostas) {
+  const r = respostas || {};
+  const achados = [];
+  let iva = 0;
+  const tectoIVA = IRS_REF.coleta.ivaFaturas.tecto;
+
+  irsCacaLista().forEach(item => {
+    const v = Math.max(0, Number(r[item.id]) || 0);
+    if (v <= 0) return;
+    let vale;
+    if (item.tipo === 'quantos') {
+      vale = item.vale(Math.round(v));
+    } else if (item.tipo === 'iva') {
+      /* Aqui o que se escreve é o IVA já pago, não o preço. */
+      const bruto = v * item.pct;
+      vale = Math.max(0, Math.min(bruto, tectoIVA - iva));
+      iva += vale;
+    } else {
+      vale = Math.min(v * item.pct, item.tecto);
+    }
+    vale = arred(vale);
+    if (vale > 0) achados.push({ id: item.id, pergunta: item.pergunta, valor: vale });
+  });
+
+  return {
+    achados: achados,
+    total: arred(achados.reduce((s, a) => s + a.valor, 0)),
+    /* Os ascendentes não vão como linha extra: já existem na conta como
+       contagem, e somá-los duas vezes prometia o dobro. */
+    ascendentes: Math.round(Math.max(0, Number(r.asc) || 0)),
+    extra: achados.filter(a => a.id !== 'asc').map(a => ({
+      nome: IRS_CACA_NOMES[a.id] || a.pergunta,
+      valor: a.valor,
+      /* Do lado de dentro do tecto global: lares, alimentos e o IVA das
+         facturas estão na lista da nota 7. A deficiência e o trabalho
+         doméstico não estão, e contam por inteiro. */
+      travavel: ['lar', 'alimentos', 'passes', 'veterinario', 'ginasio'].indexOf(a.id) >= 0
+    }))
+  };
+}
+
+/* Nomes curtos para a linha da conta — a pergunta inteira não cabe. */
+const IRS_CACA_NOMES = {
+  defic: 'Incapacidade de 60% ou mais',
+  lar: 'Lar ou apoio ao domicílio',
+  domestica: 'Trabalho doméstico',
+  alimentos: 'Pensão de alimentos',
+  passes: 'IVA dos passes',
+  veterinario: 'IVA do veterinário',
+  ginasio: 'IVA do ginásio'
+};
 
 /* ============================================================
    A FOLHA — o que escrever na declaração
@@ -972,7 +1131,7 @@ if (typeof module !== 'undefined' && module.exports) {
     irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
     irsDeducaoDependentes, irsRendimentoLiquido, irsIsencaoJovem,
     irsFacturasEmFalta, irsQuantoFaltaParaOTecto, irsPorConfirmar,
-    irsFolha, irsFolhaTexto
+    irsFolha, irsFolhaTexto, irsCaca, irsCacaLista
   };
 }
 
@@ -990,6 +1149,20 @@ const IRS_CHAVE = 'vf:irs';
 function irsGuardado() {
   try { return JSON.parse(localStorage.getItem(IRS_CHAVE) || '{}') || {}; }
   catch (e) { return {}; }
+}
+
+/* As respostas da caça vivem à parte das do IRS: são sobre a vida da pessoa —
+   se tem um pai em casa, se paga um lar — e não sobre um ano em concreto.
+   Mudar de ano não as apaga. */
+const IRS_CACA_CHAVE = 'vf:irs-caca';
+
+function irsCacaGuardada() {
+  try { return JSON.parse(localStorage.getItem(IRS_CACA_CHAVE) || '{}') || {}; }
+  catch (e) { return {}; }
+}
+
+function irsCacaGuardar(r) {
+  try { localStorage.setItem(IRS_CACA_CHAVE, JSON.stringify(r)); } catch (e) {}
 }
 
 function irsGuardar(d) {
@@ -1242,6 +1415,10 @@ function irsDesenhar() {
       : '') +
     '</div>' +
 
+    /* A caça, logo a seguir ao número. É a única coisa deste ecrã que muda o
+       resultado a favor de quem o lê — o resto só o calcula melhor. */
+    '<div id="irs-caca-zona"></div>' +
+
     /* Daqui para baixo é tudo opcional, e fechado. Quem só responder às duas
        perguntas de cima já leva uma resposta — pior do que a exacta, e muito
        melhor do que nenhuma. */
@@ -1268,9 +1445,6 @@ function irsDesenhar() {
       'Separadas por vírgula: 3, 1. Vale dinheiro — um filho com 3 anos ou ' +
       'menos dá mais 126 €, e do segundo em diante com 6 anos ou menos dá ' +
       'mais 300 € cada.', g.idades) +
-    irsCampo('irs-asc', 'Pais ou sogros que vivam consigo',
-      'Só contam se não receberem mais do que a pensão mínima. Se for só um, ' +
-      'a dedução é maior. Muita gente não sabe que isto existe.', g.asc) +
     '</div>' +
 
     '<div class="irs-bloco"><h4>É jovem a começar a trabalhar?</h4>' +
@@ -1318,6 +1492,67 @@ function irsDesenhar() {
     '<p class="irs-rodape">Isto é uma <b>estimativa</b>, e nada aqui é entregue às Finanças. ' +
     'A declaração é entregue por si, no Portal das Finanças, com a sua senha — ' +
     'que esta aplicação nunca lhe vai pedir.</p>';
+
+  /* ---- a caça ----
+     Oito perguntas pela vida, não pela lei. Cada uma nasce em "não": quem não
+     tem nada disto passa por aqui em oito toques e sai sem escrever um número. */
+  const zc = document.getElementById('irs-caca-zona');
+  if (zc) {
+    const resp = irsCacaGuardada();
+    const achado = irsCaca(resp);
+    zc.innerHTML =
+      '<details class="irs-caca" id="irs-caca" ' + (g.abriuCaca ? 'open' : '') + '>' +
+      '<summary><b>Dinheiro que muita gente não pede</b>' +
+      (achado.total > 0
+        ? '<span class="irs-caca-achou">Encontrámos ' + fmt(achado.total) +
+          ' que não estava a contar.</span>'
+        : '<span>Oito perguntas rápidas. Uma delas sozinha pode valer 2.090 €, ' +
+          'e quase ninguém sabe que existe.</span>') +
+      '</summary>' +
+      irsCacaLista().map(item => {
+        const v = Number(resp[item.id]) || 0;
+        const sim = v > 0 || resp['sim-' + item.id];
+        return '<div class="irs-caca-item" data-id="' + item.id + '">' +
+          '<p class="irs-caca-p">' + item.pergunta + '</p>' +
+          '<div class="irs-escolhas irs-caca-bt">' +
+            '<button type="button" data-v="nao" class="' + (sim ? '' : 'sim') + '">Não</button>' +
+            '<button type="button" data-v="sim" class="' + (sim ? 'sim' : '') + '">Sim</button>' +
+          '</div>' +
+          '<div class="irs-caca-mais" ' + (sim ? '' : 'hidden') + '>' +
+            '<small>' + item.ajuda + '</small>' +
+            irsCampo('caca-' + item.id,
+              item.tipo === 'quantos' ? 'Quantas pessoas'
+                : item.tipo === 'iva' ? 'IVA que pagou no ano (vem nas facturas)'
+                : 'Quanto pagou no ano', '', v || '') +
+          '</div></div>';
+      }).join('') +
+      '</details>';
+
+    zc.querySelectorAll('.irs-caca-item').forEach(bloco => {
+      const id = bloco.dataset.id;
+      bloco.querySelectorAll('.irs-caca-bt button').forEach(b => {
+        b.addEventListener('click', () => {
+          const sim = b.dataset.v === 'sim';
+          bloco.querySelectorAll('.irs-caca-bt button').forEach(x => x.classList.remove('sim'));
+          b.classList.add('sim');
+          bloco.querySelector('.irs-caca-mais').hidden = !sim;
+          const r = irsCacaGuardada();
+          r['sim-' + id] = sim;
+          if (!sim) r[id] = 0;
+          irsCacaGuardar(r);
+          if (!sim) { const c = document.getElementById('caca-' + id); if (c) c.value = ''; }
+          irsContar();
+        });
+      });
+      const campo = bloco.querySelector('input');
+      if (campo) campo.addEventListener('input', () => {
+        const r = irsCacaGuardada();
+        r[id] = irsNum('caca-' + id);
+        irsCacaGuardar(r);
+        irsContar();
+      });
+    });
+  }
 
   const btUsar = document.getElementById('irs-usar-lancado');
   if (btUsar) btUsar.addEventListener('click', () => {
@@ -1390,9 +1625,29 @@ function irsContar() {
     trabalho: doAno('irs-trab2', 'irs-mes2'), retencao: doAno('irs-ret2', 'irs-retmes2')
   });
 
+  const caca = irsCaca(irsCacaGuardada());
+
+  /* O resumo da caça é desenhado uma vez e reescrito a cada resposta: sem isto
+     a pessoa respondia às oito perguntas e o cabeçalho continuava a convidá-la
+     a começar. O número tem de crescer à frente dela — é metade do que faz
+     valer a pena responder à oitava. */
+  const resumoCaca = document.querySelector('.irs-caca > summary span');
+  if (resumoCaca) {
+    const e = v => new Intl.NumberFormat('pt-PT',
+      { style: 'currency', currency: 'EUR' }).format(v || 0);
+    if (caca.total > 0) {
+      resumoCaca.className = 'irs-caca-achou';
+      resumoCaca.textContent = 'Encontrámos ' + e(caca.total) + ' que não estava a contar.';
+    } else {
+      resumoCaca.className = '';
+      resumoCaca.textContent = 'Oito perguntas rápidas. Uma delas sozinha pode valer ' +
+        e(IRS_REF.coleta.deficiencia.sujeito) + ', e quase ninguém sabe que existe.';
+    }
+  }
+
   const dados = {
-    titulares: titulares, conjunta: casal,
-    dependentes: nFilhos, ascendentes: irsNum('irs-asc'),
+    titulares: titulares, conjunta: casal, extra: caca.extra,
+    dependentes: nFilhos, ascendentes: caca.ascendentes,
     idades: irsIdades(irsTexto('irs-idades'), nFilhos),
     gastos: {
       saude: irsNum('irs-saude'), educacao: irsNum('irs-educ'),
@@ -1408,7 +1663,8 @@ function irsContar() {
     meses: meses, abriuMais: !!(mais && mais.open),
     trab: irsNum('irs-trab'), ret: irsNum('irs-ret'), ss: irsNum('irs-ss'), rv: irsNum('irs-rv'),
     trab2: irsNum('irs-trab2'), ret2: irsNum('irs-ret2'),
-    dep: nFilhos, idades: irsTexto('irs-idades'), asc: irsNum('irs-asc'),
+    dep: nFilhos, idades: irsTexto('irs-idades'),
+    abriuCaca: !!(document.getElementById('irs-caca') || {}).open,
     saude: irsNum('irs-saude'), educ: irsNum('irs-educ'),
     renda: irsNum('irs-renda'), gerais: irsNum('irs-gerais')
   });

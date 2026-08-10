@@ -593,3 +593,36 @@ body.app-shell .app-float{display:none}
 }
 .irs-folha > button:active{background:rgba(217,178,110,.24)}
 .irs-folha-copiado{color:#8fe3bb;font-size:.8rem;margin-left:10px;font-weight:600}
+
+/* A caça. Fica logo a seguir ao número porque é a única coisa deste ecrã que
+   muda o resultado a favor de quem o lê — o resto só o calcula melhor. */
+.irs-caca{
+  border:1px solid rgba(62,207,142,.28);border-radius:16px;
+  padding:0 18px;margin-bottom:22px;
+  background:linear-gradient(135deg,rgba(62,207,142,.07),rgba(62,207,142,.01))
+}
+.irs-caca > summary{
+  cursor:pointer;list-style:none;padding:18px 0;
+  display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center
+}
+.irs-caca > summary::-webkit-details-marker{display:none}
+.irs-caca > summary b{color:#8fe3bb;font-size:1.02rem}
+.irs-caca > summary span{grid-column:1;color:var(--cream-dim);font-size:.83rem;line-height:1.45}
+.irs-caca > summary .irs-caca-achou{color:#8fe3bb;font-weight:700;font-size:.9rem}
+.irs-caca > summary::after{
+  content:'›';grid-column:2;grid-row:1/3;color:#8fe3bb;font-size:1.5rem;transition:transform .2s
+}
+.irs-caca[open] > summary::after{transform:rotate(90deg)}
+.irs-caca[open] > summary{border-bottom:1px solid rgba(62,207,142,.18);margin-bottom:4px}
+
+.irs-caca-item{padding:16px 0;border-bottom:1px solid rgba(217,178,110,.1)}
+.irs-caca-item:last-child{border-bottom:0;padding-bottom:20px}
+.irs-caca-p{color:var(--cream);font-size:.93rem;line-height:1.4;margin:0 0 11px;font-weight:600}
+.irs-caca-bt{grid-template-columns:1fr 1fr;gap:9px}
+.irs-caca-bt button{padding:9px 0;font-size:.88rem}
+.irs-caca-mais{margin-top:13px}
+.irs-caca-mais > small{
+  display:block;color:var(--cream-dim);font-size:.81rem;line-height:1.5;margin-bottom:11px
+}
+.irs-caca-mais b{color:var(--cream)}
+.irs-caca-mais .irs-campo{margin-bottom:0}

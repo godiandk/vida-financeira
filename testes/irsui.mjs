@@ -86,10 +86,19 @@ const euros = t => parseFloat(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,''
 console.log('== a gaveta abre e diz o que ainda não está confirmado ==');
 let p=await abrir();
 ok(await p.locator('#irs-corpo .irs-bloco').count()>=5, 'os blocos de perguntas desenharam-se');
-const aviso=await p.locator('#irs-corpo .irs-aviso-lei').innerText();
-console.log('   ',aviso.split('\n').join(' / ').slice(0,160));
-ok(/por confirmar|falta confirmar/i.test(aviso), 'o aviso diz que ainda falta confirmar alguma coisa');
-ok(/recibos verdes|IRS Jovem/i.test(aviso), 'e diz **o quê**, para se saber o que ir buscar');
+/* O aviso laranja so' aparece quando ha' tabelas por confirmar. Hoje nao ha'
+   nenhuma — todas foram lidas na fonte — e por isso ele tem de estar ausente.
+   Se voltar a aparecer, e' porque alguem acrescentou uma tabela nova sem a
+   conferir, e entao tem de dizer qual e'. */
+const nAviso=await p.locator('#irs-corpo .irs-aviso-lei').count();
+if (nAviso===0) {
+  ok(true, 'nao ha' + "'" + ' tabelas por confirmar, e por isso nao ha aviso');
+} else {
+  const aviso=await p.locator('#irs-corpo .irs-aviso-lei').innerText();
+  console.log('   ',aviso.split('\n').join(' / ').slice(0,160));
+  ok(/por confirmar|falta confirmar/i.test(aviso), 'o aviso diz que falta confirmar');
+  ok(/:/.test(aviso), 'e diz **o quê**, para se saber o que ir buscar');
+}
 /* O `NaN` procura-se com maiusculas e minusculas certas de proposito: com o
    `i` ligado, "NaN" casa com o "nan" de "Financas" e o teste acusava um
    defeito que nao existe em todos os ecras que falam das Financas. */
@@ -153,7 +162,13 @@ console.log('\n-- e a quem ja' + "'" + ' nao paga nada nao se promete uma poupan
    devolve dinheiro enquanto houver imposto para abater. */
 await afinar(p,'#irs-dep','2');
 await afinar(p,'#irs-idades','3, 1');
-await afinar(p,'#irs-asc','1');
+/* O pai em casa mudou-se da gaveta para a caca: e' la' que vive agora, com um
+   dono so'. Somar nos dois sitios dava-lhe a deducao a dobrar. */
+await p.evaluate(()=>{ const d=document.getElementById('irs-caca'); if(d) d.open=true; });
+await p.waitForTimeout(150);
+await p.locator('.irs-caca-item[data-id="asc"] button[data-v="sim"]').click();
+await p.waitForTimeout(150);
+await p.fill('#caca-asc','1');
 await afinar(p,'#irs-renda','4800');
 await afinar(p,'#irs-gerais','300');
 await p.waitForTimeout(350);
@@ -163,7 +178,9 @@ ok(euros(await p.locator('#irs-resultado .irs-numero b').innerText())<1, 'nao pa
 ok(!/de imposto a menos/.test(cheio), 'e a app nao lhe inventa euros que nao ha');
 /* Volta ao caso simples para os testes seguintes. */
 await afinar(p,'#irs-dep',''); await afinar(p,'#irs-idades','');
-await afinar(p,'#irs-asc',''); await afinar(p,'#irs-renda','');
+await p.locator('.irs-caca-item[data-id="asc"] button[data-v="nao"]').click();
+await p.waitForTimeout(150);
+await afinar(p,'#irs-renda','');
 await p.waitForTimeout(250);
 
 console.log('\n-- a conta toda esta a' + "'" + " vista --");

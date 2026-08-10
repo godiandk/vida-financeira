@@ -37,7 +37,7 @@ const irs = new Function('module', 'document', 'localStorage', 'Intl',
 );
 const { IRS_REF, irsColeta, irsSolidariedade, irsImposto,
         irsCalcular, irsMelhorOpcao, irsRendimentoLiquido,
-        irsIsencaoJovem, irsFolha, irsFolhaTexto,
+        irsIsencaoJovem, irsFolha, irsFolhaTexto, irsCaca, irsCacaLista,
         irsFacturasEmFalta, irsQuantoFaltaParaOTecto,
         irsPorConfirmar, irsTectoGlobal, irsTectoRendas,
         irsConferirMedias, irsConferirParcelas,
@@ -553,6 +553,84 @@ testar('e quem ganha pouco deduz mais de renda do que quem ganha muito', () => {
   assert.ok(a.valor > b.valor, 'a elevação da nota 8 não está a ser aplicada');
 });
 
+console.log('\na caca ao dinheiro esquecido\n');
+
+testar('sao oito perguntas, e todas com um numero da lei por tras', () => {
+  const l = irsCacaLista();
+  assert.equal(l.length, 8);
+  l.forEach(i => {
+    assert.ok(i.pergunta.length > 10, i.id + ' sem pergunta');
+    assert.ok(i.ajuda.length > 20, i.id + ' sem explicacao');
+    assert.ok(typeof i.vale === 'function' || i.pct > 0, i.id + ' sem regra de calculo');
+  });
+});
+
+testar('quem responde nao a tudo nao encontra nada, e nao se inventa nada', () => {
+  const r = irsCaca({});
+  assert.deepEqual(r.achados, []);
+  assert.equal(r.total, 0);
+  assert.deepEqual(r.extra, []);
+});
+
+testar('um pai sozinho em casa vale 635 € e nao 525 €', () => {
+  /* É a armadilha da tabela: 525 € por ascendente, mas 635 € se for só um. */
+  perto(irsCaca({ asc: 1 }).total, IRS_REF.coleta.ascendente.sozinho);
+  perto(irsCaca({ asc: 2 }).total, 2 * IRS_REF.coleta.ascendente.fixo);
+});
+
+testar('o IVA dos passes volta todo, e o do veterinario a 35%', () => {
+  perto(irsCaca({ passes: 100 }).total, 100);
+  perto(irsCaca({ veterinario: 100 }).total, 35);
+});
+
+testar('mas os tres do IVA partilham o mesmo tecto, e nao um tecto cada', () => {
+  /* Passes, veterinário e ginásio saem todos dos mesmos 250 €. Dar-lhes um
+     tecto a cada prometia 750 € que a lei não dá — e um simulador que erra
+     para o lado bom é pior do que um que não existe. */
+  const r = irsCaca({ passes: 900, veterinario: 900, ginasio: 900 });
+  perto(r.total, IRS_REF.coleta.ivaFaturas.tecto);
+});
+
+testar('cada achado sabe se o tecto global lhe pode tocar', () => {
+  const r = irsCaca({ defic: 1, lar: 2000, domestica: 3000, alimentos: 1200, passes: 50 });
+  const lado = {};
+  r.extra.forEach(x => { lado[x.nome] = x.travavel; });
+  assert.equal(lado['Incapacidade de 60% ou mais'], false, 'a deficiencia nao entra no tecto');
+  assert.equal(lado['Trabalho doméstico'], false, 'o trabalho domestico tambem nao');
+  assert.equal(lado['Lar ou apoio ao domicílio'], true, 'o lar entra');
+  assert.equal(lado['Pensão de alimentos'], true, 'a pensao de alimentos entra');
+  assert.equal(lado['IVA dos passes'], true, 'o IVA das facturas entra');
+});
+
+testar('os ascendentes nao vao como linha extra, para nao contarem duas vezes', () => {
+  /* Já existem na conta como contagem. Somá-los outra vez pelo lado da caça
+     prometia o dobro do que a lei dá. */
+  const r = irsCaca({ asc: 1 });
+  assert.equal(r.ascendentes, 1);
+  assert.deepEqual(r.extra, []);
+});
+
+testar('e o que a caca encontra muda mesmo a conta', () => {
+  /* Um achado que não muda o número não vale nada: é uma lista bonita. */
+  const base = { titulares: [{ trabalho: 22000, retencao: 2200 }], gastos: { gerais: 800 } };
+  const c = irsCaca({ asc: 1, lar: 1600, domestica: 4000, alimentos: 2400, passes: 120 });
+  const com = Object.assign({}, base, { ascendentes: c.ascendentes, extra: c.extra });
+  const a = irsCalcular(base), b = irsCalcular(com);
+  assert.ok(b.resultado > a.resultado, 'a caca tinha de baixar o imposto');
+  perto(b.resultado - a.resultado, c.total, 0.02,
+    'e o que baixou tem de ser o que ela disse que valia');
+});
+
+testar('mas nunca abaixo de zero: nao se recebe o que nao se descontou', () => {
+  /* Uma caça generosa sobre pouco imposto não pode virar reembolso. Quem não
+     descontou não recebe, por muitas deduções que tenha. */
+  const d = { titulares: [{ trabalho: 14000, retencao: 0 }], gastos: {},
+              extra: irsCaca({ defic: 1, lar: 5000 }).extra };
+  const r = irsCalcular(d);
+  assert.ok(r.imposto >= 0);
+  assert.ok(r.resultado <= 0.01, 'sem retencoes nao ha nada a receber, deu ' + r.resultado);
+});
+
 console.log('\na folha para quem entrega\n');
 
 const CASAL = {
@@ -836,15 +914,48 @@ testar('nenhuma tabela é dada por confirmada sem fonte e sem data', () => {
   });
 });
 
-testar('quem foi confirmado na tabela das Finanças diz o endereço', () => {
+testar('todas as tabelas estao conferidas, e todas dizem o endereco', () => {
+  /* Chegou o dia. Todas as sete tabelas foram lidas na fonte, e por isso o
+     aviso laranja deixou de aparecer no ecrã. Este teste é o que impede que
+     volte a haver uma por confirmar sem ninguém dar por isso: se alguém
+     acrescentar uma tabela nova, ou puser um `verificado` a `null`, falha
+     aqui — e o ecrã volta a avisar. */
+  const falta = irsPorConfirmar();
+  assert.deepEqual(falta, [], 'ficaram tabelas por confirmar: ' + falta.join(', '));
+
   /* Uma fonte sem endereço não é uma fonte: é uma memória. Daqui a um ano
-     ninguém se lembra de qual das páginas da AT foi. */
-  ['especificas', 'minimoExistencia', 'coleta', 'limiteGlobal', 'solidariedade']
-    .forEach(k => {
-      assert.ok(IRS_REF[k].verificado, k + ' devia estar confirmada');
-      assert.ok(/https:\/\/info\.portaldasfinancas\.gov\.pt/.test(IRS_REF[k].fonte),
-        k + ': a fonte tem de trazer o endereço onde se foi ler');
-    });
+     ninguém se lembra de qual das páginas foi. */
+  Object.keys(IRS_REF).forEach(k => {
+    const b = IRS_REF[k];
+    if (!b || typeof b !== 'object' || !('verificado' in b)) return;
+    assert.ok(/https:\/\//.test(b.fonte), k + ': a fonte tem de trazer o endereço');
+  });
+});
+
+testar('os coeficientes do artigo 31.º sao os quatro, e nao tres', () => {
+  /* Ao ler o artigo apareceu um quarto que faltava — o 0,95 da propriedade
+     intelectual — e uma precisão no primeiro: os 15% valem também para a
+     restauração e a hotelaria. Quem tem um café estava a ser tributado a 35%
+     por esta ferramenta, mais do dobro do que devia. */
+  const c = IRS_REF.simplificado;
+  perto(c.vendas, 0.15); perto(c.servicos, 0.75);
+  perto(c.outros, 0.35); perto(c.propriedade, 0.95);
+  const cafe = irsRendimentoLiquido({ recibosVerdes: 20000, recibosTipo: 'vendas' });
+  perto(cafe.bruto, 20000 * 0.15);
+});
+
+testar('a escada do IRS Jovem sao dez anos, e bate com o folheto da AT', () => {
+  /* 100% no 1.º, 75% no 2.º ao 4.º, 50% no 5.º ao 7.º, 25% no 8.º ao 10.º.
+     Dez anos e não cinco, e sem olhar a habilitações — foi o que mudou no
+     Orçamento de 2025, e é a parte que mais gente ainda não sabe. */
+  const j = IRS_REF.jovem.isencao;
+  assert.equal(j.length, 10);
+  assert.deepEqual(j.slice(0, 1), [1.00]);
+  assert.deepEqual(j.slice(1, 4), [0.75, 0.75, 0.75]);
+  assert.deepEqual(j.slice(4, 7), [0.50, 0.50, 0.50]);
+  assert.deepEqual(j.slice(7, 10), [0.25, 0.25, 0.25]);
+  perto(IRS_REF.jovem.tectoIAS * IRS_REF.ias, 28737.50);
+  assert.equal(IRS_REF.jovem.idadeMaxima, 35);
 });
 
 testar('o ano dos rendimentos não é o ano da entrega', () => {
