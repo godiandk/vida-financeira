@@ -206,15 +206,38 @@ console.log('   ecrã aberto:', ecra);
 ok(ecra==='ecra-wesley', 'e leva mesmo ao chat');
 await p.close();
 
-console.log('\n== no ecrã do chat cala-se, e volta a seguir ==');
+console.log('\n== o banner vive no Início, e só no Início ==');
+/* Este bloco pedia outra coisa até hoje: pedia que o banner voltasse no ecrã
+   do mês. Deixou de ser verdade quando o `arrumarInicio()` o passou para
+   dentro do `#ecra-inicio`, por baixo dos cartões — um anúncio, mesmo sendo de
+   uma coisa grátis e nossa, não se põe à frente do número que a pessoa abriu a
+   aplicação para ver, nem anda atrás dela pelas páginas.
+
+   O teste ficou a pedir o comportamento antigo e ninguém deu por isso, porque
+   o `correr.sh` não sabia falhar: o `node | tail` devolvia sempre zero. Ficam
+   as duas coisas arranjadas — o corredor, e o que este bloco verifica. */
 p=await abrir('/app/');
 ok(await p.locator('#banner').isVisible(), 'no Início está à vista');
+ok(await p.evaluate(()=>{
+     const b=document.getElementById('banner'); const i=document.getElementById('ecra-inicio');
+     return !!(b && i && i.contains(b));
+   }), 'e mora mesmo dentro do Início, e não por cima de todos os ecrãs');
+ok(await p.evaluate(()=>{
+     const r=document.querySelector('#ecra-inicio .resumo'); const b=document.querySelector('.banner-topo');
+     if(!r||!b) return false;
+     return r.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+   }), 'e por baixo dos cartões do mês, e não à frente do dinheiro de quem chega');
+
 await p.evaluate(()=>window.irEcra('wesley')); await p.waitForTimeout(400);
 ok(!await p.locator('#banner').isVisible(), 'no chat desaparece — a caixa de escrever não pode ir para o fundo do ecrã');
 ok(await p.evaluate(()=>localStorage.getItem('vf:banner-fechado'))===null,
    'e não fica marcado como fechado: é esconder, não é dispensar');
 await p.evaluate(()=>window.irEcra('mes')); await p.waitForTimeout(400);
-ok(await p.locator('#banner').isVisible(), 'no ecrã do mês volta');
+ok(!await p.locator('#banner').isVisible(), 'no mês também não aparece: não anda atrás de ninguém');
+await p.evaluate(()=>window.irEcra('mais')); await p.waitForTimeout(400);
+ok(!await p.locator('#banner').isVisible(), 'nas ferramentas também não');
+await p.evaluate(()=>window.irEcra('inicio')); await p.waitForTimeout(400);
+ok(await p.locator('#banner').isVisible(), 'e volta a estar lá quando se volta ao Início');
 await p.close();
 
 console.log('\n== quem abre no chat não vê o banner, e não fica preso a isso ==');
