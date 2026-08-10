@@ -1,4 +1,9 @@
 import { chromium } from 'playwright';
+/* Os erros de rede ficam de fora da lista: numa maquina sem saida para a
+   internet o Firebase falha sempre, e as vezes com um erro de certificado em
+   vez de um nome de dominio. Um teste que reprova por causa disso ensina-se a
+   ignorar — e a seguir ja' nao se ve' o que ele reprova com razao. O que fica
+   na lista sao erros do javascript do proprio site, que sao os que interessam. */
 const erros=[],falhas=[]; const ok=(c,n)=>{if(!c)falhas.push(n);console.log((c?'  OK   ':'  FALHA ')+n);};
 const b=await chromium.launch({executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium'});
 
@@ -14,7 +19,7 @@ for (const [nome,vp] of [['telemovel',{width:390,height:844}],['desktop',{width:
   console.log(`\n===== ${nome} =====`);
   const p=await b.newPage({viewport:vp,isMobile:vp.width<500,hasTouch:vp.width<500});
   p.on('pageerror',e=>erros.push(`${nome}: ${e.message}`));
-  p.on('console',m=>{const t=m.text(); if(m.type()==='error'&&!/gstatic|googleapis|firebase|font|TUNNEL|RESET/i.test(t)) erros.push(`${nome}: ${t}`);});
+  p.on('console',m=>{const t=m.text(); if(m.type()==='error'&&!/gstatic|googleapis|firebase|font|TUNNEL|RESET|net::ERR_|CERT_/i.test(t)) erros.push(`${nome}: ${t}`);});
   await p.goto('http://127.0.0.1:8930/ferramentas.html',{waitUntil:'domcontentloaded'});
   await p.evaluate(()=>localStorage.clear());
   await p.reload({waitUntil:'domcontentloaded'});
