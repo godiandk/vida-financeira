@@ -88,11 +88,35 @@ O `ferr.mjs` precisa que o Firebase carregue para o painel da chave aparecer;
 sem rede para o `gstatic.com` essa parte salta-se, com uma linha a dizer
 porquê. Não é defeito do site.
 
+## Um teste novo tem de saber reprovar
+
+Cada ficheiro acaba com:
+
+```js
+if (falhas.length) process.exit(1);
+```
+
+Sem essa linha, o teste escreve `FALHAS` no ecrã e diz ao corredor que correu
+bem — e o corredor acredita, porque só tem o código de saída para se guiar.
+Dezassete dos dezanove ficheiros estiveram assim. Se acrescentar um teste,
+acrescente também esta linha.
+
 ## Uma lição que custou meia dúzia de testes
 
-O `correr.sh` passou meses a não conseguir falhar: corria `node "$f" | tail`, e
-num pipe o `$?` é o do último comando — o `tail` corre sempre bem. A suite
-dizia `=== fim ===` com sete ficheiros a rebentar lá dentro.
+O `correr.sh` passou meses a não conseguir falhar, e por duas razões
+independentes que se tapavam uma à outra.
+
+A primeira: corria `node "$f" | tail`, e num pipe o `$?` é o do último comando
+— o `tail` corre sempre bem. A segunda: mesmo que lesse o código certo, quase
+nenhum ficheiro saía a não-zero quando falhava. A suite dizia `=== fim ===`
+com sete ficheiros a rebentar lá dentro.
+
+E houve ainda uma terceira, do lado contrário: o `trap` de limpeza fazia
+`kill` do servidor, e quando esse `kill` falhava — porque a porta já estava
+ocupada e o servidor nunca chegou a ser nosso — o `set -e` abortava o trap e
+essa falha passava a ser o código de saída do script. O corredor reprovava com
+tudo a passar. Um corredor que reprova sem razão ensina-se a ignorar, e a
+seguir deixa de se ver o que reprova com razão.
 
 Quando passou a saber falhar, apanhou de uma vez tudo o que a grande arrumação
 tinha partido e ninguém tinha visto: o `banner.mjs` a pedir o banner num ecrã

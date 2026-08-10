@@ -97,11 +97,14 @@ ok(/free until/i.test(rot), 'e os rótulos também');
 await p.click('.aba[data-ecra="mais"]'); await p.waitForTimeout(400);
 const grupos=await p.locator('.ferr-grupo-cab h2').allInnerTexts();
 console.log('   grupos:', grupos.join(' · ').replace(/\n/g,' '));
-ok(grupos.join(' ').toLowerCase().includes('tax return season'),
+/* O grupo do IRS saiu daqui quando o IRS ganhou separador proprio, e este
+   bloco ficou a procura-lo. Escolhe-se agora um grupo que nao vai a lado
+   nenhum: o de quem quer guardar dinheiro. */
+ok(grupos.join(' ').toLowerCase().includes('i want to put money aside'),
    'os grupos das ferramentas ficam em ingles');
 const caixas=await p.locator('.ferr-nome').allInnerTexts();
 console.log('   caixas :', caixas.map(x=>x.replace(/\n/g,' ')).join(' · '));
-ok(caixas.join(' ').toLowerCase().includes('my tax return'),
+ok(caixas.join(' ').toLowerCase().includes('putting money to work'),
    'e as seccoes que vieram de fora tambem');
 ok(caixas.join(' ').toLowerCase().includes('is paying in instalments worth it'),
    'e as nove calculadoras tambem');
@@ -191,3 +194,9 @@ for (const l of ['pt','br','es','en']) {
 
 await b.close();
 console.log(`\n=== ${falhas.length?'FALHAS:\n - '+falhas.join('\n - '):'TODAS PASSARAM'} ===`);
+
+/* Sair com codigo de erro quando alguma coisa falhou. Sem isto, o teste
+   escrevia "FALHAS" no ecra e dizia ao corredor que tinha corrido bem — e o
+   `correr.sh` acreditava, porque so' tem o codigo de saida para se guiar.
+   Um teste que nao sabe reprovar da' autorizacao para publicar. */
+if (falhas.length) process.exit(1);

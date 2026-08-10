@@ -112,3 +112,9 @@ for (const pag of ['index','conta','sobre','metodo','ferramentas','premium']) {
 await b.close();
 console.log(`\n=== ${falhas.length?'FALHAS: '+falhas.join(' | '):'TODAS PASSARAM'} ===`);
 console.log('erros JS:',erros.length?erros.join(' | '):'nenhum');
+
+/* Sair com codigo de erro quando alguma coisa falhou. Sem isto, o teste
+   escrevia "FALHAS" no ecra e dizia ao corredor que tinha corrido bem — e o
+   `correr.sh` acreditava, porque so' tem o codigo de saida para se guiar.
+   Um teste que nao sabe reprovar da' autorizacao para publicar. */
+if (falhas.length || erros.length) process.exit(1);

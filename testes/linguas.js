@@ -157,3 +157,9 @@ r = interpretar('paguei 40 de eletricidade');
 ok(r.ok && r.lancamentos[0].conta==='minha', '"paguei 40 de eletricidade" continua a ser meu');
 
 console.log(`\n=== ${falhas.length?'FALHAS ('+falhas.length+'):\n - '+falhas.join('\n - '):'TODAS PASSARAM'} ===`);
+
+/* Sair com codigo de erro quando alguma coisa falhou. Sem isto, o teste
+   escrevia "FALHAS" no ecra e dizia ao corredor que tinha corrido bem — e o
+   `correr.sh` acreditava, porque so' tem o codigo de saida para se guiar.
+   Um teste que nao sabe reprovar da' autorizacao para publicar. */
+if (falhas.length) process.exit(1);

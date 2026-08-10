@@ -13,10 +13,26 @@ RAIZ=$(cd "$(dirname "$0")/.." && pwd)
 FILTRO="$1"
 
 cd "$RAIZ"
+
 python3 -m http.server 8930 >/dev/null 2>&1 &
 SERVIDOR=$!
-trap 'kill $SERVIDOR 2>/dev/null' EXIT INT TERM
+
+# O `|| true` no `kill` não é enfeite, e o sítio dele importa. Com o `set -e`
+# lá em cima, um `kill` que falha — porque a porta já estava ocupada e o nosso
+# `python3` morreu à nascença — aborta o `trap` e passa a ser o código de saída
+# do script inteiro: o corredor dizia "rebentaram" com tudo a passar. É o mesmo
+# defeito do `| tail`, virado do avesso, e igualmente caro: um corredor que
+# reprova sem razão ensina-se a ignorar, e a seguir deixa de se ver o que
+# reprova com razão.
+trap 'kill $SERVIDOR 2>/dev/null || true' EXIT INT TERM
 sleep 1
+
+# Se a porta já estava ocupada, o nosso servidor morreu e os testes vão correr
+# contra o que lá estiver — que pode ser outra pasta. Não é motivo para parar,
+# mas é motivo para se saber.
+if ! kill -0 $SERVIDOR 2>/dev/null; then
+  echo "-- aviso: ja' havia alguem na porta 8930, e e' esse que vai servir os testes"
+fi
 
 FALHOU=0
 FALHADOS=""

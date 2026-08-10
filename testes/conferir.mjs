@@ -114,3 +114,9 @@ await p.close();
 
 await b.close();
 console.log(`\n=== ${falhas.length?'FALHAS:\n - '+falhas.join('\n - '):'TODAS PASSARAM'} ===`);
+
+/* Sair com codigo de erro quando alguma coisa falhou. Sem isto, o teste
+   escrevia "FALHAS" no ecra e dizia ao corredor que tinha corrido bem — e o
+   `correr.sh` acreditava, porque so' tem o codigo de saida para se guiar.
+   Um teste que nao sabe reprovar da' autorizacao para publicar. */
+if (falhas.length) process.exit(1);
