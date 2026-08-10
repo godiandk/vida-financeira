@@ -153,6 +153,8 @@ const TEXTOS = {
 
   /* ---------------------------------------------------------- pt-PT */
   pt: {
+    'abas.irs': 'IRS',
+    'irs.ecrasub': 'Quanto vai receber ou pagar, e o que ainda dá para pedir antes do prazo. Nada disto sai do seu telemóvel.',
     /* — barra e navegação — */
     'abas.escrever': 'Escrever',
     'abas.inicio': 'Início',
@@ -591,8 +593,6 @@ const TEXTOS = {
     'casa.erroproprio': 'Esse código é seu. É a outra pessoa que o tem de escrever.',
     'casa.semsessao': 'Inicie sessão primeiro.',
     'casa.erro': 'Não foi possível agora. Tente daqui a pouco.',
-    'ferr.g.irs': 'Está aí a época do IRS',
-    'ferr.g.irs.sub': 'Ver quanto vai receber, e o que ainda dá para pedir antes do prazo.',
     'irs.titulo': 'O meu IRS',
     'irs.sub': 'Quanto vai receber ou pagar, e o que lhe falta pedir.'
   },
@@ -600,6 +600,8 @@ const TEXTOS = {
   /* ---------------------------------------------------------- pt-BR
      Só o que muda mesmo. O resto cai no `pt` e cai bem. */
   br: {
+    'abas.irs': 'Imposto',
+    'irs.ecrasub': 'Quanto você vai receber ou pagar, e o que ainda dá para pedir antes do prazo. Nada disto sai do seu celular.',
     'inicio.sub': 'Este é o seu mês. Lance o que gastou e o resto se faz sozinho.',
     'inicio.livre': 'Livre até o fim do mês',
     'inicio.guardei': 'Guardei este mês',
@@ -754,14 +756,14 @@ const TEXTOS = {
     'casa.erroproprio': 'Esse código é seu. É a outra pessoa que tem que digitar.',
     'casa.semsessao': 'Entre na sua conta primeiro.',
     'casa.erro': 'Não deu agora. Tente daqui a pouco.',
-    'ferr.g.irs': 'Chegou a época do imposto',
-    'ferr.g.irs.sub': 'Ver quanto você vai receber, e o que ainda dá para pedir antes do prazo.',
     'irs.titulo': 'O meu imposto',
     'irs.sub': 'Quanto vai receber ou pagar, e o que falta pedir.'
   },
 
   /* ---------------------------------------------------------- español */
   es: {
+    'abas.irs': 'Renta',
+    'irs.ecrasub': 'Cuánto va a cobrar o pagar, y qué puede pedir todavía antes del plazo. Nada de esto sale de su móvil.',
     'abas.escrever': 'Escribir',
     'abas.inicio': 'Inicio',
     'abas.lancar': 'Registrar',
@@ -1172,14 +1174,14 @@ const TEXTOS = {
     'casa.erroproprio': 'Ese código es suyo. Lo tiene que escribir la otra persona.',
     'casa.semsessao': 'Inicie sesión primero.',
     'casa.erro': 'No ha sido posible ahora. Pruebe dentro de un rato.',
-    'ferr.g.irs': 'Es época de la declaración',
-    'ferr.g.irs.sub': 'Ver cuánto va a cobrar, y qué puede pedir todavía antes del plazo.',
     'irs.titulo': 'Mi declaración',
     'irs.sub': 'Cuánto va a cobrar o pagar, y qué le falta pedir.'
   },
 
   /* ---------------------------------------------------------- english */
   en: {
+    'abas.irs': 'Tax',
+    'irs.ecrasub': 'What you get back or owe, and what you can still claim before the deadline. None of this leaves your phone.',
     'abas.escrever': 'Write',
     'abas.inicio': 'Home',
     'abas.lancar': 'Add',
@@ -1590,8 +1592,6 @@ const TEXTOS = {
     'casa.erroproprio': 'That code is yours. The other person is the one who types it.',
     'casa.semsessao': 'Sign in first.',
     'casa.erro': 'That did not work just now. Try again in a moment.',
-    'ferr.g.irs': 'It is tax return season',
-    'ferr.g.irs.sub': 'See what you get back, and what you can still claim before the deadline.',
     'irs.titulo': 'My tax return',
     'irs.sub': 'What you get back or owe, and what you still need to claim.'
   }

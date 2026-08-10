@@ -54,6 +54,21 @@ Nomes de funções e de variáveis em português (`desenharInvestir`,
 | `ia.js` + `servidor/` | a IA. **Ligada**, no worker grátis da Cloudflare |
 | `app/index.html` | a aplicação. Tudo numa página, com gavetas `<details>` |
 
+A barra tem seis separadores: **Início · Lançar · Mês · IRS · Ferramentas ·
+Escrever**. O IRS tem separador próprio e não é uma gaveta das Ferramentas —
+é a única coisa aqui dentro com um prazo, e entre Abril e Junho não pode
+estar escondida dentro de um grupo. Cada separador é uma `<section class="ecra"
+id="ecra-…">`; quem troca é o bloco `abas()` no fim do `app/index.html`, e a
+única coisa que ele faz é mudar a classe `.activo`. Quem precisar de saber que
+um ecrã abriu (o `irs.js`, o `banner.js`) fica à escuta dessa classe em vez de
+saber como a navegação funciona.
+
+Alguns destinos deixaram de ser ecrãs — as contas fixas vivem no fim do Mês, a
+dívida e os apoios são caixas nas Ferramentas. A tabela `ANCORAS` é a lista a
+sério do que existe, e é a ela que se pergunta se um endereço é válido:
+perguntar aos elementos é frágil, porque a resposta muda conforme a ordem por
+que os blocos correm.
+
 Duas coisas que já morderam e convém saber antes de mexer:
 
 - **Nomes globais colidem.** Não há módulos: tudo o que se declara no topo de

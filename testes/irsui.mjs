@@ -45,14 +45,20 @@ async function abrir(){
   await p.evaluate(()=>{ try{localStorage.removeItem('vf:irs');}catch(e){} });
   await p.reload({waitUntil:'domcontentloaded'});
   await p.waitForTimeout(1200);
-  /* A gaveta vive no separador das ferramentas, e o `ferramentas.js` arruma-a
-     dentro do grupo do IRS. Sem passar pelo separador, o `details` existe no
-     documento mas não está visível — e um teste que clica no que não se vê
-     testa o documento, não a aplicação. */
-  await p.click('.aba[data-ecra="mais"]');
-  await p.waitForTimeout(400);
-  await p.locator('#gaveta-irs > summary').click();
-  await p.waitForTimeout(400);
+
+  /* Antes de la' ir, o corpo tem de estar vazio: sao muitos campos e a maior
+     parte das pessoas vem aqui duas vezes por ano, por isso so' se desenha
+     quando o separador abre. */
+  ok((await p.locator('#irs-corpo').innerHTML()).length===0,
+     'o IRS nao se desenha antes de alguem la' + "'" + ' ir');
+
+  /* O IRS tem separador proprio desde que saiu das Ferramentas. Era uma gaveta
+     dentro de um grupo dentro do separador das Ferramentas — para a unica
+     coisa da aplicacao que tem prazo, isso era fundo a mais. */
+  await p.click('.aba[data-ecra="irs"]');
+  await p.waitForTimeout(500);
+  ok(await p.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)==='ecra-irs',
+     'o separador do IRS abre o ecra do IRS');
   return p;
 }
 
@@ -178,10 +184,8 @@ ok(/€/.test(melhor), 'e diz quanto e' + "'" + ' que isso vale');
 console.log('\n-- o que se escreve fica escrito --');
 await p.reload({waitUntil:'domcontentloaded'});
 await p.waitForTimeout(1000);
-await p.click('.aba[data-ecra="mais"]');
-await p.waitForTimeout(400);
-await p.locator('#gaveta-irs > summary').click();
-await p.waitForTimeout(400);
+await p.click('.aba[data-ecra="irs"]');
+await p.waitForTimeout(500);
 ok(await p.locator('#irs-trab').inputValue()==='45000', 'os rendimentos ficaram guardados');
 ok(await p.locator('#irs-idades').inputValue()==='3, 2, 1', 'as idades tambem');
 ok(await p.locator('#irs-quem button[data-quem="casal"].sim').count()===1, 'e a escolha de casal tambem');

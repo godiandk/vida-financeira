@@ -123,7 +123,10 @@ body.app-shell .app-float{display:none}
 /* ---------- barra de separadores ---------- */
 .abas{
   position:fixed;inset:auto 0 0 0;z-index:70;
-  display:grid;grid-template-columns:repeat(5,1fr);
+  /* Seis e não cinco desde que o IRS ganhou separador. `auto-fit` em vez de um
+     número escrito: no dia em que houver sete, ou seis, a barra não parte —
+     limita-se a apertar. */
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
   background:rgba(13,21,18,.97);
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-top:1px solid rgba(217,178,110,.18);
@@ -143,7 +146,16 @@ body.app-shell .app-float{display:none}
   fill:none;stroke:currentColor;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round;
 }
-.aba small{font-size:.63rem;font-weight:700;letter-spacing:.02em}
+/* Com seis separadores há 65px por cada num telemóvel de 390. "Ferramentas"
+   em inglês é "Tools", mas em espanhol é "Herramientas" e não cabe: em vez de
+   partir a palavra ao meio, encolhe-se e corta-se com reticências. O ícone
+   fica sempre inteiro — é por ele que se acerta no separador certo, não pela
+   palavra. */
+.aba small{
+  font-size:.61rem;font-weight:700;letter-spacing:.01em;
+  max-width:100%;padding:0 2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .aba[aria-selected="true"]{color:var(--gold)}
 .aba[aria-selected="true"] .ic{transform:translateY(-1px) scale(1.1)}
 .aba:active .ic{transform:scale(.9)}

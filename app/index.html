@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=65">
-<link rel="stylesheet" href="../app-financas.css?v=65">
-<link rel="stylesheet" href="../app-shell.css?v=65">
-<link rel="stylesheet" href="../assistente.css?v=65">
-<link rel="stylesheet" href="../ferramentas.css?v=65">
+<link rel="stylesheet" href="../estilo.css?v=66">
+<link rel="stylesheet" href="../app-financas.css?v=66">
+<link rel="stylesheet" href="../app-shell.css?v=66">
+<link rel="stylesheet" href="../assistente.css?v=66">
+<link rel="stylesheet" href="../ferramentas.css?v=66">
 </head>
 <body class="app-shell">
 
@@ -596,6 +596,30 @@
     </div>
   </section>
 
+  <!-- ============ O IRS ============
+  Tem separador proprio e nao uma gaveta dentro das Ferramentas. Nao e' por
+  ser maior do que as outras: e' porque e' a unica coisa aqui dentro que tem
+  um prazo. Entre Abril e Junho, quem abre a aplicacao a pensar no IRS nao
+  pode ter de descobrir que ele mora dentro de um grupo dentro de um
+  separador chamado "Ferramentas".
+
+  O corpo e' desenhado pelo irs.js quando o separador se abre pela primeira
+  vez: sao muitos campos, e a maior parte das pessoas vem aqui duas vezes por
+  ano. -->
+  <section class="ecra" id="ecra-irs">
+    <div class="wrap">
+      <!-- No separador cabe "IRS" e mais nada; no titulo do ecra cabe o nome
+      inteiro, e "O meu IRS" diz uma coisa que "IRS" nao diz: que os numeros
+      sao os desta pessoa e nao os de um simulador qualquer. -->
+      <h1 class="ecra-titulo" data-t="irs.titulo">O meu IRS</h1>
+      <p class="ecra-sub" data-t="irs.ecrasub">
+        Quanto vai receber ou pagar, e o que ainda dá para pedir antes do prazo.
+        Nada disto sai do seu telemóvel.
+      </p>
+      <div id="irs-corpo"></div>
+    </div>
+  </section>
+
   <!-- ============ PREMIUM E FERRAMENTAS ============ -->
   <section class="ecra" id="ecra-mais">
     <div class="wrap">
@@ -610,13 +634,6 @@
       <details class="gaveta" id="gaveta-investir">
         <summary><span class="gv-nome" data-t="inv.titulo">Pôr o dinheiro a render</span><span class="gv-seta" aria-hidden="true">›</span></summary>
         <div class="gv-corpo" id="investir-corpo"></div>
-      </details>
-
-      <!-- O IRS. O corpo e' desenhado pelo irs.js quando a gaveta abre: sao
-      muitos campos, e a maior parte das pessoas abre isto duas vezes por ano. -->
-      <details class="gaveta" id="gaveta-irs">
-        <summary><span class="gv-nome">O meu IRS</span><span class="gv-seta" aria-hidden="true">›</span></summary>
-        <div class="gv-corpo" id="irs-corpo"></div>
       </details>
 
       <!-- A casa partilhada. O corpo e' desenhado pelo casa.js, que sabe se ha'
@@ -919,6 +936,12 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9m5 11V4.5m5 15.5v-8m5 8V7"/></svg>
     <small data-t="abas.mes">Mês</small>
   </button>
+  <!-- O talão de imposto: papel com um canto rasgado e duas linhas escritas.
+  Desenhado a traço como os outros, para ter o mesmo peso na barra. -->
+  <button class="aba" role="tab" data-ecra="irs" aria-selected="false">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4v13l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4zM13.5 3.8V8h4.2M9 11h6M9 14.5h4"/></svg>
+    <small data-t="abas.irs">IRS</small>
+  </button>
   <button class="aba" role="tab" data-ecra="mais" aria-selected="false">
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5h15M4.5 5.5v13M19.5 5.5v13M4.5 18.5h15M9 5.5v13M14.5 5.5v13"/></svg>
     <small data-t="abas.mais">Ferramentas</small>
@@ -932,23 +955,23 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=65"></script>
-<script src="../site.js?v=65"></script>
-<script src="../app-financas.js?v=65"></script>
-<script src="../excel.js?v=65"></script>
-<script src="../partilha.js?v=65"></script>
-<script src="../casa.js?v=65"></script>
-<script src="../irs.js?v=65"></script>
-<script src="../divida.js?v=65"></script>
-<script src="../idiomas.js?v=65"></script>
-<script src="../respostas.js?v=65"></script>
-<script src="../interpretar.js?v=65"></script>
-<script src="../talao.js?v=65"></script>
-<script src="../ia.js?v=65"></script>
-<script src="../assistente.js?v=65"></script>
-<script src="../ferramentas.js?v=65"></script>
-<script src="../investir.js?v=65"></script>
-<script src="../banner.js?v=65"></script>
+<script src="../firebase-config.js?v=66"></script>
+<script src="../site.js?v=66"></script>
+<script src="../app-financas.js?v=66"></script>
+<script src="../excel.js?v=66"></script>
+<script src="../partilha.js?v=66"></script>
+<script src="../casa.js?v=66"></script>
+<script src="../irs.js?v=66"></script>
+<script src="../divida.js?v=66"></script>
+<script src="../idiomas.js?v=66"></script>
+<script src="../respostas.js?v=66"></script>
+<script src="../interpretar.js?v=66"></script>
+<script src="../talao.js?v=66"></script>
+<script src="../ia.js?v=66"></script>
+<script src="../assistente.js?v=66"></script>
+<script src="../ferramentas.js?v=66"></script>
+<script src="../investir.js?v=66"></script>
+<script src="../banner.js?v=66"></script>
 <script>
 /* ============================================================
    TUDO NUMA PAGINA
@@ -1037,7 +1060,8 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
        `#investir` recebia a calculadora da reserva aberta e o "por o dinheiro
        a render" fechado logo por baixo. Uma morada tem de dar a casa certa. */
     investir: ['mais', 'gaveta-investir'],
-    irs:      ['mais', 'gaveta-irs'],
+    /* O `irs` saiu daqui: passou a ser um ecrã com separador proprio, e por
+       isso o caminho normal do `ir()` ja' o encontra pelo `ecra-irs`. */
     casa:     ['mais', 'gaveta-casa']
   };
 

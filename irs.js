@@ -1074,11 +1074,33 @@ function irsContar() {
     : '';
 }
 
+/* Só se desenha quando o separador se abre: são muitos campos, e a maior parte
+   das pessoas vem aqui duas vezes por ano. Quando isto era uma gaveta bastava
+   ouvir o `toggle`; agora que é um ecrã, ouve-se a classe `.activo` — que é a
+   única coisa que a navegação faz, e por isso é a única coisa a que vale a
+   pena estar atento. Se amanhã houver outra maneira de lá chegar, isto
+   continua a valer sem se lhe mexer. */
 document.addEventListener('DOMContentLoaded', () => {
-  const g = document.getElementById('gaveta-irs');
-  if (!g) return;
-  /* Só se desenha quando se abre: são muitos campos, e a maior parte das
-     pessoas abre esta gaveta duas vezes por ano. */
-  g.addEventListener('toggle', () => { if (g.open) irsDesenhar(); });
-  if (g.open) irsDesenhar();
+  const ecra = document.getElementById('ecra-irs');
+  if (!ecra) return;
+
+  let desenhado = false;
+  const ver = () => {
+    if (!ecra.classList.contains('activo') || desenhado) return;
+    desenhado = true;
+    irsDesenhar();
+  };
+
+  if (window.MutationObserver) {
+    new MutationObserver(ver).observe(ecra, { attributes: true, attributeFilter: ['class'] });
+  }
+  /* Quem chega por `app/#irs` já entra com o ecrã aberto, e nesse caso o
+     observador nunca chega a disparar. */
+  ver();
+
+  /* Mudar de língua com o ecrã já desenhado: os campos são construídos por
+     javascript e não têm `data-t` nenhum, por isso é o próprio irs.js que os
+     tem de refazer. Guarda-se o que estava escrito — está no localStorage, e
+     é de lá que o `irsDesenhar()` o volta a ler. */
+  window.addEventListener('vf:lingua-mudou', () => { if (desenhado) irsDesenhar(); });
 });

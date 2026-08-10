@@ -46,7 +46,8 @@ console.log('\n== e os outros enderecos levam cada um ao seu sitio ==');
 const DESTINOS = [
   { nome:'divida', ecra:'ecra-mais',   abre:'#caixa-ecra-divida' },
   { nome:'apoios', ecra:'ecra-mais',   abre:'#caixa-ecra-apoios' },
-  { nome:'irs',    ecra:'ecra-mais',   abre:'#gaveta-irs' },
+  /* O IRS deixou de ser gaveta e passou a ecra com separador proprio. */
+  { nome:'irs',    ecra:'ecra-irs' },
   { nome:'casa',   ecra:'ecra-mais',   abre:'#gaveta-casa' },
   { nome:'contas', ecra:'ecra-mes',    esta:'#zona-contas' },
   { nome:'lancar', ecra:'ecra-lancar' },

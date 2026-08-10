@@ -79,8 +79,11 @@ await testar('o Início é a primeira aba, porque é o início', async () => {
   assert.equal(await p.evaluate(() => document.querySelector('.aba')?.dataset.ecra), 'inicio');
 });
 
-await testar('as cinco abas abrem o que dizem que abrem', async () => {
-  for (const d of ['lancar', 'mes', 'mais', 'wesley', 'inicio']) {
+await testar('as seis abas abrem o que dizem que abrem', async () => {
+  /* Seis desde que o IRS saiu das Ferramentas e ganhou separador proprio: e' a
+     unica coisa da aplicacao que tem prazo, e um prazo nao se guarda dentro de
+     um grupo dentro de um separador chamado "Ferramentas". */
+  for (const d of ['lancar', 'mes', 'irs', 'mais', 'wesley', 'inicio']) {
     await p.click(`.aba[data-ecra="${d}"]`);
     await p.waitForTimeout(300);
     const activo = await p.evaluate(() => document.querySelector('.ecra.activo')?.id);
@@ -120,7 +123,39 @@ await testar('as ferramentas estão arrumadas por pergunta', async () => {
     [...document.querySelectorAll('.ferr-grupo')].map(g => g.id));
   assert.deepEqual(grupos,
     ['grupo-dividas', 'grupo-guardar', 'grupo-gastar', 'grupo-apoios',
-     'grupo-irs', 'grupo-casa', 'grupo-planear']);
+     'grupo-casa', 'grupo-planear']);
+  assert.equal(await p.evaluate(() => !!document.getElementById('gaveta-irs')), false,
+    'o IRS saiu daqui e nao pode ter ficado uma gaveta vazia para tras');
+});
+
+await testar('o IRS tem separador proprio, com as perguntas todas', async () => {
+  /* Que so' se desenha quando se la' vai e' verificado no `testes/irsui.mjs`,
+     numa pagina acabada de abrir — aqui ja' se passou por todos os separadores
+     e o trabalho esta' feito ha' muito. */
+  await p.click('.aba[data-ecra="irs"]');
+  await p.waitForTimeout(500);
+  assert.equal(await p.evaluate(() => document.querySelector('.ecra.activo')?.id), 'ecra-irs');
+  const desenhado = await p.evaluate(() =>
+    document.getElementById('irs-corpo').innerHTML.length);
+  assert.ok(desenhado > 1000, 'o separador abriu vazio (' + desenhado + ' caracteres)');
+  assert.ok(await p.evaluate(() =>
+    document.querySelectorAll('#irs-corpo .irs-bloco').length >= 5), 'faltam blocos de perguntas');
+  /* Devolve-se o ecra das Ferramentas a quem vem a seguir: os testes correm
+     todos na mesma pagina, e deixar a aplicacao noutro sitio faz o proximo
+     falhar por uma razao que nao tem nada que ver com ele. */
+  await p.click('.aba[data-ecra="mais"]');
+  await p.waitForTimeout(400);
+});
+
+await testar('e a barra de seis nao corta nenhuma palavra ao meio', async () => {
+  /* Com seis separadores ha' 65px por cada num telemovel de 390. O icone e' o
+     que se procura, mas uma etiqueta cortada a meio faz a barra parecer
+     avariada. */
+  const cortadas = await p.evaluate(() => [...document.querySelectorAll('.aba small')]
+    .filter(s => s.scrollWidth > s.clientWidth + 1).map(s => s.textContent));
+  assert.deepEqual(cortadas, [], 'etiquetas cortadas: ' + cortadas.join(', '));
+  assert.ok(await p.evaluate(() =>
+    document.documentElement.scrollWidth <= window.innerWidth + 1), 'a barra alargou a pagina');
 });
 
 await testar('cada ferramenta nasce fechada, com o nome e para que serve', async () => {

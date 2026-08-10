@@ -1026,9 +1026,6 @@ const GRUPOS_FERR = [
   { id: 'apoios', emoji: '🎁', chave: 'ferr.g.apoios',
     ferramentas: [], seccoes: ['ecra-apoios'] },
 
-  { id: 'irs', emoji: '🧾', chave: 'ferr.g.irs',
-    ferramentas: [], seccoes: ['gaveta-irs'] },
-
   { id: 'casa', emoji: '🏠', chave: 'ferr.g.casa',
     ferramentas: [], seccoes: ['gaveta-casa'] },
 
@@ -1094,8 +1091,10 @@ function TITULOS_SECCAO() {
     'ecra-divida':    [ic('📉') + tf('ferr.c.divida', 'O que a dívida custa'), tf('ferr.c.dividasub', 'Quanto está a pagar de juros, com as taxas do seu país.')],
     'gaveta-investir':[ic('🏦') + tf('inv.titulo', 'Pôr o dinheiro a render'), tf('ferr.c.investirsub', 'Onde é que o dinheiro está garantido, e quanto rende.')],
     'ecra-apoios':    [ic('🎁') + tf('ferr.c.apoios', 'Apoios que talvez não receba'), tf('ferr.c.apoiossub', 'Quatro perguntas, e a lista do que pode pedir no seu país.')],
-    'gaveta-casa':    [ic('🏠') + tf('casa.titulo', 'A nossa casa'), tf('casa.sub', 'As mesmas contas nos dois telemóveis, em tempo real.')],
-    'gaveta-irs':     [ic('🧾') + tf('irs.titulo', 'O meu IRS'), tf('irs.sub', 'Quanto vai receber ou pagar, e o que lhe falta pedir.')]
+    'gaveta-casa':    [ic('🏠') + tf('casa.titulo', 'A nossa casa'), tf('casa.sub', 'As mesmas contas nos dois telemóveis, em tempo real.')]
+    /* O IRS saiu daqui: tem separador proprio. Era a unica coisa nesta pagina
+       com um prazo, e um prazo nao se guarda dentro de um grupo dentro de um
+       separador chamado "Ferramentas". */
   };
 }
 
