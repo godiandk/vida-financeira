@@ -102,6 +102,12 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
 - **Textos por traduzir.** O ecrã final do arranque, a gaveta do IRS e as
   páginas do site fora de `/app/` continuam só em português. As respostas
   longas do chat já estão nas quatro (`respostas.js`).
+- **Nove calculadoras estão em português para toda a gente.** Os grupos das
+  ferramentas e as três secções (render, IRS, casa) passam pelo `tf()` e
+  traduzem-se; os nomes e as legendas das nove calculadoras são `<h3>` e
+  `<p class="sub">` escritos à mão no HTML, sem `data-t`. Quem tem a aplicação
+  em inglês ou em espanhol lê "Vale a pena parcelar?" ao lado de "My tax
+  return". São ~18 frases novas × 4 línguas, mais as etiquetas dos campos.
 - **As taxas envelhecem.** No `investir.js`, `INVEST_REF` tem `taxa`, `fonte` e
   `verificado`. A data está à vista no ecrã de propósito. Quando mudarem, são
   duas linhas — e o texto do instrumento está no mesmo ficheiro, ao lado, para

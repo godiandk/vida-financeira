@@ -32,7 +32,12 @@ console.log('== chega la e preenche-se sozinho ==');
 let p=await app();
 /* Os ecras separados viraram gavetas de uma pagina so'. O destino continua a
    ser o mesmo — o que muda e' que agora se chega la' sem sair do sitio. */
-ok(await p.locator('#gaveta-divida').evaluate(g=>g.open), 'a gaveta da divida abre');
+/* A divida deixou de ser um ecra e passou a ser uma caixa dentro das
+   Ferramentas, no grupo das dividas: o `encaixotarSeccao()` reconstroi-a com
+   o id `caixa-ecra-divida`. O `#gaveta-divida` que aqui estava nunca chegou a
+   existir depois dessa arrumacao, e o teste falhava em silencio porque o
+   `correr.sh` nao sabia falhar. */
+ok(await p.locator('#caixa-ecra-divida').evaluate(g=>g.open), 'a caixa da divida abre');
 ok(await p.locator('#dv-deve').isVisible(), 'e os campos ficam a' + "'" + ' vista');
 ok(await p.locator('#divida-lancada').isVisible(), 'diz que usou as prestacoes ja lancadas');
 const nota=await p.locator('#divida-lancada').innerText();

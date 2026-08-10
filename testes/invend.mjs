@@ -34,12 +34,31 @@ ok(await p.locator('#gaveta-investir').evaluate(e=>e.open), 'a gaveta abriu-se s
 ok(await p.locator('#investir-corpo .inv-opcao').count()===3, 'e ja' + "'" + ' esta desenhada');
 await p.close();
 
-console.log('\n== e os outros enderecos que estavam partidos ==');
-/* `app/#divida` deixou de abrir nada quando os ecras passaram a gavetas: o
-   `ecra-divida` deixou de existir e ninguem deu por isso. */
-for (const nome of ['divida','contas','lancar','apoios','mais']) {
-  p=await abrir('/app/#'+nome);
-  ok(await p.locator('#gaveta-'+nome).evaluate(e=>e.open), 'app/#'+nome+' abre a gaveta certa');
+console.log('\n== e os outros enderecos levam cada um ao seu sitio ==');
+/* Uma morada tem de dar a casa certa. Cada destino mudou de sitio na grande
+   arrumacao — a divida e os apoios viraram caixas nas Ferramentas, as contas
+   fixas foram para o fim do Mes — e o que este bloco verifica e' que o nome
+   por que se la' chega continua a valer.
+
+   Estava a pedir `#gaveta-divida`, `#gaveta-contas` e companhia: ids que
+   deixaram de existir nessa mesma arrumacao. Rebentava desde entao, todos os
+   dias, e ninguem deu por isso porque o `correr.sh` nao sabia falhar. */
+const DESTINOS = [
+  { nome:'divida', ecra:'ecra-mais',   abre:'#caixa-ecra-divida' },
+  { nome:'apoios', ecra:'ecra-mais',   abre:'#caixa-ecra-apoios' },
+  { nome:'irs',    ecra:'ecra-mais',   abre:'#gaveta-irs' },
+  { nome:'casa',   ecra:'ecra-mais',   abre:'#gaveta-casa' },
+  { nome:'contas', ecra:'ecra-mes',    esta:'#zona-contas' },
+  { nome:'lancar', ecra:'ecra-lancar' },
+  { nome:'mais',   ecra:'ecra-mais' }
+];
+for (const d of DESTINOS) {
+  p=await abrir('/app/#'+d.nome);
+  ok(await p.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)===d.ecra,
+     'app/#'+d.nome+' abre o '+d.ecra);
+  if (d.abre) ok(await p.locator(d.abre).evaluate(e=>e.open),
+     '   e deixa '+d.abre+' aberto, e nao a porta fechada');
+  if (d.esta) ok(await p.locator(d.esta).count()===1, '   e '+d.esta+' esta la');
   await p.close();
 }
 

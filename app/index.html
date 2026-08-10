@@ -1032,7 +1032,13 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
     contas:   ['mes',  'zona-contas'],
     divida:   ['mais', 'caixa-ecra-divida'],
     apoios:   ['mais', 'caixa-ecra-apoios'],
-    investir: ['mais', 'grupo-guardar']
+    /* Aponta para a gaveta e nao para o grupo. Apontava para o grupo, e como
+       o `irAte()` abre o primeiro `details` que la' encontra, quem pedia
+       `#investir` recebia a calculadora da reserva aberta e o "por o dinheiro
+       a render" fechado logo por baixo. Uma morada tem de dar a casa certa. */
+    investir: ['mais', 'gaveta-investir'],
+    irs:      ['mais', 'gaveta-irs'],
+    casa:     ['mais', 'gaveta-casa']
   };
 
   function irAte(nome){
@@ -1096,8 +1102,17 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
   /* Tambem as gavetas, e nao so' os ecras: metade dos destinos deixou de ser
      um `ecra-` quando tudo passou para uma pagina so', e um endereco como
      `app/#divida` — que e' o que os botoes do site mandam — deixava de abrir
-     seja o que for. */
-  if (document.getElementById('ecra-' + inicial) ||
+     seja o que for.
+
+     E tambem as ANCORAS, que sao a lista a serio dos destinos que existem.
+     Sem elas, `app/#contas` caia no Inicio em silencio: o `ecra-contas` e'
+     apagado pelo `arrumarEcras()` quando as contas fixas passam para o fim do
+     Mes, e nunca houve nenhum `gaveta-contas` — por isso as duas perguntas de
+     cima davam nao, e o endereco morria aqui. Perguntar aos elementos se o
+     destino existe e' fragil, porque a resposta muda conforme a ordem por que
+     os blocos correm; perguntar a' tabela dos destinos nao muda. */
+  if (ANCORAS[inicial] ||
+      document.getElementById('ecra-' + inicial) ||
       document.getElementById('gaveta-' + inicial)) ir(inicial);
 
   /* Depois de lançar um movimento, volta-se ao Início: é lá que está o

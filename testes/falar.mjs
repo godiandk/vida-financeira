@@ -83,9 +83,27 @@ ok(abas.join(' ').includes('Home') && abas.join(' ').includes('Tools'), 'a barra
 let rot=await p.locator('.card.saldo .rot').innerText();
 console.log('   rótulo:', rot);
 ok(/free until/i.test(rot), 'e os rótulos também');
-let gav=await p.locator('.gv-nome').allInnerTexts();
-console.log('   gavetas:', gav.join(' · '));
-ok(gav.join(' ').toLowerCase().includes('my month'), 'e as gavetas');
+/* As gavetas de nome proprio (`.gv-nome`) deixaram de existir no ecra das
+   Ferramentas: o `ferramentas.js` reconstroi cada uma como uma caixa com
+   `.ferr-nome`. O teste ficou a procurar "my month", que era o nome de uma
+   gaveta que hoje e' um separador — e falhava sem se ver, porque o
+   `correr.sh` nao sabia falhar.
+
+   ATENCAO, e esta parte e' um defeito a serio e nao uma mudanca de nomes:
+   so' se verificam aqui os grupos e as tres seccoes que passam pelo `tf()`.
+   Os nomes das nove calculadoras vem de `<h3>` escritos a' mao no HTML, sem
+   `data-t`, e por isso continuam em portugues para quem tem a aplicacao em
+   ingles ou em espanhol. Falta-lhes chave de traducao, e esta' apontado no
+   CLAUDE.md. */
+await p.click('.aba[data-ecra="mais"]'); await p.waitForTimeout(400);
+const grupos=await p.locator('.ferr-grupo-cab h2').allInnerTexts();
+console.log('   grupos:', grupos.join(' · ').replace(/\n/g,' '));
+ok(grupos.join(' ').toLowerCase().includes('tax return season'),
+   'os grupos das ferramentas ficam em ingles');
+const caixas=await p.locator('.ferr-nome').allInnerTexts();
+console.log('   caixas :', caixas.map(x=>x.replace(/\n/g,' ')).join(' · '));
+ok(caixas.join(' ').toLowerCase().includes('my tax return'),
+   'e as seccoes que tem chave de traducao tambem');
 ok(await p.evaluate(()=>document.documentElement.lang)==='en', 'e a página declara-se em inglês');
 await p.close();
 

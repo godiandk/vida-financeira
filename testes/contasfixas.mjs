@@ -33,10 +33,16 @@ let p=await nova();
 ok(await p.locator('#bloco-contas').isVisible(), 'o convite aparece no mes corrente');
 ok((await p.locator('#contas-corpo').innerText()).includes('Renda') ||
    (await p.locator('#contas-corpo').innerText()).includes('luz'), 'o convite explica o que e');
-await p.locator('#contas-corpo button').click(); await p.waitForTimeout(400);
-/* Os ecras separados viraram gavetas de uma pagina so'. O destino continua a
-   ser o mesmo — o que muda e' que agora se chega la' sem sair do sitio. */
-ok(await p.locator('#gaveta-contas').evaluate(g=>g.open), 'o botao abre a gaveta das contas');
+await p.locator('#contas-corpo button').click(); await p.waitForTimeout(500);
+/* As contas fixas deixaram de ser um ecra e passaram a viver no fim do Mes,
+   dentro da `#zona-contas` — sao a outra metade da mesma pergunta. O
+   `#gaveta-contas` que aqui estava deixou de existir nessa arrumacao, e o
+   teste rebentava sem ninguem dar por isso porque o `correr.sh` nao sabia
+   falhar. O que importa continua a ser o mesmo: o botao leva la', e o
+   formulario fica a' vista. */
+ok(await p.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)==='ecra-mes',
+   'o botao leva ao Mes, que e onde as contas fixas vivem agora');
+ok(await p.locator('#zona-contas').count()===1, 'e a zona das contas esta la');
 ok(await p.locator('#form-conta').isVisible(), 'e o formulario das contas fica a' + "'" + ' vista');
 
 console.log('\n== sugestoes seguem a moeda ==');

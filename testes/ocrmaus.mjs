@@ -14,13 +14,28 @@ await p.evaluate(async()=>{
   window.raizDoSite = () => '/';
 });
 const casos=['continente','mau-torto','mau-desbotado','mau-sombra','mau-ruido','mau-escuro','mau-tudo'];
-const r = await p.evaluate(async (casos) => {
+
+/* Os taloes de mentira sao servidos de `testes/talos/`, ao lado dos testes que
+   os usam. Estavam a ser lidos de `/talos/` — uma pasta na raiz do site que
+   nao existe e nunca foi para o repositorio — por isso os sete falhavam
+   sempre, com `erro: imagem`, e a suite nao dizia nada porque o `correr.sh`
+   nao sabia falhar. */
+const PASTA='/testes/talos/';
+const existe = await fetch('http://127.0.0.1:8930'+PASTA+'continente.png')
+  .then(r=>r.ok).catch(()=>false);
+if (!existe) {
+  console.log('  -- saltado: faltam os taloes de mentira em testes/talos/');
+  console.log('     gere-os primeiro:  node testes/fazer-talao.mjs && node testes/fazer-maus.mjs');
+  await b.close();
+  process.exit(0);
+}
+const r = await p.evaluate(async ({casos, pasta}) => {
   const out=[];
   for (const c of casos) {
     const t0=performance.now();
     let linha={caso:c};
     try {
-      const texto = await ocrLer('/talos/'+c+'.png');
+      const texto = await ocrLer(pasta+c+'.png');
       const i = talaoInterpretar(texto);
       linha = {caso:c, ok:i.ok, valor:i.valor, loja:i.loja, data:i.data,
                conf:i.confianca, ms:Math.round(performance.now()-t0),
@@ -29,7 +44,7 @@ const r = await p.evaluate(async (casos) => {
     out.push(linha);
   }
   return out;
-}, casos);
+}, {casos, pasta: PASTA});
 console.log('caso              lido       loja           data         confiança   linhas  ms');
 for (const x of r) {
   console.log(

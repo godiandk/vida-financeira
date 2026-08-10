@@ -26,7 +26,29 @@ async function abrir(url,{lingua='pt',moeda='EUR'}={}){
   },{l:lingua,m:moeda});
   await p.goto(B+url,{waitUntil:'domcontentloaded'});
   await p.waitForTimeout(1200);
+  /* Na aplicacao a gaveta vive no separador das Ferramentas, e o
+     `ferramentas.js` arruma-a dentro do grupo de quem quer guardar dinheiro.
+     Sem passar pelo separador, o `details` existe no documento mas nao esta'
+     visivel — e clicar no que nao se ve' e' testar o documento, nao a
+     aplicacao. Na pagina solta (`ferramentas.html`) nao ha separadores, por
+     isso so' se faz isto na app. */
+  if (url.startsWith('/app')) {
+    await p.click('.aba[data-ecra="mais"]');
+    await p.waitForTimeout(400);
+  }
   return p;
+}
+
+/* Abre a caixa `<details>` que envolve um elemento, seja ela qual for. Vale
+   mais do que decorar o id da caixa: o `ferramentas.js` pode reagrupar as
+   ferramentas amanha, e isto continua a valer. */
+async function abrirCaixa(p, dentro){
+  await p.evaluate(sel=>{
+    const el=document.querySelector(sel); if(!el) return;
+    let d=el.closest('details');
+    while(d){ d.open=true; d=d.parentElement && d.parentElement.closest('details'); }
+  }, dentro);
+  await p.waitForTimeout(250);
 }
 
 console.log('== na aplicacao, em portugues e em euros ==');
@@ -99,6 +121,10 @@ await p.close();
 console.log('\n== no site, na pagina das ferramentas ==');
 p=await abrir('/ferramentas.html');
 ok(await p.locator('#investir-corpo .inv-opcao').count()===3, 'a seccao do site desenha-se sozinha');
+/* Na pagina solta o "render" tambem passou a ser uma caixa que nasce fechada,
+   como todas as outras — uma pagina de onze ferramentas abertas nao e' uma
+   pagina, e' uma parede. Abre-se antes de se escrever la' dentro. */
+await abrirCaixa(p, '#investir-corpo');
 await p.fill('#inv-inicial','2000');
 await p.waitForTimeout(250);
 const gs=await p.locator('#inv-resultado .inv-grande').innerText();
@@ -109,6 +135,7 @@ await p.close();
 
 console.log('\n== um brasileiro que chega ao site pela lingua ==');
 p=await abrir('/ferramentas.html',{lingua:'br',moeda:''});
+await abrirCaixa(p, '#investir-corpo');
 const txt=await p.locator('#investir-corpo').innerText();
 ok(/Brasil/.test(txt.split('\n')[1]||txt), 'sem moeda guardada, a lingua do Brasil abre no Brasil');
 console.log('   ',txt.split('\n').slice(0,4).join(' / '));

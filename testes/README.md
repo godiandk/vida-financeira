@@ -85,4 +85,24 @@ node servidor/teste-worker.mjs   # o worker da IA
 ## O que aqui não está
 
 O `ferr.mjs` precisa que o Firebase carregue para o painel da chave aparecer;
-sem rede para o `gstatic.com` falha uma parte, e não é defeito do site.
+sem rede para o `gstatic.com` essa parte salta-se, com uma linha a dizer
+porquê. Não é defeito do site.
+
+## Uma lição que custou meia dúzia de testes
+
+O `correr.sh` passou meses a não conseguir falhar: corria `node "$f" | tail`, e
+num pipe o `$?` é o do último comando — o `tail` corre sempre bem. A suite
+dizia `=== fim ===` com sete ficheiros a rebentar lá dentro.
+
+Quando passou a saber falhar, apanhou de uma vez tudo o que a grande arrumação
+tinha partido e ninguém tinha visto: o `banner.mjs` a pedir o banner num ecrã
+onde ele deixou de aparecer de propósito, o `dividaui` e o `contasfixas` a
+procurar gavetas que já não existem, o `invui` e o `ferr` a clicar dentro de
+caixas fechadas, o `ocrmaus` a ler as fotografias de uma pasta que nunca
+existiu, e o `talaoui` com um caminho absoluto para o scratchpad de outro
+projecto. Nenhum era defeito do site — mas dois defeitos a sério do site
+estavam escondidos atrás deles: `app/#contas` caía no Início, e `app/#investir`
+abria a calculadora errada.
+
+Um teste que não sabe falhar é pior do que não haver teste nenhum, porque dá
+autorização para publicar.
