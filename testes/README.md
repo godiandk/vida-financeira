@@ -20,6 +20,18 @@ um navegador precisam do **Playwright** (`npm i -D playwright`) e de um
 Chromium; procura-o em `/opt/pw-browsers/chromium`, e aceita outro caminho em
 `CHROMIUM=`.
 
+Os testes do talão precisam de fotografias, e as fotografias não vivem em git.
+Geram-se uma vez:
+
+```sh
+node testes/fazer-talao.mjs   # os talões a direito
+node testes/fazer-maus.mjs    # os mesmos, tortos, com sombra e desbotados
+```
+
+Ficam em `testes/talos/` (ou onde `VF_TALOES=` disser). Sem eles, o
+`talaoui.mjs` diz que se saltou e sai bem, em vez de despejar uma pilha de
+`ENOENT` que parece uma avaria e não é.
+
 ## O que cada um guarda
 
 Os testes valem pelo que impedem de voltar a acontecer. Estes são todos
@@ -44,9 +56,21 @@ cicatrizes de defeitos reais:
 | `talaoparse.js` | ler o total, a loja e a data de um talão |
 | `talaoui.mjs` | o que se diz a quem vai fotografar um talão, incluindo o tamanho do download |
 | `ocrmaus.mjs` | talões maus: desbotados, com ruído, tortos. Precisa dos ficheiros que o `fazer-maus.mjs` gera primeiro |
+| `irsui.mjs` | a gaveta do IRS: os campos chegarem ao motor, e a app não prometer poupança nenhuma a quem já paga zero |
 | `ferr.mjs` | as calculadoras do site, e o que fica trancado sem chave |
 
-## Duas coisas que enganam
+Fora desta pasta, e por isso fora do `correr.sh`, correm-se à mão:
+
+```sh
+node teste-irs.mjs         # o motor do IRS, sem ecrã: escalões, mínimo de existência, deduções
+node teste-idiomas.mjs     # as quatro línguas terem as mesmas chaves
+node teste-chat.mjs        # o chat
+node teste-casa.mjs        # a fusão dos movimentos entre dois telemóveis
+node teste-app.mjs         # a app inteira (precisa de VF_ENDERECO e VF_CHROMIUM)
+node servidor/teste-worker.mjs   # o worker da IA
+```
+
+## Três coisas que enganam
 
 1. **O idioma.** O Playwright abre em `en-US`. Um teste que não escreva
    `localStorage.setItem('vf:lingua','pt')` vê a aplicação em inglês e falha
@@ -54,6 +78,9 @@ cicatrizes de defeitos reais:
 2. **O `addInitScript` corre em cada navegação**, incluindo nos `reload()`.
    Um teste que escreva no `localStorage` lá dentro sem se defender está a
    apagar, a cada recarregamento, aquilo que acabou de gravar.
+3. **O `innerText` de um `<details>` fechado só traz o `summary`.** Um teste
+   que procure texto lá dentro sem abrir primeiro acusa que a frase não
+   existe, quando o que se passou foi não se ter ido lá ver.
 
 ## O que aqui não está
 

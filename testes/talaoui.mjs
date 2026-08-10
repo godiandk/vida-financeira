@@ -1,10 +1,29 @@
 /* O caminho completo: fotografia do talao -> OCR no proprio telemovel ->
    proposta -> movimento gravado, com foto agarrada. */
 import { chromium } from 'playwright';
+import { existsSync } from 'node:fs';
 const falhas=[]; const ok=(c,n)=>{if(!c)falhas.push(n);console.log((c?'  OK   ':'  FALHA ')+n);};
-const b=await chromium.launch({executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium'});
 const B='http://127.0.0.1:8930';
-const T='/tmp/claude-0/-home-user-tecnova-digital/c11833be-0b79-51cc-ab28-7c88aae60061/scratchpad/talos/';
+const T=process.env.VF_TALOES || new URL('./talos/', import.meta.url).pathname;
+/* Os talões de mentira vivem ao lado dos testes que os usam, e não numa
+   pasta temporária de outro projecto. Estava aqui um caminho absoluto para
+   o scratchpad do `tecnova-digital` — que não tem nada que ver com isto — e
+   por isso a suite rebentava em qualquer máquina que não fosse aquela.
+   `VF_TALOES=` muda a pasta para quem os quiser noutro sítio. */
+
+/* Os talões não vêm no repositório: são imagens geradas, e imagens geradas
+   não se guardam em git. Quem corre a suite sem os ter fica com uma pilha de
+   ENOENT do Playwright a meio do relatório — que parece uma avaria e não é.
+   Diz-se o que falta e sai-se bem. */
+const PRECISA = ['continente.png', 'bomba.png'];
+const emFalta = PRECISA.filter(f => !existsSync(T + f));
+if (emFalta.length) {
+  console.log('  -- saltado: faltam os talões de mentira (' + emFalta.join(', ') + ')');
+  console.log('     gere-os primeiro:  node testes/fazer-talao.mjs && node testes/fazer-maus.mjs');
+  process.exit(0);
+}
+
+const b=await chromium.launch({executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium'});
 
 async function abrir({chave=true, ocrJaCa=false}={}){
   const p=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});

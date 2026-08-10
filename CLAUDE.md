@@ -44,11 +44,26 @@ Nomes de funções e de variáveis em português (`desenharInvestir`,
 | `interpretar.js` | lê o que a pessoa escreve, nas quatro línguas |
 | `assistente.js` | o chat |
 | `idiomas.js` | todas as frases da interface, em `pt`, `br`, `es`, `en` (o `br` só leva o que muda mesmo) |
+| `respostas.js` | as respostas longas do chat, nas quatro línguas. Só a app o carrega |
 | `investir.js` | onde pôr o dinheiro a render, e a calculadora do juro composto |
+| `irs.js` | o IRS: estimativa, e o que ainda dá para pedir. Toda a lei vive no `IRS_REF` |
+| `casa.js` | a casa partilhada: duas contas, os mesmos movimentos, em tempo real |
+| `ferramentas.js` | as calculadoras, e a arrumação das ferramentas por grupos (`GRUPOS_FERR`) |
 | `talao.js` + `vendor/ocr/` | ler a fotografia do talão, dentro do telemóvel |
 | `banner.js` | o carrossel do topo |
-| `ia.js` + `servidor/` | a IA, escrita e **desligada** (`IA_ENDERECO` vazio) |
+| `ia.js` + `servidor/` | a IA. **Ligada**, no worker grátis da Cloudflare |
 | `app/index.html` | a aplicação. Tudo numa página, com gavetas `<details>` |
+
+Duas coisas que já morderam e convém saber antes de mexer:
+
+- **Nomes globais colidem.** Não há módulos: tudo o que se declara no topo de
+  um `.js` fica no `window`, e o último a carregar ganha. Um `num()` no
+  `ferramentas.js` apagou o `num()` do `app-financas.js` e pôs a caixa da
+  reserva a dizer "0 meses" a quem tinha dinheiro de lado — sem um erro na
+  consola. Antes de criar um nome curto, `grep` por ele.
+- **Um simulador não pode errar para o lado bom.** Vale para o IRS, para o
+  `investir.js` e para o que vier: um número simpático e falso é pior do que
+  não haver número nenhum, porque a pessoa acredita nele.
 
 ## Publicar
 
@@ -72,16 +87,30 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
 
 ## O que está por fazer
 
-- **A IA está desligada de propósito.** Há duas maneiras de a ligar, descritas
-  no `servidor/README.md`: uma grátis e sem cartão (o modelo da Cloudflare) e
-  uma paga (Anthropic). O conselho que está lá escrito mantém-se: deixar
-  correr um mês sem ela e só depois decidir.
-- **Textos por traduzir.** As respostas longas de ajuda do chat, o ecrã final
-  do arranque e as páginas do site fora de `/app/` continuam só em português.
+- **Faltam duas tabelas ao IRS.** No `irs.js`, cada bloco do `IRS_REF` tem
+  `verificado` e `fonte`. Estão conferidos contra o Diário da República e
+  contra a tabela oficial da AT: os escalões, a dedução específica, o mínimo
+  de existência, os limites das deduções, o tecto global e a taxa de
+  solidariedade. Faltam dois, e estão a `null` de propósito — os coeficientes
+  do regime simplificado (artigo 31.º) e a escada dos dez anos do IRS Jovem
+  (o folheto da AT). Enquanto estiverem a `null`, a gaveta escreve por cima do
+  resultado que os números estão por confirmar, e é assim que fica.
+- **O IRS não vai ao Portal das Finanças, e não deve ir.** Estima e aponta o
+  que falta pedir. Nunca pede a senha, nunca entrega nada. Se um dia houver
+  cobrança pela ferramenta, é por esta conta — não por entregar a declaração
+  de alguém.
+- **Textos por traduzir.** O ecrã final do arranque, a gaveta do IRS e as
+  páginas do site fora de `/app/` continuam só em português. As respostas
+  longas do chat já estão nas quatro (`respostas.js`).
 - **As taxas envelhecem.** No `investir.js`, `INVEST_REF` tem `taxa`, `fonte` e
   `verificado`. A data está à vista no ecrã de propósito. Quando mudarem, são
   duas linhas — e o texto do instrumento está no mesmo ficheiro, ao lado, para
-  os dois serem actualizados ao mesmo tempo.
+  os dois serem actualizados ao mesmo tempo. O `IRS_REF` segue a mesma regra,
+  e muda todos os anos com a Lei do Orçamento.
+- **As regras do Firestore publicam-se à mão.** O `firestore.rules` está no
+  repositório mas o GitHub Pages não o lê: quem o mudar tem de o colar outra
+  vez na consola do Firebase, senão a casa partilhada continua a correr com as
+  regras velhas.
 
 ## Uma coisa sobre este repositório
 

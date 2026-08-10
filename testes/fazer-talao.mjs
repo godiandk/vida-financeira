@@ -2,7 +2,12 @@
    testar o OCR sem depender de fotografias reais. */
 import { chromium } from 'playwright';
 import fs from 'fs';
-const D='/tmp/claude-0/-home-user-tecnova-digital/c11833be-0b79-51cc-ab28-7c88aae60061/scratchpad/talos/';
+const D=process.env.VF_TALOES || new URL('./talos/', import.meta.url).pathname;
+/* Os talões de mentira vivem ao lado dos testes que os usam, e não numa
+   pasta temporária de outro projecto. Estava aqui um caminho absoluto para
+   o scratchpad do `tecnova-digital` — que não tem nada que ver com isto — e
+   por isso a suite rebentava em qualquer máquina que não fosse aquela.
+   `VF_TALOES=` muda a pasta para quem os quiser noutro sítio. */
 const b=await chromium.launch({executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium'});
 
 const talos = [

@@ -374,6 +374,29 @@ body.app-shell .app-float{display:none}
   background:rgba(217,178,110,.18);border-color:rgba(217,178,110,.5);color:var(--cream)
 }
 
+/* A caixa do que ainda dá para fazer. Fica em verde e não em dourado de
+   propósito: o dourado desta aplicação é o resultado, e isto não é o
+   resultado — é a única coisa desta gaveta que ainda se pode mudar em
+   Fevereiro. Ler "faltam-lhe 214 € de facturas" vale mais do que ler quanto
+   se vai receber, porque o primeiro ainda se altera e o segundo não. */
+.irs-dica{
+  /* O mesmo verde do resultado (`--up`), mas com um terço da tinta e sem
+     numero grande: fica a ler-se como a continuacao da caixa de cima e nao
+     como um segundo resultado a disputar-lhe a atencao. */
+  background:linear-gradient(135deg,rgba(62,207,142,.09),rgba(62,207,142,.02));
+  border:1px solid rgba(62,207,142,.24);border-radius:16px;
+  padding:18px 20px;margin-bottom:20px
+}
+.irs-dica > b{display:block;color:#8fe3bb;font-size:1rem;margin-bottom:10px}
+.irs-dica ul{list-style:none;margin:0;padding:0}
+.irs-dica li{
+  color:var(--cream-dim);font-size:.86rem;line-height:1.55;
+  padding-left:16px;position:relative;margin-bottom:10px
+}
+.irs-dica li:last-child{margin-bottom:0}
+.irs-dica li::before{content:'›';position:absolute;left:0;color:#8fe3bb}
+.irs-dica li b{color:var(--cream);font-weight:700}
+
 .irs-melhor{
   background:linear-gradient(135deg,rgba(217,178,110,.16),rgba(217,178,110,.04));
   border:1px solid rgba(217,178,110,.34);border-radius:16px;

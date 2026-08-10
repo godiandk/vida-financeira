@@ -2,3 +2,14 @@
 Thumbs.db
 node_modules/
 *.log
+
+# O `npm i -D playwright` de quem vai correr os testes deixa estes dois para
+# tras. Nao entram no repositorio de proposito: o site nao tem dependencias
+# nenhumas, e um `package.json` commitado e' um convite a que alguem lhe
+# acrescente uma.
+package.json
+package-lock.json
+
+# Os taloes de mentira sao gerados pelo `fazer-talao.mjs`. Sao imagens, e
+# imagens geradas nao vivem em git.
+testes/talos/
