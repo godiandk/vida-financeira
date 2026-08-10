@@ -798,6 +798,141 @@ function irsMelhorOpcao(d) {
   };
 }
 
+/* ============================================================
+   A FOLHA — o que escrever na declaração
+
+   Isto não é a declaração e não a substitui. É a lista do que escrever nela,
+   pela ordem em que se preenche, para que quem entrega não tenha de andar a
+   procurar números em cinco sítios.
+
+   Serve duas pessoas diferentes e é a mesma folha:
+   - quem entrega a sua própria declaração e quer três minutos em vez de trinta;
+   - quem foi autorizado a entregar a de outra pessoa, no Portal das Finanças,
+     pela "Gestão de Autorizações de Acessos" — que é o caminho legal, e onde
+     nenhuma senha muda de mãos.
+
+   ---- porque é que aqui não há números de campo ----
+
+   Uma folha destas pedia códigos: "campo 401 do quadro 4 do anexo A". Só que
+   eu não os tenho lidos numa fonte oficial, e um número de campo inventado
+   mete o rendimento de alguém na linha errada de uma declaração fiscal. Vale
+   a mesma regra dos escalões: o que não foi lido na fonte não se escreve.
+
+   Por isso as secções vêm com o nome — anexo e quadro por extenso — e só o
+   quadro 6C1 do anexo H aparece com número, porque esse veio na tabela oficial
+   da AT que foi lida para este ficheiro. Quando os outros forem lidos,
+   acrescentam-se aqui e o `conferido` passa a `true`.
+   ============================================================ */
+function irsFolha(d, r, opcao) {
+  /* Vírgula e não ponto: isto vai ser lido por gente, não por um computador. */
+  const eur = v => String(arred(v).toFixed(2)).replace('.', ',') + ' €';
+  const s = [];
+  const conferir = [];
+  const t = (d.titulares || [])[0] || {};
+  const t2 = (d.titulares || [])[1];
+
+  /* ---- Rosto: quem entrega, com quem, e como ---- */
+  const rosto = [];
+  if (opcao && opcao.diferenca > 0) {
+    rosto.push({ rotulo: 'Tributação', valor: opcao.melhor === 'conjunta' ? 'CONJUNTA' : 'SEPARADA',
+      nota: 'vale-lhe mais ' + eur(opcao.diferenca) + ' do que a outra opção' });
+  } else if (d.conjunta) {
+    rosto.push({ rotulo: 'Tributação', valor: 'CONJUNTA', nota: '' });
+  }
+  if (d.dependentes > 0) {
+    rosto.push({ rotulo: 'Dependentes', valor: String(d.dependentes),
+      nota: (d.idades && d.idades.length)
+        ? 'idades a 31 de Dezembro: ' + d.idades.join(', ')
+        : 'escreva as idades — pode valer mais' });
+  }
+  if (d.ascendentes > 0) {
+    rosto.push({ rotulo: 'Ascendentes em comunhão de habitação', valor: String(d.ascendentes),
+      nota: d.ascendentes === 1 ? 'sendo só um, a dedução é maior' : '' });
+  }
+  if (rosto.length) s.push({ anexo: 'Rosto', quadro: '', conferido: false, linhas: rosto });
+
+  /* ---- Anexo A: o que se ganhou e o que já se descontou ---- */
+  const a = [];
+  const pessoa = (n, x) => {
+    if (!x || !(x.trabalho > 0)) return;
+    const suf = t2 ? ' (titular ' + n + ')' : '';
+    a.push({ rotulo: 'Rendimentos do trabalho dependente' + suf, valor: arred(x.trabalho), nota: '' });
+    a.push({ rotulo: 'Retenção na fonte de IRS' + suf, valor: arred(x.retencao || 0), nota: '' });
+    if (x.segurancaSocial > 0) {
+      a.push({ rotulo: 'Contribuições obrigatórias' + suf, valor: arred(x.segurancaSocial), nota: '' });
+    }
+  };
+  pessoa('A', t); pessoa('B', t2);
+  if (a.length) s.push({ anexo: 'Anexo A', quadro: 'rendimentos do trabalho dependente',
+                         conferido: false, linhas: a });
+
+  /* ---- Anexo B: recibos verdes ---- */
+  if (t.recibosVerdes > 0) {
+    s.push({ anexo: 'Anexo B', quadro: 'regime simplificado', conferido: false, linhas: [
+      { rotulo: 'Total facturado no ano', valor: arred(t.recibosVerdes),
+        nota: 'só uma parte é tributada — o coeficiente aplica-se sozinho' }
+    ] });
+    conferir.push('Os coeficientes dos recibos verdes ainda estão por confirmar nesta ' +
+                  'ferramenta. Confira o artigo 31.º antes de entregar.');
+  }
+
+  /* ---- Anexo H, quadro 6C1: o único com número, porque foi lido na fonte ---- */
+  const nomes = {
+    'Saúde': 'Despesas de saúde',
+    'Educação': 'Despesas de formação e educação',
+    'Renda da casa': 'Encargos com imóveis para habitação permanente',
+    'Lar': 'Encargos com lares'
+  };
+  const h = ((r.deducoes && r.deducoes.linhas) || [])
+    .filter(l => nomes[l.nome] && l.gasto > 0)
+    .map(l => ({ rotulo: nomes[l.nome], valor: arred(l.gasto),
+                 nota: 'dá ' + eur(l.valor) + ' de dedução' }));
+  if (h.length) {
+    s.push({ anexo: 'Anexo H', quadro: 'quadro 6C1 — benefícios fiscais e deduções',
+             conferido: true, linhas: h });
+  }
+
+  /* ---- o que se confere antes de carregar em entregar ---- */
+  if (r.deduzido < (r.deducoes ? r.deducoes.total : 0)) {
+    conferir.push('As deduções de saúde, educação, casa e lar bateram no tecto global de ' +
+      eur(r.tectoGlobal) + '. É a lei, e não vale a pena procurar mais nessas.');
+  }
+  const filhos = ((r.deducoes && r.deducoes.linhas) || []).find(l => l.nome === 'Filhos');
+  if (filhos && filhos.exacto === false) {
+    conferir.push('As idades dos filhos não foram escritas: a dedução por filhos está pelo ' +
+                  'mínimo, e pode ser maior.');
+  }
+  irsPorConfirmar().forEach(k => {
+    if (k === 'simplificado' && !(t.recibosVerdes > 0)) return;
+    if (k === 'jovem' && !t.jovem) return;
+    conferir.push('Nesta ferramenta, ' + irsNomeTabela(k) + ' ainda está por confirmar na lei.');
+  });
+
+  return { seccoes: s, conferir: conferir, ano: d.ano || irsEpoca().ano };
+}
+
+/* A mesma folha em texto simples, para se copiar para onde for preciso — uma
+   mensagem, um papel, o ecrã do lado enquanto se preenche. */
+function irsFolhaTexto(f) {
+  const eur = v => String(arred(v).toFixed(2)).replace('.', ',') + ' €';
+  let out = 'O QUE ESCREVER NA DECLARAÇÃO DE ' + f.ano + '\n' +
+            '(isto não é a declaração — é a lista do que pôr nela)\n';
+  f.seccoes.forEach(sec => {
+    out += '\n' + sec.anexo.toUpperCase() + (sec.quadro ? ' — ' + sec.quadro : '') + '\n';
+    sec.linhas.forEach(l => {
+      out += '  ' + l.rotulo + ': ' +
+             (typeof l.valor === 'number' ? eur(l.valor) : l.valor) +
+             (l.nota ? '   (' + l.nota + ')' : '') + '\n';
+    });
+  });
+  if (f.conferir.length) {
+    out += '\nCONFERIR ANTES DE ENTREGAR\n';
+    f.conferir.forEach(c => { out += '  - ' + c + '\n'; });
+  }
+  out += '\nQuem entrega responde pelo que entrega. Confira tudo.\n';
+  return out;
+}
+
 /* ---- o que a app sabe e o e-factura não ----
    O gasto lançado na aplicação contra o que está classificado no e-factura. A
    diferença são facturas que não foram pedidas com o número — e essas perdem-
@@ -836,7 +971,8 @@ if (typeof module !== 'undefined' && module.exports) {
     irsTectoGlobal, irsTectoRendas, irsConferirMedias, irsConferirParcelas,
     irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
     irsDeducaoDependentes, irsRendimentoLiquido, irsIsencaoJovem,
-    irsFacturasEmFalta, irsQuantoFaltaParaOTecto, irsPorConfirmar
+    irsFacturasEmFalta, irsQuantoFaltaParaOTecto, irsPorConfirmar,
+    irsFolha, irsFolhaTexto
   };
 }
 
@@ -903,6 +1039,24 @@ const IRS_NOMES = {
 };
 
 function irsNomeTabela(k) { return IRS_NOMES[k] || k; }
+
+/* Copiar sem a API moderna: uma caixa de texto fora do ecrã, seleccionar,
+   copiar, deitar fora. Feio, e funciona em telemóveis velhos e sem HTTPS —
+   que é onde está boa parte de quem usa isto. */
+function irsCopiarAMao(txt, feito) {
+  try {
+    const t = document.createElement('textarea');
+    t.value = txt;
+    t.setAttribute('readonly', '');
+    t.style.position = 'fixed';
+    t.style.left = '-9999px';
+    document.body.appendChild(t);
+    t.select();
+    document.execCommand('copy');
+    document.body.removeChild(t);
+    if (feito) feito();
+  } catch (e) {}
+}
 
 function irsNum(id) {
   const e = document.getElementById(id);
@@ -1159,6 +1313,7 @@ function irsDesenhar() {
 
     '<div class="irs-falta" id="irs-falta"></div>' +
     '<div class="irs-comparar" id="irs-comparar"></div>' +
+    '<div id="irs-folha-zona"></div>' +
 
     '<p class="irs-rodape">Isto é uma <b>estimativa</b>, e nada aqui é entregue às Finanças. ' +
     'A declaração é entregue por si, no Portal das Finanças, com a sua senha — ' +
@@ -1292,6 +1447,7 @@ function irsContar() {
   }
 
   const r = irsCalcular(dados);
+  const o0 = irsMelhorOpcao(dados);
   const filhos = r.deducoes.linhas.find(l => l.nome === 'Filhos');
   alvo.innerHTML =
     '<div class="irs-numero ' + (r.recebe ? 'bom' : 'mau') + '">' +
@@ -1357,9 +1513,54 @@ function irsContar() {
         'Janeiro, quando o ano recomeça.</li></ul></div>'
       : '');
 
+  /* ---- a folha para quem entrega ----
+     Nasce fechada: quem só quer saber o número não precisa de a ver. Quem vai
+     mesmo preencher a declaração abre-a e tem tudo pela ordem em que se
+     preenche, em vez de andar a procurar números em cinco sítios. */
+  const zonaFolha = document.getElementById('irs-folha-zona');
+  if (zonaFolha) {
+    const f = irsFolha(Object.assign({}, dados, { ano: irsAnoEscolhido() }), r, o0);
+    zonaFolha.innerHTML = f.seccoes.length
+      ? '<details class="irs-folha"><summary><b>A folha para quem entrega</b>' +
+        '<span>Tudo o que escrever na declaração, pela ordem em que se ' +
+        'preenche.</span></summary>' +
+        '<p class="irs-folha-aviso">Isto <b>não é a declaração</b> — é a lista do ' +
+        'que pôr nela. Quem entrega responde pelo que entrega.</p>' +
+        f.seccoes.map(sec =>
+          '<div class="irs-folha-sec"><h5>' + sec.anexo +
+          (sec.quadro ? ' <span>' + sec.quadro + '</span>' : '') +
+          (sec.conferido ? ' <em title="lido na tabela oficial da AT">✓</em>' : '') +
+          '</h5><ul>' + sec.linhas.map(l =>
+            '<li><span class="rot">' + l.rotulo + '</span>' +
+            '<b>' + (typeof l.valor === 'number' ? dinheiro(l.valor) : l.valor) + '</b>' +
+            (l.nota ? '<small>' + l.nota + '</small>' : '') + '</li>').join('') +
+          '</ul></div>').join('') +
+        (f.conferir.length
+          ? '<div class="irs-folha-conf"><b>Conferir antes de entregar</b><ul><li>' +
+            f.conferir.join('</li><li>') + '</li></ul></div>' : '') +
+        '<button type="button" id="irs-copiar-folha">Copiar a folha</button>' +
+        '<span class="irs-folha-copiado" id="irs-folha-copiado" hidden>copiado</span>' +
+        '</details>'
+      : '';
+
+    const btCopiar = document.getElementById('irs-copiar-folha');
+    if (btCopiar) btCopiar.addEventListener('click', () => {
+      const txt = irsFolhaTexto(f);
+      const feito = () => {
+        const av = document.getElementById('irs-folha-copiado');
+        if (av) { av.hidden = false; setTimeout(() => { av.hidden = true; }, 2500); }
+      };
+      /* O `clipboard` não existe em tudo, nem sem HTTPS. O caminho antigo
+         continua a funcionar em todo o lado, e é melhor do que não copiar. */
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(feito, () => irsCopiarAMao(txt, feito));
+      } else irsCopiarAMao(txt, feito);
+    });
+  }
+
   /* A comparação que vale dinheiro e que quase ninguém faz. */
   const cmp = document.getElementById('irs-comparar');
-  const o = irsMelhorOpcao(dados);
+  const o = o0;
   cmp.innerHTML = (o && o.diferenca > 0)
     ? '<div class="irs-melhor"><b>Entregar ' + (o.melhor === 'conjunta' ? 'em conjunto' : 'em separado') +
       ' dá-lhe mais ' + dinheiro(o.diferenca) + '</b>' +

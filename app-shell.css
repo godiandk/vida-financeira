@@ -526,3 +526,70 @@ body.app-shell .app-float{display:none}
   background:rgba(217,178,110,.05);border-color:rgba(217,178,110,.18)
 }
 .irs-epoca-passado b{color:var(--cream-dim)}
+
+/* A folha para quem entrega. Nasce fechada — quem só quer saber o número não
+   precisa dela — e quem vai mesmo preencher a declaração encontra tudo pela
+   ordem em que se preenche, em vez de andar a procurar em cinco sítios. */
+.irs-folha{
+  border:1px solid rgba(217,178,110,.24);border-radius:16px;
+  padding:0 18px;margin-bottom:20px;background:rgba(217,178,110,.04)
+}
+.irs-folha > summary{
+  cursor:pointer;list-style:none;padding:18px 0;
+  display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center
+}
+.irs-folha > summary::-webkit-details-marker{display:none}
+.irs-folha > summary b{color:var(--gold-soft);font-size:1rem}
+.irs-folha > summary span{grid-column:1;color:var(--cream-dim);font-size:.82rem;line-height:1.45}
+.irs-folha > summary::after{
+  content:'›';grid-column:2;grid-row:1/3;color:var(--gold);font-size:1.5rem;transition:transform .2s
+}
+.irs-folha[open] > summary::after{transform:rotate(90deg)}
+.irs-folha[open] > summary{border-bottom:1px solid rgba(217,178,110,.14)}
+
+.irs-folha-aviso{
+  color:var(--cream-dim);font-size:.82rem;line-height:1.5;margin:16px 0 4px
+}
+.irs-folha-aviso b{color:#f0a98c}
+
+.irs-folha-sec{margin-top:18px}
+.irs-folha-sec h5{
+  margin:0 0 8px;color:var(--gold-soft);font-size:.79rem;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase
+}
+.irs-folha-sec h5 span{
+  text-transform:none;letter-spacing:0;font-weight:600;color:var(--cream-dim);font-size:.78rem
+}
+.irs-folha-sec h5 em{color:#8fe3bb;font-style:normal}
+.irs-folha-sec ul{list-style:none;margin:0;padding:0}
+.irs-folha-sec li{
+  display:grid;grid-template-columns:1fr auto;gap:2px 12px;
+  padding:9px 0;border-bottom:1px solid rgba(217,178,110,.1)
+}
+.irs-folha-sec li:last-child{border-bottom:0}
+.irs-folha-sec .rot{color:var(--cream);font-size:.86rem;line-height:1.35}
+.irs-folha-sec li b{color:var(--cream);font-weight:700;white-space:nowrap;font-size:.9rem}
+.irs-folha-sec li small{
+  grid-column:1/3;color:var(--cream-dim);font-size:.76rem;line-height:1.4
+}
+
+.irs-folha-conf{
+  margin-top:18px;padding:14px 16px;border-radius:12px;
+  background:rgba(226,124,90,.09);border:1px solid rgba(226,124,90,.26)
+}
+.irs-folha-conf b{display:block;color:#f0a98c;font-size:.88rem;margin-bottom:8px}
+.irs-folha-conf ul{list-style:none;margin:0;padding:0}
+.irs-folha-conf li{
+  color:var(--cream-dim);font-size:.82rem;line-height:1.5;
+  padding-left:15px;position:relative;margin-bottom:7px
+}
+.irs-folha-conf li:last-child{margin-bottom:0}
+.irs-folha-conf li::before{content:'›';position:absolute;left:0;color:#f0a98c}
+
+.irs-folha > button{
+  margin:18px 0;background:rgba(217,178,110,.14);border:1px solid rgba(217,178,110,.4);
+  color:var(--gold-soft);font-family:inherit;font-size:.84rem;font-weight:700;
+  padding:10px 16px;border-radius:999px;cursor:pointer
+}
+.irs-folha > button:active{background:rgba(217,178,110,.24)}
+.irs-folha-copiado{color:#8fe3bb;font-size:.8rem;margin-left:10px;font-weight:600}

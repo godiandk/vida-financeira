@@ -226,6 +226,24 @@ ok(await p.locator('#irs-trab').inputValue()==='45000', 'os rendimentos ficaram 
 ok(await p.locator('#irs-idades').inputValue()==='3, 2, 1', 'as idades tambem');
 ok(await p.locator('#irs-quem button[data-quem="casal"].sim').count()===1, 'e a escolha de casal tambem');
 
+console.log('\n== a folha para quem entrega ==');
+/* Serve quem entrega a sua propria declaracao e quem foi autorizado a entregar
+   a de outra pessoa, no Portal, pela "Gestao de Autorizacoes de Acessos". */
+/* Uma despesa de saude, para haver anexo H: o quadro 6C1 e' o unico com numero
+   nesta folha, e e' preciso que exista alguma coisa la' dentro para o conferir. */
+await afinar(p,'#irs-saude','3698,40');
+await p.waitForTimeout(300);
+ok(await p.locator('.irs-folha').count()===1, 'a folha aparece quando ha' + "'" + ' conta feita');
+ok(await p.locator('.irs-folha').evaluate(d=>!d.open), 'e nasce fechada');
+await p.locator('.irs-folha > summary').click(); await p.waitForTimeout(300);
+const folha=await p.locator('.irs-folha').innerText();
+console.log('   ',folha.split('\n').join(' / ').slice(0,190));
+ok(/não é a declaração/i.test(folha), 'diz que nao e a declaracao');
+ok(/responde pelo que entrega/i.test(folha), 'e quem responde por ela');
+ok(/ROSTO/i.test(folha) && /ANEXO A/i.test(folha), 'traz o rosto e o anexo A');
+ok(/6C1/.test(folha), 'e o unico quadro com numero, que foi lido na fonte');
+ok(await p.locator('#irs-copiar-folha').count()===1, 'e da' + "'" + ' para copiar');
+
 console.log('\n-- e nada disto vai parar a lado nenhum --');
 const rodape=await p.locator('#irs-corpo .irs-rodape').innerText();
 ok(/nunca lhe vai pedir/i.test(rodape), 'esta' + "'" + ' escrito que a senha das Financas nunca e pedida');

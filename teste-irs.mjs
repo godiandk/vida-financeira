@@ -37,7 +37,8 @@ const irs = new Function('module', 'document', 'localStorage', 'Intl',
 );
 const { IRS_REF, irsColeta, irsSolidariedade, irsImposto,
         irsCalcular, irsMelhorOpcao, irsRendimentoLiquido,
-        irsIsencaoJovem, irsFacturasEmFalta, irsQuantoFaltaParaOTecto,
+        irsIsencaoJovem, irsFolha, irsFolhaTexto,
+        irsFacturasEmFalta, irsQuantoFaltaParaOTecto,
         irsPorConfirmar, irsTectoGlobal, irsTectoRendas,
         irsConferirMedias, irsConferirParcelas,
         irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
@@ -550,6 +551,85 @@ testar('e quem ganha pouco deduz mais de renda do que quem ganha muito', () => {
   const a = pobre.deducoes.linhas.find(l => l.nome === 'Renda da casa');
   const b = rico.deducoes.linhas.find(l => l.nome === 'Renda da casa');
   assert.ok(a.valor > b.valor, 'a elevação da nota 8 não está a ser aplicada');
+});
+
+console.log('\na folha para quem entrega\n');
+
+const CASAL = {
+  titulares: [{ trabalho: 45000, retencao: 9000 }, { trabalho: 8000, retencao: 100 }],
+  conjunta: true, dependentes: 2, idades: [5, 2], ascendentes: 1,
+  gastos: { saude: 3698.4, educacao: 420, rendas: 4800, gerais: 800 }
+};
+const folhaCasal = () => irsFolha(CASAL, irsCalcular(CASAL), irsMelhorOpcao(CASAL));
+
+testar('a folha vem pela ordem em que se preenche a declaracao', () => {
+  const nomes = folhaCasal().seccoes.map(x => x.anexo);
+  assert.deepEqual(nomes, ['Rosto', 'Anexo A', 'Anexo H']);
+});
+
+testar('e nao inventa numeros de campo que ninguem leu na fonte', () => {
+  /* Uma folha destas pedia "campo 401 do quadro 4". Eu não os tenho lidos numa
+     fonte oficial, e um número de campo inventado mete o rendimento de alguém
+     na linha errada de uma declaração fiscal. Só o quadro 6C1 do anexo H tem
+     número, porque esse veio na tabela da AT que foi lida para este ficheiro. */
+  const f = folhaCasal();
+  const comNumero = f.seccoes.filter(x => /\bcampo\s*\d|quadro\s*\d/i.test(x.quadro));
+  assert.equal(comNumero.length, 1, 'só o 6C1 pode trazer número');
+  assert.ok(/6C1/.test(comNumero[0].quadro));
+  assert.equal(comNumero[0].conferido, true, 'e o que traz número tem de estar conferido');
+  f.seccoes.filter(x => !x.conferido).forEach(x => {
+    assert.ok(!/\d/.test(x.quadro), x.anexo + ' traz um número sem estar conferido');
+  });
+});
+
+testar('diz qual das duas tributacoes escolher, e quanto vale', () => {
+  const rosto = folhaCasal().seccoes[0];
+  const l = rosto.linhas.find(x => x.rotulo === 'Tributação');
+  assert.equal(l.valor, 'CONJUNTA');
+  assert.ok(/vale-lhe mais/.test(l.nota) && /€/.test(l.nota));
+});
+
+testar('os dois titulares aparecem separados, e nao somados', () => {
+  /* Somá-los dava o mesmo total e uma declaração impossível de preencher: cada
+     titular tem a sua linha no anexo A. */
+  const a = folhaCasal().seccoes.find(x => x.anexo === 'Anexo A');
+  perto(a.linhas.find(l => /titular A/.test(l.rotulo) && /Rendimentos/.test(l.rotulo)).valor, 45000);
+  perto(a.linhas.find(l => /titular B/.test(l.rotulo) && /Rendimentos/.test(l.rotulo)).valor, 8000);
+});
+
+testar('sozinho, nao se escreve "titular A" a quem nao tem par', () => {
+  const d = { titulares: [{ trabalho: 20000, retencao: 2000 }], gastos: {} };
+  const a = irsFolha(d, irsCalcular(d), null).seccoes.find(x => x.anexo === 'Anexo A');
+  assert.ok(a.linhas.every(l => !/titular/.test(l.rotulo)));
+});
+
+testar('o que esta por confirmar na lei vai avisado na folha', () => {
+  /* E só o que interessa a esta pessoa: não se avisa alguém que não passa
+     recibos verdes de que os coeficientes estão por confirmar. */
+  const semRV = folhaCasal();
+  assert.ok(!semRV.conferir.some(c => /recibos verdes/i.test(c)));
+  const comRV = { titulares: [{ trabalho: 10000, recibosVerdes: 8000 }], gastos: {} };
+  const f = irsFolha(comRV, irsCalcular(comRV), null);
+  assert.ok(f.conferir.some(c => /recibos verdes|artigo 31/i.test(c)));
+});
+
+testar('sem idades dos filhos, a folha diz que a deducao esta pelo minimo', () => {
+  const d = Object.assign({}, CASAL, { idades: null });
+  const f = irsFolha(d, irsCalcular(d), null);
+  assert.ok(f.conferir.some(c => /idades/i.test(c)));
+});
+
+testar('e sai em texto que se pode copiar para qualquer lado', () => {
+  const t = irsFolhaTexto(folhaCasal());
+  assert.ok(/ROSTO/.test(t) && /ANEXO A/.test(t) && /ANEXO H/.test(t));
+  assert.ok(/45 ?000,00 €|45000,00 €/.test(t), 'os valores saem com vírgula: ' + t.slice(0, 200));
+  assert.ok(/não é a declaração/.test(t), 'e diz o que é e o que não é');
+  assert.ok(/responde pelo que entrega/.test(t));
+});
+
+testar('uma declaracao vazia nao produz folha nenhuma', () => {
+  const d = { titulares: [{ trabalho: 0 }], gastos: {} };
+  assert.equal(irsFolha(d, irsCalcular(d), null).seccoes.length, 0);
 });
 
 console.log('\nem que dia do ano estamos\n');
