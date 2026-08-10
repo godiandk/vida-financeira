@@ -255,6 +255,20 @@ testar('quando a taxa média for conhecida, tem de bater com as taxas', () => {
   assert.deepEqual(fora, [], 'a taxa média não bate com as taxas: ' + JSON.stringify(fora));
 });
 
+testar('e a coluna da lei está toda cá, não só uma parte', () => {
+  /* Um teste que confere uma coluna vazia passa sempre. Este garante que as
+     oito médias do artigo 68.º estão mesmo escritas — senão o de cima não está
+     a conferir nada. */
+  const comMedia = IRS_REF.escaloes.faixas.filter(f => f.media !== null).length;
+  assert.equal(comMedia, 8, 'faltam médias da lei: só há ' + comMedia + ' de 8');
+});
+
+testar('os escalões estão conferidos contra o Diário da República', () => {
+  assert.equal(IRS_REF.escaloes.verificado, '2026-08-03');
+  assert.ok(/Di[áa]rio da Rep[úu]blica/.test(IRS_REF.escaloes.fonte),
+    'a fonte devia dizer onde é que se foi ler');
+});
+
 console.log('\na lei, que ainda não está confirmada\n');
 
 testar('as tabelas por confirmar estão assinaladas', () => {

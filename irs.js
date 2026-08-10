@@ -53,49 +53,48 @@ const IRS_REF = {
   anoEntrega: 2026,
 
   escaloes: {
-    /* ---- DUAS FONTES, DUAS TABELAS: por isso isto continua por confirmar ----
+    /* ---- CONFERIDO CONTRA O TEXTO DA LEI ----
 
-       Pedimos a mesma coisa a dois modelos de linguagem e vieram duas tabelas
-       diferentes, ambas apresentadas como oficiais:
+       Antes de aqui chegar, isto passou por duas fontes que discordavam. Dois
+       modelos de linguagem, a mesma pergunta, duas tabelas diferentes e ambas
+       apresentadas como oficiais:
 
-         taxas A (Gemini):    13 · 16,5 · 22 · 25 · 32 · 35,5 · 43,5 · 45 · 48
-         taxas B (ChatGPT):   12,5 · 16 · 21,5 · 24,4 · 31,4 · 34,9 · 43,1 · 44,6 · 48
+         A:  13 · 16,5 · 22 · 25 · 32 · 35,5 · 43,5 · 45 · 48
+         B:  12,5 · 16 · 21,5 · 24,4 · 31,4 · 34,9 · 43,1 · 44,6 · 48
 
-       E os dois últimos limites também não batiam certo: 83.258/86.634 contra
-       44.987/83.696.
+       e ainda dois limites diferentes no topo — 83.258/86.634 contra
+       44.987/83.696. Aceitar a primeira que chegou punha o simulador errado
+       sem ninguém dar por isso.
 
-       A coluna da "taxa média" do artigo 68.º resolve metade da discussão
-       sozinha, porque é uma consequência matemática das taxas e dos limites —
-       não é um número independente. Passada pela conta, a tabela A é coerente
-       nos seis primeiros escalões e **deixa de ser** nos dois últimos: as
-       médias que ela própria escreve não saem dos limites que ela dá. Ou seja,
-       os limites 83.258/86.634 estão errados de certeza.
+       Quem resolveu a discussão foi a coluna (B) do artigo 68.º, a "taxa
+       média". Ela não é um número independente: é o imposto acumulado no topo
+       de cada escalão a dividir pelo rendimento, ou seja, sai das taxas e dos
+       limites. Serve de soma de controlo — e apanhou a tabela A, que é
+       coerente nos seis primeiros escalões e deixa de ser nos dois últimos.
 
-       Fica a valer a B, por três razões: os limites batem com o que se
-       encontra no artigo 68.º; a Lei n.º 55-A/2025, de 22 de Julho, reduziu as
-       taxas com efeito em todo o ano de 2025, e a B é a tabela reduzida
-       enquanto a A parece ser a de antes dessa lei; e a média que a B implica
-       no oitavo escalão (34,93%) fica a quatro centésimas da que a A escreveu.
+       O texto publicado no Diário da República confirmou a B, e melhor do que
+       isso: as oito médias que o nosso motor calcula batem, à terceira casa
+       decimal, com as oito que a lei publica. Não é uma tabela copiada — é uma
+       tabela conferida contra si própria.
 
-       **Nada disto é uma confirmação.** É a melhor hipótese com o que há, e é
-       por isso que o `verificado` continua a null: falta ler a tabela no texto
-       da lei. */
-    verificado: null,
-    fonte: 'Lei n.º 55-A/2025, de 22 de julho — artigo 68.º do CIRS',
-    conflito: 'Duas fontes discordam nas taxas. Ver o comentário acima.',
-    /* `ate: null` é o último escalão, que não tem tecto. A `media` é a taxa
-       média publicada no topo do escalão, quando a soubermos: serve de soma de
-       controlo — se as taxas estiverem trocadas, a média não bate, e foi assim
-       que se apanhou a tabela errada. */
+       Estes são os rendimentos de 2025, declarados em 2026. O artigo 3.º da
+       mesma lei anuncia uma redução adicional de 0,3 pontos do 2.º ao 5.º
+       escalão em sede de Orçamento do Estado para 2026 — essa é para o ano
+       seguinte, e não entra aqui. */
+    verificado: '2026-08-03',
+    fonte: 'Lei n.º 55-A/2025, de 22 de julho — artigo 68.º do CIRS · ' +
+           'Diário da República n.º 139/2025, Suplemento, Série I',
+    /* `ate: null` é o último escalão, que não tem tecto. A `media` é a coluna
+       (B) da lei, e é o que o `irsConferirMedias()` usa para conferir. */
     faixas: [
-      { ate: 8059,  taxa: 12.5, media: null },
-      { ate: 12160, taxa: 16.0, media: null },
-      { ate: 17233, taxa: 21.5, media: null },
-      { ate: 22306, taxa: 24.4, media: null },
-      { ate: 28400, taxa: 31.4, media: null },
-      { ate: 41629, taxa: 34.9, media: null },
-      { ate: 44987, taxa: 43.1, media: null },
-      { ate: 83696, taxa: 44.6, media: null },
+      { ate: 8059,  taxa: 12.5, media: 12.500 },
+      { ate: 12160, taxa: 16.0, media: 13.680 },
+      { ate: 17233, taxa: 21.5, media: 15.982 },
+      { ate: 22306, taxa: 24.4, media: 17.897 },
+      { ate: 28400, taxa: 31.4, media: 20.794 },
+      { ate: 41629, taxa: 34.9, media: 25.277 },
+      { ate: 44987, taxa: 43.1, media: 26.607 },
+      { ate: 83696, taxa: 44.6, media: 34.929 },
       { ate: null,  taxa: 48.0, media: null }
     ]
   },
@@ -436,6 +435,18 @@ function irsDoQueJaSabemos() {
   return fora;
 }
 
+/* O nome de cada tabela em português, para o aviso poder dizer o que falta em
+   vez de dizer só que falta alguma coisa. Saber o que falta é o que permite
+   ir buscá-lo. */
+const IRS_NOMES = {
+  escaloes: 'os escalões', especificas: 'a dedução específica',
+  minimoExistencia: 'o mínimo de existência', simplificado: 'os recibos verdes',
+  jovem: 'o IRS Jovem', coleta: 'os limites das deduções',
+  limiteGlobal: 'o tecto global das deduções'
+};
+
+function irsNomeTabela(k) { return IRS_NOMES[k] || k; }
+
 function irsNum(id) {
   const e = document.getElementById(id);
   if (!e) return 0;
@@ -463,10 +474,11 @@ function irsDesenhar() {
 
   zona.innerHTML =
     (porConfirmar.length ? '<div class="irs-aviso-lei">' +
-      '<b>Ferramenta em construção — os números da lei estão por confirmar.</b>' +
-      '<span>As taxas e os tectos ainda não foram verificados contra a fonte oficial. ' +
-      'O resultado aqui em baixo serve para perceber como vai ser, e não para ' +
-      'decidir nada. Não entregue nada com base nisto.</span></div>' : '') +
+      '<b>Ferramenta em construção — falta confirmar parte dos números.</b>' +
+      '<span>Os escalões e as taxas já foram conferidos no texto da lei. ' +
+      'Falta confirmar: ' + porConfirmar.map(irsNomeTabela).join(', ') + '. ' +
+      'O resultado serve para perceber como vai ser, e não para decidir nada — ' +
+      'não entregue nada com base nisto.</span></div>' : '') +
 
     '<div class="irs-resultado" id="irs-resultado"></div>' +
 
