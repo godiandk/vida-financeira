@@ -35,7 +35,8 @@ const irs = new Function('module', 'document', 'localStorage', 'Intl',
   Intl
 );
 const { IRS_REF, irsColeta, irsCalcular, irsMelhorOpcao, irsRendimentoLiquido,
-        irsIsencaoJovem, irsFacturasEmFalta, irsPorConfirmar } = irs;
+        irsIsencaoJovem, irsFacturasEmFalta, irsPorConfirmar,
+        irsTectoGlobal, irsConferirMedias } = irs;
 
 let feitos = 0;
 const falhas = [];
@@ -203,6 +204,55 @@ testar('sem facturas em falta não inventa um aviso', () => {
 testar('e não promete mais do que o tecto deixa', () => {
   const r = irsFacturasEmFalta(999999, 0, IRS_REF.coleta.saude);
   assert.ok(r.perde <= IRS_REF.coleta.saude.tecto);
+});
+
+console.log('\no tecto de todas as deduções juntas\n');
+
+testar('quem ganha pouco não tem tecto nenhum', () => {
+  assert.equal(irsTectoGlobal(7000, 0), Infinity);
+});
+
+testar('quem ganha muito fica pelos mil euros', () => {
+  perto(irsTectoGlobal(120000, 0), IRS_REF.limiteGlobal.base);
+});
+
+testar('pelo meio desce em linha recta, e nunca sobe', () => {
+  let anterior = Infinity;
+  for (let r = 9000; r <= 100000; r += 500) {
+    const t = irsTectoGlobal(r, 0);
+    assert.ok(t <= anterior + 0.01, 'a ' + r + ' € o tecto subiu');
+    anterior = t;
+  }
+});
+
+testar('três filhos ou mais dão mais folga', () => {
+  assert.ok(irsTectoGlobal(40000, 3) > irsTectoGlobal(40000, 2));
+});
+
+testar('o tecto trava mesmo as deduções de quem tem muitas despesas', () => {
+  /* Sem isto, o simulador prometia a quem ganha bem uma dedução que a lei não
+     deixa ter — e um reembolso que nunca ia chegar. */
+  const r = irsCalcular({
+    titulares: [{ trabalho: 90000, retencao: 25000 }],
+    dependentes: 1,
+    gastos: { saude: 9000, educacao: 5000, rendas: 6000, gerais: 20000 }
+  });
+  assert.ok(r.deduzido < r.deducoes.total, 'as deduções deviam ter sido travadas');
+  perto(r.deduzido, r.tectoGlobal, 0.02);
+});
+
+console.log('\na taxa média, que serve de soma de controlo\n');
+
+testar('quando a taxa média for conhecida, tem de bater com as taxas', () => {
+  /* A taxa média que a lei publica no topo de cada escalão não é um número
+     independente: sai das taxas e dos limites. Foi com esta conta que se
+     apanhou uma das duas tabelas que nos deram — coerente nos seis primeiros
+     escalões e incoerente nos dois últimos, o que provou que os limites dela
+     estavam errados. Enquanto não tivermos a coluna oficial, isto não tem
+     nada para conferir; no dia em que tiver, passa a ser o teste que impede
+     uma tabela mal copiada de entrar. */
+  const fora = irsConferirMedias();
+  assert.deepEqual(fora, [], 'a taxa média não bate com as taxas: ' + JSON.stringify(fora));
 });
 
 console.log('\na lei, que ainda não está confirmada\n');

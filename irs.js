@@ -53,54 +53,81 @@ const IRS_REF = {
   anoEntrega: 2026,
 
   escaloes: {
-    /* Limites confirmados. As taxas **não** — é o que falta trazer da fonte. */
+    /* ---- DUAS FONTES, DUAS TABELAS: por isso isto continua por confirmar ----
+
+       Pedimos a mesma coisa a dois modelos de linguagem e vieram duas tabelas
+       diferentes, ambas apresentadas como oficiais:
+
+         taxas A (Gemini):    13 · 16,5 · 22 · 25 · 32 · 35,5 · 43,5 · 45 · 48
+         taxas B (ChatGPT):   12,5 · 16 · 21,5 · 24,4 · 31,4 · 34,9 · 43,1 · 44,6 · 48
+
+       E os dois últimos limites também não batiam certo: 83.258/86.634 contra
+       44.987/83.696.
+
+       A coluna da "taxa média" do artigo 68.º resolve metade da discussão
+       sozinha, porque é uma consequência matemática das taxas e dos limites —
+       não é um número independente. Passada pela conta, a tabela A é coerente
+       nos seis primeiros escalões e **deixa de ser** nos dois últimos: as
+       médias que ela própria escreve não saem dos limites que ela dá. Ou seja,
+       os limites 83.258/86.634 estão errados de certeza.
+
+       Fica a valer a B, por três razões: os limites batem com o que se
+       encontra no artigo 68.º; a Lei n.º 55-A/2025, de 22 de Julho, reduziu as
+       taxas com efeito em todo o ano de 2025, e a B é a tabela reduzida
+       enquanto a A parece ser a de antes dessa lei; e a média que a B implica
+       no oitavo escalão (34,93%) fica a quatro centésimas da que a A escreveu.
+
+       **Nada disto é uma confirmação.** É a melhor hipótese com o que há, e é
+       por isso que o `verificado` continua a null: falta ler a tabela no texto
+       da lei. */
     verificado: null,
     fonte: 'Lei n.º 55-A/2025, de 22 de julho — artigo 68.º do CIRS',
-    /* `ate: null` é o último escalão, que não tem tecto. */
+    conflito: 'Duas fontes discordam nas taxas. Ver o comentário acima.',
+    /* `ate: null` é o último escalão, que não tem tecto. A `media` é a taxa
+       média publicada no topo do escalão, quando a soubermos: serve de soma de
+       controlo — se as taxas estiverem trocadas, a média não bate, e foi assim
+       que se apanhou a tabela errada. */
     faixas: [
-      { ate: 8059,  taxa: 12.5 },
-      { ate: 12160, taxa: 16.0 },
-      { ate: 17233, taxa: 21.5 },
-      { ate: 22306, taxa: 24.4 },
-      { ate: 28400, taxa: 31.4 },
-      { ate: 41629, taxa: 34.9 },
-      { ate: 44987, taxa: 43.1 },
-      { ate: 83696, taxa: 44.6 },
-      { ate: null,  taxa: 48.0 }
+      { ate: 8059,  taxa: 12.5, media: null },
+      { ate: 12160, taxa: 16.0, media: null },
+      { ate: 17233, taxa: 21.5, media: null },
+      { ate: 22306, taxa: 24.4, media: null },
+      { ate: 28400, taxa: 31.4, media: null },
+      { ate: 41629, taxa: 34.9, media: null },
+      { ate: 44987, taxa: 43.1, media: null },
+      { ate: 83696, taxa: 44.6, media: null },
+      { ate: null,  taxa: 48.0, media: null }
     ]
   },
 
   especificas: {
     verificado: null,
-    fonte: 'artigo 25.º do CIRS (a confirmar para 2025)',
-    /* Trabalho dependente e pensões: deduz-se este valor, ou as contribuições
-       obrigatórias para a Segurança Social se forem maiores. */
+    fonte: 'artigo 25.º do CIRS — as duas fontes concordam neste valor',
     trabalho: 4462.15,
     pensoes: 4462.15
   },
 
   minimoExistencia: {
     verificado: null,
-    fonte: 'artigo 70.º do CIRS (a confirmar para 2025)',
-    /* Abaixo disto o imposto é reduzido para a pessoa não ficar com menos do
-       que este valor. É o que impede quem ganha o salário mínimo de pagar. */
+    fonte: 'artigo 70.º do CIRS',
     valor: 12180
   },
 
   simplificado: {
     verificado: null,
-    fonte: 'artigo 31.º do CIRS (a confirmar)',
-    /* Recibos verdes: só uma parte do que se factura é tributada. O resto é
-       assumido como despesa, sem ser preciso prová-la. */
+    fonte: 'artigo 31.º do CIRS',
+    /* Três coeficientes e não dois: vender coisas é tributado a 15%, os
+       serviços da tabela do artigo 151.º a 75%, e os outros serviços a 35%. */
+    vendas: 0.15,
     servicos: 0.75,
     outros: 0.35
   },
 
   jovem: {
     verificado: null,
-    fonte: 'artigo 12.º-B do CIRS (a confirmar para 2025)',
-    /* Por ano de rendimentos desde o primeiro. É das coisas que mais dinheiro
-       vale e que mais gente não sabe que tem. */
+    fonte: 'artigo 12.º-B do CIRS · folheto do IRS Jovem 2025 da AT',
+    /* Aqui as duas fontes batem certo, e o tecto confere: 55 × 522,50 =
+       28.737,50 €. */
     isencao: [1.00, 0.75, 0.75, 0.75, 0.50, 0.50, 0.50, 0.25, 0.25, 0.25],
     tectoIAS: 55,
     ias: 522.50
@@ -108,19 +135,64 @@ const IRS_REF = {
 
   coleta: {
     verificado: null,
-    fonte: 'artigos 78.º a 84.º do CIRS (a confirmar para 2025)',
+    fonte: 'artigos 78.º a 84.º do CIRS',
     /* Cada uma: a percentagem do que se gastou, e o máximo que se pode
        deduzir. É aqui que está o dinheiro que as pessoas deixam na mesa. */
-    dependente:  { fixo: 600 },
-    ascendente:  { fixo: 525 },
-    gerais:      { pct: 0.35, tecto: 250,    porSujeito: true },
+    dependente:  { fixo: 600, ate3anos: 726, segundoAte6: 900 },
+    ascendente:  { fixo: 525, sozinho: 635 },
+    gerais:      { pct: 0.35, tecto: 250, porSujeito: true,
+                   monoPct: 0.45, monoTecto: 335 },
     saude:       { pct: 0.15, tecto: 1000 },
-    educacao:    { pct: 0.30, tecto: 800 },
-    rendas:      { pct: 0.15, tecto: 600 },
+    educacao:    { pct: 0.30, tecto: 800, comMajoracao: 1100 },
+    rendas:      { pct: 0.15, tecto: 700, interior: 1000 },
     lares:       { pct: 0.25, tecto: 403.75 },
     ivaFaturas:  { pct: 0.15, tecto: 250 }
+  },
+
+  /* O tecto de tudo junto, por escalão. Sem isto, quem tem rendimento alto e
+     muitas despesas via uma dedução que a lei não deixa ter — e o simulador
+     prometia um reembolso que não existe. */
+  limiteGlobal: {
+    verificado: null,
+    fonte: 'artigo 78.º n.º 7 do CIRS',
+    semLimiteAte: 8059,
+    base: 1000,
+    janela: 1500,
+    tecto: 80000,
+    /* 80.000 − 8.059. Fica escrito em vez de calculado para bater à letra com
+       o que está na lei. */
+    amplitude: 71941
   }
 };
+
+/* O tecto global das deduções à colecta. Abaixo do primeiro escalão não há
+   tecto nenhum; acima de 80.000 € são 1.000 €; pelo meio desce em linha
+   recta. */
+function irsTectoGlobal(coletavel, nDependentes) {
+  const g = IRS_REF.limiteGlobal;
+  if (coletavel <= g.semLimiteAte) return Infinity;
+  const base = (coletavel >= g.tecto)
+    ? g.base
+    : g.base + g.janela * (g.tecto - coletavel) / g.amplitude;
+  /* Três ou mais filhos: mais 5% por cada um. */
+  const maj = (nDependentes >= 3) ? (1 + 0.05 * nDependentes) : 1;
+  return arred(base * maj);
+}
+
+/* A "taxa média" que a lei publica no topo de cada escalão é uma consequência
+   das taxas e dos limites, não um número à parte. Serve de soma de controlo: é
+   com ela que se apanha uma tabela mal copiada — e já apanhou uma. */
+function irsConferirMedias() {
+  const fora = [];
+  IRS_REF.escaloes.faixas.forEach(f => {
+    if (f.ate === null || f.media === null || f.media === undefined) return;
+    const calculada = irsColeta(f.ate) / f.ate * 100;
+    if (Math.abs(calculada - f.media) > 0.01) {
+      fora.push({ ate: f.ate, escrita: f.media, calculada: Math.round(calculada * 1000) / 1000 });
+    }
+  });
+  return fora;
+}
 
 /* Uma tabela por confirmar não impede a conta — impede o silêncio sobre ela. */
 function irsPorConfirmar() {
@@ -246,7 +318,11 @@ function irsCalcular(d) {
   const nSujeitos = conjunta ? 2 : 1;
   const ded = irsDeducoes(d.gastos || {}, nSujeitos, d.dependentes || 0, d.ascendentes || 0);
 
-  let liquida = arred(Math.max(0, coleta - ded.total));
+  /* O tecto de tudo junto. Sem isto o simulador prometia a quem tem
+     rendimento alto uma dedução que a lei não deixa ter. */
+  const tectoTudo = irsTectoGlobal(liquidoTotal, d.dependentes || 0);
+  const deduzido = arred(Math.min(ded.total, tectoTudo));
+  let liquida = arred(Math.max(0, coleta - deduzido));
 
   /* Mínimo de existência: ninguém pode ficar com menos do que isto por causa
      do imposto. É o que impede quem ganha o ordenado mínimo de pagar IRS. */
@@ -268,6 +344,8 @@ function irsCalcular(d) {
     coletavel: liquidoTotal,
     coleta: coleta,
     deducoes: ded,
+    deduzido: deduzido,
+    tectoGlobal: tectoTudo,
     minimoAplicado: minimoAplicado,
     imposto: liquida,
     retido: retidoTotal,
@@ -314,6 +392,7 @@ function arred(v) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     IRS_REF, irsColeta, irsCalcular, irsMelhorOpcao, irsDeducoes,
+    irsTectoGlobal, irsConferirMedias,
     irsRendimentoLiquido, irsIsencaoJovem, irsFacturasEmFalta, irsPorConfirmar
   };
 }
