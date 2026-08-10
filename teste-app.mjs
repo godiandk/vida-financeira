@@ -120,7 +120,7 @@ await testar('as ferramentas estão arrumadas por pergunta', async () => {
     [...document.querySelectorAll('.ferr-grupo')].map(g => g.id));
   assert.deepEqual(grupos,
     ['grupo-dividas', 'grupo-guardar', 'grupo-gastar', 'grupo-apoios',
-     'grupo-casa', 'grupo-planear']);
+     'grupo-irs', 'grupo-casa', 'grupo-planear']);
 });
 
 await testar('cada ferramenta nasce fechada, com o nome e para que serve', async () => {

@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../estilo.css?v=62">
-<link rel="stylesheet" href="../app-financas.css?v=62">
-<link rel="stylesheet" href="../app-shell.css?v=62">
-<link rel="stylesheet" href="../assistente.css?v=62">
-<link rel="stylesheet" href="../ferramentas.css?v=62">
+<link rel="stylesheet" href="../estilo.css?v=63">
+<link rel="stylesheet" href="../app-financas.css?v=63">
+<link rel="stylesheet" href="../app-shell.css?v=63">
+<link rel="stylesheet" href="../assistente.css?v=63">
+<link rel="stylesheet" href="../ferramentas.css?v=63">
 </head>
 <body class="app-shell">
 
@@ -612,6 +612,13 @@
         <div class="gv-corpo" id="investir-corpo"></div>
       </details>
 
+      <!-- O IRS. O corpo e' desenhado pelo irs.js quando a gaveta abre: sao
+      muitos campos, e a maior parte das pessoas abre isto duas vezes por ano. -->
+      <details class="gaveta" id="gaveta-irs">
+        <summary><span class="gv-nome">O meu IRS</span><span class="gv-seta" aria-hidden="true">›</span></summary>
+        <div class="gv-corpo" id="irs-corpo"></div>
+      </details>
+
       <!-- A casa partilhada. O corpo e' desenhado pelo casa.js, que sabe se ha'
       sessao iniciada, se ja' existe casa, e quem la' esta'. -->
       <details class="gaveta" id="gaveta-casa">
@@ -925,22 +932,23 @@ quer ver as contas; escrever é uma das maneiras de lá chegar, não o destino. 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../firebase-config.js?v=62"></script>
-<script src="../site.js?v=62"></script>
-<script src="../app-financas.js?v=62"></script>
-<script src="../excel.js?v=62"></script>
-<script src="../partilha.js?v=62"></script>
-<script src="../casa.js?v=62"></script>
-<script src="../divida.js?v=62"></script>
-<script src="../idiomas.js?v=62"></script>
-<script src="../respostas.js?v=62"></script>
-<script src="../interpretar.js?v=62"></script>
-<script src="../talao.js?v=62"></script>
-<script src="../ia.js?v=62"></script>
-<script src="../assistente.js?v=62"></script>
-<script src="../ferramentas.js?v=62"></script>
-<script src="../investir.js?v=62"></script>
-<script src="../banner.js?v=62"></script>
+<script src="../firebase-config.js?v=63"></script>
+<script src="../site.js?v=63"></script>
+<script src="../app-financas.js?v=63"></script>
+<script src="../excel.js?v=63"></script>
+<script src="../partilha.js?v=63"></script>
+<script src="../casa.js?v=63"></script>
+<script src="../irs.js?v=63"></script>
+<script src="../divida.js?v=63"></script>
+<script src="../idiomas.js?v=63"></script>
+<script src="../respostas.js?v=63"></script>
+<script src="../interpretar.js?v=63"></script>
+<script src="../talao.js?v=63"></script>
+<script src="../ia.js?v=63"></script>
+<script src="../assistente.js?v=63"></script>
+<script src="../ferramentas.js?v=63"></script>
+<script src="../investir.js?v=63"></script>
+<script src="../banner.js?v=63"></script>
 <script>
 /* ============================================================
    TUDO NUMA PAGINA

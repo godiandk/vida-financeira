@@ -463,6 +463,10 @@ const TEXTOS = {
     'casa.erroproprio': 'Esse código é seu. É a outra pessoa que o tem de escrever.',
     'casa.semsessao': 'Inicie sessão primeiro.',
     'casa.erro': 'Não foi possível agora. Tente daqui a pouco.',
+    'ferr.g.irs': 'Está aí a época do IRS',
+    'ferr.g.irs.sub': 'Ver quanto vai receber, e o que ainda dá para pedir antes do prazo.',
+    'irs.titulo': 'O meu IRS',
+    'irs.sub': 'Quanto vai receber ou pagar, e o que lhe falta pedir.'
   },
 
   /* ---------------------------------------------------------- pt-BR
@@ -573,6 +577,10 @@ const TEXTOS = {
     'casa.erroproprio': 'Esse código é seu. É a outra pessoa que tem que digitar.',
     'casa.semsessao': 'Entre na sua conta primeiro.',
     'casa.erro': 'Não deu agora. Tente daqui a pouco.',
+    'ferr.g.irs': 'Chegou a época do imposto',
+    'ferr.g.irs.sub': 'Ver quanto você vai receber, e o que ainda dá para pedir antes do prazo.',
+    'irs.titulo': 'O meu imposto',
+    'irs.sub': 'Quanto vai receber ou pagar, e o que falta pedir.'
   },
 
   /* ---------------------------------------------------------- español */
@@ -870,6 +878,10 @@ const TEXTOS = {
     'casa.erroproprio': 'Ese código es suyo. Lo tiene que escribir la otra persona.',
     'casa.semsessao': 'Inicie sesión primero.',
     'casa.erro': 'No ha sido posible ahora. Pruebe dentro de un rato.',
+    'ferr.g.irs': 'Es época de la declaración',
+    'ferr.g.irs.sub': 'Ver cuánto va a cobrar, y qué puede pedir todavía antes del plazo.',
+    'irs.titulo': 'Mi declaración',
+    'irs.sub': 'Cuánto va a cobrar o pagar, y qué le falta pedir.'
   },
 
   /* ---------------------------------------------------------- english */
@@ -1167,6 +1179,10 @@ const TEXTOS = {
     'casa.erroproprio': 'That code is yours. The other person is the one who types it.',
     'casa.semsessao': 'Sign in first.',
     'casa.erro': 'That did not work just now. Try again in a moment.',
+    'ferr.g.irs': 'It is tax return season',
+    'ferr.g.irs.sub': 'See what you get back, and what you can still claim before the deadline.',
+    'irs.titulo': 'My tax return',
+    'irs.sub': 'What you get back or owe, and what you still need to claim.'
   }
 };
 
