@@ -391,6 +391,32 @@ body.app-shell .app-float{display:none}
    resultado — é a única coisa desta gaveta que ainda se pode mudar em
    Fevereiro. Ler "faltam-lhe 214 € de facturas" vale mais do que ler quanto
    se vai receber, porque o primeiro ainda se altera e o segundo não. */
+/* Em que dia do ano estamos, e o que é útil hoje. É a primeira coisa do ecrã
+   e muda de cor com a estação: âmbar quando há um prazo a correr, verde
+   sereno quando o que há é tempo. A cor é lida antes das palavras. */
+.irs-epoca{
+  border-radius:16px;padding:18px 20px;margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(62,207,142,.10),rgba(62,207,142,.02));
+  border:1px solid rgba(62,207,142,.26)
+}
+.irs-epoca-facturas,.irs-epoca-entrega{
+  background:linear-gradient(135deg,rgba(226,124,90,.13),rgba(226,124,90,.03));
+  border-color:rgba(226,124,90,.32)
+}
+.irs-epoca b{display:block;color:var(--cream);font-size:1rem;line-height:1.35;margin-bottom:7px}
+.irs-epoca-facturas b,.irs-epoca-entrega b{color:#f0a98c}
+.irs-epoca span{display:block;color:var(--cream-dim);font-size:.85rem;line-height:1.55}
+.irs-epoca .irs-banda-nada{
+  margin-top:10px;padding-top:10px;font-size:.8rem;
+  border-top:1px solid rgba(217,178,110,.14)
+}
+.irs-epoca button{
+  margin-top:12px;background:none;border:1px solid rgba(217,178,110,.3);
+  color:var(--gold-soft);font-family:inherit;font-size:.78rem;font-weight:600;
+  padding:7px 13px;border-radius:999px;cursor:pointer
+}
+.irs-epoca button:active{background:rgba(217,178,110,.14)}
+
 /* A linha que diz de onde veio o número do ano. Fica logo por baixo dos dois
    campos e não escondida no fim: um pressuposto que só aparece depois do
    resultado já não é um pressuposto, é uma desculpa. */
@@ -475,3 +501,28 @@ body.app-shell .app-float{display:none}
   color:var(--cream-dim);font-size:.8rem;line-height:1.55;
   padding-top:18px;border-top:1px solid rgba(217,178,110,.14)
 }
+
+/* "Pelo que lançou entraram 7.732,34 € em 7 meses. Usar este total?" — a única
+   coisa nesta ferramenta que nenhum simulador consegue fazer, porque nenhum
+   acompanhou a pessoa durante o ano. Não escreve no campo sem pedir licença:
+   a conta é dela, e só ela sabe se está completa. */
+.irs-japreenchido{
+  margin-top:14px;padding:14px 16px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(62,207,142,.10),rgba(62,207,142,.02));
+  border:1px solid rgba(62,207,142,.26)
+}
+.irs-japreenchido span{display:block;color:var(--cream-dim);font-size:.85rem;line-height:1.5}
+.irs-japreenchido b{color:#8fe3bb;font-weight:700}
+.irs-japreenchido button{
+  margin-top:10px;background:rgba(62,207,142,.14);border:1px solid rgba(62,207,142,.4);
+  color:#8fe3bb;font-family:inherit;font-size:.82rem;font-weight:700;
+  padding:9px 15px;border-radius:999px;cursor:pointer
+}
+.irs-japreenchido button:active{background:rgba(62,207,142,.24)}
+
+/* Um ano já entregue: cinzento, sem urgência nenhuma. Não há nada a fazer com
+   ele, e a cor não deve sugerir que há. */
+.irs-epoca-passado{
+  background:rgba(217,178,110,.05);border-color:rgba(217,178,110,.18)
+}
+.irs-epoca-passado b{color:var(--cream-dim)}

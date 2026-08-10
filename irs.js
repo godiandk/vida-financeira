@@ -316,6 +316,71 @@ const IRS_REF = {
 };
 
 /* ============================================================
+   EM QUE DIA DO ANO ESTAMOS — e o que é útil nesse dia
+
+   Isto esteve mal desde o princípio, e de uma maneira que só se vê olhando
+   para o calendário. A ferramenta perguntava "o que entrou em 2025" e
+   calculava o IRS de 2025 — em Agosto de 2026, seis semanas depois de a
+   entrega ter fechado. Estava a convidar as pessoas a preparar uma coisa
+   já entregue.
+
+   O ano do IRS tem três estações, e em cada uma a pergunta útil é outra:
+
+   **Janeiro a Março** — o ano acabou mas ainda não está fechado. Até 25 de
+   Fevereiro dá para classificar as facturas pendentes no e-fatura, e é aí que
+   está quase todo o dinheiro que se perde. Depois desse dia só conta o que lá
+   estiver. É a estação em que esta ferramenta vale mais e em que ninguém
+   avisa ninguém.
+
+   **Abril a Junho** — a entrega. Já não há nada a corrigir; há a conta a
+   fazer e as escolhas da declaração a acertar.
+
+   **Julho a Dezembro** — o ano passado está fechado e não há nada a fazer com
+   ele. O que interessa é o ano que está a correr, que ainda se pode mudar:
+   faltam meses de facturas por pedir.
+
+   Está escrito no cabeçalho deste ficheiro desde o primeiro dia — "em Abril já
+   só se conta o que se pediu; em Fevereiro ainda se vai pedir" — e só agora é
+   que o código sabe em que mês está.
+   ============================================================ */
+
+/* Os dois prazos do ano, e ambos apanham gente distraída. */
+const IRS_PRAZOS = {
+  /* Classificar as facturas pendentes no e-fatura. É o prazo que decide
+     quanto se deduz, e o que quase ninguém sabe que existe. */
+  facturas: { mes: 2, dia: 25 },
+  /* Entregar a declaração. */
+  entrega:  { mes: 6, dia: 30 }
+};
+
+function irsEpoca(hoje) {
+  const d = hoje ? new Date(hoje) : new Date();
+  const m = d.getMonth() + 1, a = d.getFullYear();
+  if (m <= 3) return { ano: a - 1, entrega: a, modo: 'facturas' };
+  if (m <= 6) return { ano: a - 1, entrega: a, modo: 'entrega' };
+  /* De Julho em diante o ano passado está entregue: o que ainda se pode
+     mudar é o ano corrente, que só se declara no ano seguinte. */
+  return { ano: a, entrega: a + 1, modo: 'aCorrer' };
+}
+
+/* Quantos dias faltam para um prazo. Negativo quando já passou — e quem já o
+   passou tem de o saber, não de o ver escondido. */
+function irsDiasAte(prazo, anoDoPrazo, hoje) {
+  const d = hoje ? new Date(hoje) : new Date();
+  const alvo = new Date(anoDoPrazo, prazo.mes - 1, prazo.dia);
+  return Math.ceil((alvo - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+}
+
+/* As tabelas do IRS_REF são de um ano só. Quando se está a estimar o ano que
+   está a correr, usam-se as do ano anterior — são as últimas publicadas, e as
+   do ano corrente só saem com o Orçamento do Estado. Isto tem de aparecer
+   escrito no ecrã: uma estimativa feita com as taxas do ano passado é uma
+   estimativa, não uma conta. */
+function irsTabelasSaoDoAno(ano) {
+  return IRS_REF.anoRendimentos === ano;
+}
+
+/* ============================================================
    O CÁLCULO — funções puras, sem ecrã, para poderem ser testadas
    ============================================================ */
 
@@ -765,7 +830,8 @@ function arred(v) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    IRS_REF, IRS_FONTE_AT, irsColeta, irsSolidariedade, irsImposto,
+    IRS_REF, IRS_FONTE_AT, IRS_PRAZOS, irsEpoca, irsDiasAte, irsTabelasSaoDoAno,
+    irsColeta, irsSolidariedade, irsImposto,
     irsCalcular, irsMelhorOpcao, irsDeducoes,
     irsTectoGlobal, irsTectoRendas, irsConferirMedias, irsConferirParcelas,
     irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
@@ -796,18 +862,28 @@ function irsGuardar(d) {
 
 /* O que a aplicação já sabe. É isto que faz esta ferramenta ser diferente de
    um simulador qualquer: metade das respostas já lá estão. */
-function irsDoQueJaSabemos() {
-  const fora = { saude: 0, educacao: 0, rendas: 0, gerais: 0 };
+function irsDoQueJaSabemos(anoPedido) {
+  const fora = { saude: 0, educacao: 0, rendas: 0, gerais: 0, entradas: 0, meses: 0 };
   try {
     if (typeof movimentos === 'undefined') return fora;
-    const ano = String(IRS_REF.anoRendimentos);
+    /* O ano da época, e não o das tabelas: em Agosto o que interessa é o que
+       já se gastou este ano, não o que se gastou no ano que já foi entregue. */
+    const ano = String(anoPedido || irsEpoca().ano);
+    const mesesComMovimento = {};
     movimentos.forEach(m => {
-      if (!m || m.tipo !== 'saida' || String(m.data).slice(0, 4) !== ano) return;
+      if (!m || String(m.data).slice(0, 4) !== ano) return;
+      mesesComMovimento[String(m.data).slice(0, 7)] = 1;
+      /* O que entrou serve para a app poder somar o ano sozinha a quem a usa —
+         é a única coisa que nenhum simulador consegue fazer, porque nenhum
+         acompanhou a pessoa durante o ano. */
+      if (m.tipo === 'entrada') { fora.entradas += m.valor; return; }
+      if (m.tipo !== 'saida') return;
       if (m.categoria === 'saude') fora.saude += m.valor;
       else if (m.categoria === 'educacao') fora.educacao += m.valor;
       else if (m.categoria === 'casa') fora.rendas += m.valor;
       else if (m.categoria !== 'reserva' && m.categoria !== 'dividas') fora.gerais += m.valor;
     });
+    fora.meses = Object.keys(mesesComMovimento).length;
   } catch (e) {}
   Object.keys(fora).forEach(k => { fora[k] = arred(fora[k]); });
   return fora;
@@ -864,15 +940,103 @@ function irsCampo(id, rotulo, ajuda, valor) {
     '</div>';
 }
 
+/* A primeira coisa que se lê no ecrã: em que dia do ano estamos e o que é útil
+   hoje. Vem antes de tudo — antes do aviso da lei e antes do número — porque é
+   o que decide se as outras coisas fazem sentido. Um ecrã que pergunta pelo
+   ano passado a quem está em Agosto não está errado nos números: está errado
+   na pergunta. */
+function irsBandaDaEpoca(ep, ano, temNoAno) {
+  /* Quem escolheu ver outro ano que não o da época está a olhar para uma coisa
+     fechada, e a banda tem de o dizer. Sem isto ela dizia "estamos a meio de
+     2025, e ainda dá para mudar este ano" — em Agosto de 2026, sobre um ano
+     entregue há um ano. Uma frase encorajadora sobre um prazo que passou é
+     pior do que nenhuma frase. */
+  if (ano !== ep.ano) {
+    return '<div class="irs-epoca irs-epoca-passado">' +
+      '<b>Está a ver a conta de ' + ano + '.</b>' +
+      '<span>Essa entrega já fechou. Isto serve para perceber o que aconteceu ' +
+      'nesse ano — para mudar alguma coisa, é o ano de ' + ep.ano + ' que ainda ' +
+      'está a tempo.</span>' +
+      '<button type="button" id="irs-trocar-ano">Voltar à conta de ' + ep.ano +
+      '</button></div>';
+  }
+  const dFact = irsDiasAte(IRS_PRAZOS.facturas, ep.entrega);
+  const dEntr = irsDiasAte(IRS_PRAZOS.entrega, ep.entrega);
+  const dias = n => n === 1 ? '1 dia' : n + ' dias';
+  let t = '';
+
+  if (ep.modo === 'facturas') {
+    t = (dFact >= 0)
+      ? '<b>Faltam ' + dias(dFact) + ' para 25 de Fevereiro.</b>' +
+        '<span>É o prazo para classificar as facturas que estão pendentes no ' +
+        'e-fatura. Depois desse dia só conta o que lá estiver — e é aí que se ' +
+        'perde quase todo o dinheiro do IRS, não na declaração.</span>'
+      : '<b>O prazo das facturas fechou a 25 de Fevereiro.</b>' +
+        '<span>O que ficou por classificar já não conta. A entrega da ' +
+        'declaração de ' + ep.ano + ' abre em Abril.</span>';
+  } else if (ep.modo === 'entrega') {
+    t = '<b>Está aberta a entrega do IRS de ' + ep.ano + '.</b>' +
+        '<span>Faltam ' + dias(dEntr) + ', até 30 de Junho. As facturas já não ' +
+        'se mexem; o que ainda se escolhe é como entregar — e essa escolha vale ' +
+        'dinheiro.</span>';
+  } else {
+    /* Julho a Dezembro. O ano passado está entregue e não se mexe. */
+    const fim = new Date(ep.ano, 11, 31);
+    const faltam = Math.ceil((fim - new Date()) / 86400000);
+    t = '<b>Estamos a meio de ' + ep.ano + ', e ainda dá para mudar este ano.</b>' +
+        '<span>O IRS de ' + (ep.ano - 1) + ' já foi entregue — não há nada a ' +
+        'fazer com ele. Mas faltam ' + dias(Math.max(0, faltam)) + ' até ao fim ' +
+        'do ano, e cada factura que pedir com o seu número conta para o IRS que ' +
+        'entrega em ' + ep.entrega + '. Em Abril já só se conta o que se pediu.</span>';
+  }
+
+  /* A app não pode somar o que não viu. Dizer isto é melhor do que mostrar
+     zeros e deixar a pessoa a achar que a conta está avariada. */
+  if (!temNoAno) {
+    t += '<span class="irs-banda-nada">Ainda não tem nada lançado em ' + ep.ano +
+         ', por isso não há o que somar. Escreva os números à mão aqui em baixo — ' +
+         'ou comece a lançar, e no fim do ano a conta faz-se sozinha.</span>';
+  }
+
+  /* As tabelas são de um ano só, e quando se estima o ano corrente usam-se as
+     do anterior. Uma estimativa feita com as taxas do ano passado é uma
+     estimativa; dizê-lo não é modéstia, é a diferença entre uma conta que se
+     confere e um número em que se acredita. */
+  if (!irsTabelasSaoDoAno(ep.ano)) {
+    t += '<span class="irs-banda-nada">A conta usa as taxas de ' +
+         IRS_REF.anoRendimentos + ', que são as últimas publicadas. As de ' +
+         ep.ano + ' saem com o Orçamento do Estado, e então isto acerta-se.</span>';
+  }
+
+  return '<div class="irs-epoca irs-epoca-' + ep.modo + '">' + t +
+    '<button type="button" id="irs-trocar-ano">Quero antes a conta de ' +
+    (ep.ano - 1) + '</button></div>';
+}
+
+/* Qual o ano que a pessoa está a ver. Por omissão é o da época; quem quiser
+   outro carrega no botão, e fica guardado. */
+function irsAnoEscolhido() {
+  const g = irsGuardado();
+  const ep = irsEpoca();
+  const a = Number(g.ano);
+  return (a >= 2000 && a <= ep.entrega) ? a : ep.ano;
+}
+
 function irsDesenhar() {
   const zona = document.getElementById('irs-corpo');
   if (!zona) return;
   const g = irsGuardado();
-  const sabe = irsDoQueJaSabemos();
+  const ep = irsEpoca();
+  const ano = irsAnoEscolhido();
+  const sabe = irsDoQueJaSabemos(ano);
+  const temNoAno = sabe.meses > 0;
 
+  const fmt = v => new Intl.NumberFormat('pt-PT',
+    { style: 'currency', currency: 'EUR' }).format(v || 0);
   const porConfirmar = irsPorConfirmar();
 
   zona.innerHTML =
+    irsBandaDaEpoca(ep, ano, temNoAno) +
     (porConfirmar.length ? '<div class="irs-aviso-lei">' +
       '<b>Ferramenta em construção — falta confirmar parte dos números.</b>' +
       '<span>Os escalões, as deduções, o mínimo de existência e os tectos já ' +
@@ -912,6 +1076,16 @@ function irsDesenhar() {
     '<p>Se receber o ordenado em dinheiro e não tiver recibo nenhum, escreva o ' +
     'que recebe por mês no primeiro campo e <b>0</b> no segundo.</p></details>' +
     '<div class="irs-suposicao" id="irs-suposicao"></div>' +
+    /* O que nenhum simulador consegue fazer: somar o ano a quem foi lançando.
+       Não se escreve o número no campo sem pedir licença — é a conta dela e
+       ela é que sabe se está completa. */
+    (sabe.entradas > 0
+      ? '<div class="irs-japreenchido"><span>Pelo que lançou em ' + ano +
+        ', entraram <b>' + fmt(sabe.entradas) + '</b> em ' + sabe.meses +
+        (sabe.meses === 1 ? ' mês' : ' meses') + '.</span>' +
+        '<button type="button" id="irs-usar-lancado">Usar este total do ano</button>' +
+        '</div>'
+      : '') +
     '</div>' +
 
     /* Daqui para baixo é tudo opcional, e fechado. Quem só responder às duas
@@ -989,6 +1163,24 @@ function irsDesenhar() {
     '<p class="irs-rodape">Isto é uma <b>estimativa</b>, e nada aqui é entregue às Finanças. ' +
     'A declaração é entregue por si, no Portal das Finanças, com a sua senha — ' +
     'que esta aplicação nunca lhe vai pedir.</p>';
+
+  const btUsar = document.getElementById('irs-usar-lancado');
+  if (btUsar) btUsar.addEventListener('click', () => {
+    /* Escreve-se no campo do ano, e não no do mês: é um total a sério, não uma
+       estimativa a partir de um mês, e o motor dá prioridade ao que é a sério. */
+    const mais = document.getElementById('irs-mais');
+    if (mais) mais.open = true;
+    const campo = document.getElementById('irs-trab');
+    if (campo) campo.value = String(arred(sabe.entradas)).replace('.', ',');
+    irsContar();
+  });
+
+  const btAno = document.getElementById('irs-trocar-ano');
+  if (btAno) btAno.addEventListener('click', () => {
+    const outro = (ano === ep.ano) ? ep.ano - 1 : ep.ano;
+    irsGuardar(Object.assign({}, irsGuardado(), { ano: outro }));
+    irsDesenhar();
+  });
 
   zona.querySelectorAll('input').forEach(i => i.addEventListener('input', irsContar));
   zona.querySelectorAll('#irs-quem button').forEach(b => b.addEventListener('click', () => {

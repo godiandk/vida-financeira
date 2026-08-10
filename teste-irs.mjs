@@ -41,6 +41,7 @@ const { IRS_REF, irsColeta, irsSolidariedade, irsImposto,
         irsPorConfirmar, irsTectoGlobal, irsTectoRendas,
         irsConferirMedias, irsConferirParcelas,
         irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
+        irsEpoca, irsDiasAte, IRS_PRAZOS, irsTabelasSaoDoAno,
         irsDeducaoDependentes } = irs;
 
 let feitos = 0;
@@ -549,6 +550,61 @@ testar('e quem ganha pouco deduz mais de renda do que quem ganha muito', () => {
   const a = pobre.deducoes.linhas.find(l => l.nome === 'Renda da casa');
   const b = rico.deducoes.linhas.find(l => l.nome === 'Renda da casa');
   assert.ok(a.valor > b.valor, 'a elevação da nota 8 não está a ser aplicada');
+});
+
+console.log('\nem que dia do ano estamos\n');
+
+/* A ferramenta esteve meses a perguntar "o que entrou em 2025" e a calcular o
+   IRS de 2025 — em Agosto de 2026, seis semanas depois de a entrega ter
+   fechado. Nenhum teste apanhava isso, porque nenhum olhava para o
+   calendário. Estes olham. */
+
+testar('de Janeiro a Marco o que interessa sao as facturas do ano passado', () => {
+  const e = irsEpoca('2026-01-10');
+  assert.equal(e.ano, 2025);
+  assert.equal(e.modo, 'facturas');
+  assert.equal(irsDiasAte(IRS_PRAZOS.facturas, e.entrega, '2026-01-10'), 46);
+});
+
+testar('de Abril a Junho e' + "'" + ' a entrega', () => {
+  const e = irsEpoca('2026-05-03');
+  assert.equal(e.ano, 2025);
+  assert.equal(e.modo, 'entrega');
+  assert.ok(irsDiasAte(IRS_PRAZOS.entrega, e.entrega, '2026-05-03') > 0);
+});
+
+testar('de Julho em diante o ano passado esta entregue, e conta o que corre', () => {
+  /* O caso que estava mal: em Agosto de 2026 a pergunta útil é sobre 2026, que
+     ainda se pode mudar, e não sobre 2025, que já foi. */
+  const e = irsEpoca('2026-08-10');
+  assert.equal(e.ano, 2026);
+  assert.equal(e.entrega, 2027);
+  assert.equal(e.modo, 'aCorrer');
+});
+
+testar('a viragem do ano nao salta nenhum dia', () => {
+  /* 31 de Dezembro e 1 de Janeiro são dias seguidos e o ano do IRS muda entre
+     os dois. Um erro de um dia aqui punha a ferramenta a falar do ano errado
+     durante uma noite. */
+  assert.equal(irsEpoca('2026-12-31').ano, 2026);
+  assert.equal(irsEpoca('2027-01-01').ano, 2026);
+  assert.equal(irsEpoca('2027-03-31').modo, 'facturas');
+  assert.equal(irsEpoca('2027-04-01').modo, 'entrega');
+  assert.equal(irsEpoca('2027-06-30').modo, 'entrega');
+  assert.equal(irsEpoca('2027-07-01').modo, 'aCorrer');
+});
+
+testar('um prazo que ja passou diz que passou, em vez de contar ao contrario', () => {
+  assert.ok(irsDiasAte(IRS_PRAZOS.facturas, 2026, '2026-02-26') < 0);
+  assert.equal(irsDiasAte(IRS_PRAZOS.facturas, 2026, '2026-02-25'), 0);
+});
+
+testar('e sabe-se quando as tabelas nao sao do ano que se esta a estimar', () => {
+  /* De Julho a Dezembro estima-se o ano corrente com as taxas do anterior — as
+     únicas publicadas. Isso tem de aparecer escrito no ecrã: uma estimativa
+     feita com as taxas do ano passado é uma estimativa, não uma conta. */
+  assert.equal(irsTabelasSaoDoAno(IRS_REF.anoRendimentos), true);
+  assert.equal(irsTabelasSaoDoAno(IRS_REF.anoRendimentos + 1), false);
 });
 
 console.log('\ncontra uma liquidacao a serio das Financas\n');

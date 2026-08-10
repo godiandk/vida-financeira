@@ -97,6 +97,21 @@ const corpoIRS=await p.locator('#irs-corpo').innerText();
 ok(!/undefined|\[object/i.test(corpoIRS) && !/NaN/.test(corpoIRS),
    'nao ha nada por preencher a mostra');
 
+console.log('\n-- a banda diz em que dia do ano estamos --');
+/* A ferramenta perguntava por 2025 em Agosto de 2026, seis semanas depois de a
+   entrega ter fechado. Agora diz de que ano esta' a falar e porque'. */
+const banda=await p.locator('#irs-corpo .irs-epoca').innerText();
+console.log('   ',banda.split('\n').join(' / ').slice(0,170));
+const anoAgora=new Date().getMonth()+1<=6 ? new Date().getFullYear()-1 : new Date().getFullYear();
+ok(banda.includes(String(anoAgora)), 'fala do ano certo para o dia de hoje ('+anoAgora+')');
+ok(/dias|prazo|entregue|fechou/i.test(banda), 'e diz o que ha' + "'" + ' para fazer, ou nao ha');
+ok(await p.locator('#irs-trocar-ano').count()===1, 'e da' + "'" + ' para ver outro ano');
+
+console.log('\n-- quem chega sem nada lancado ouve isso, em vez de ver zeros --');
+ok(/nada lançado/i.test(banda), 'diz que nao ha nada para somar');
+ok(await p.locator('#irs-japreenchido, .irs-japreenchido').count()===0,
+   'e nao oferece somar um ano vazio');
+
 console.log('\n-- sem nada escrito nao inventa um numero --');
 ok(await p.locator('#irs-vazio, #irs-resultado .irs-vazio').count()===1,
    'diz o que escrever em vez de mostrar zero euros');
