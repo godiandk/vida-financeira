@@ -59,7 +59,26 @@ async function abrir(){
   await p.waitForTimeout(500);
   ok(await p.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)==='ecra-irs',
      'o separador do IRS abre o ecra do IRS');
+
+  /* Duas perguntas a' vista e mais nada. Eram catorze campos numa pagina, e o
+     primeiro era "ganhou no ano todo, antes dos descontos" — que quase
+     ninguem sabe de cabeca. Quem nao sabe responder nao escreve "nao sei":
+     fecha a aplicacao. E' esta contagem que impede a parede de voltar. */
+  const visiveis = await p.locator('#irs-corpo input:visible').count();
+  ok(visiveis===2, 'so' + "'" + ' duas perguntas a' + "'" + ' vista (estao '+visiveis+')');
+  const quais = await p.locator('#irs-corpo input:visible').evaluateAll(es=>es.map(e=>e.id));
+  ok(quais.join(',')==='irs-mes,irs-retmes', 'e sao as duas do recibo: '+quais.join(', '));
+  ok(await p.locator('#irs-mais').evaluate(d=>!d.open), 'o resto nasce fechado');
   return p;
+}
+
+/* Escrever num campo que vive dentro da gaveta fechada. Abre-se, escreve-se, e
+   deixa-se aberta — quem esta' a afinar a conta nao quer a gaveta a fechar-se
+   na cara a cada numero. */
+async function afinar(p, campo, valor){
+  await p.evaluate(()=>{ const d=document.getElementById('irs-mais'); if(d) d.open=true; });
+  await p.waitForTimeout(120);
+  await p.fill(campo, valor);
 }
 
 const euros = t => parseFloat(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.'));
@@ -86,8 +105,8 @@ console.log('\n== o salario minimo, sem facturas ==');
 /* 12.180 € é o salário mínimo de 2025 (870 € × 14). Sem facturas com o
    número, a lei manda pagar 250 € — que é exactamente o tecto da dedução de
    despesas gerais que ficou por usar. É o número mais caro da ferramenta. */
-await p.fill('#irs-trab','12180');
-await p.fill('#irs-ret','0');
+await afinar(p,'#irs-trab','12180');
+await afinar(p,'#irs-ret','0');
 await p.waitForTimeout(300);
 let grande=await p.locator('#irs-resultado .irs-numero b').innerText();
 let rotulo=await p.locator('#irs-resultado .irs-numero .rot').innerText();
@@ -102,7 +121,7 @@ ok(/714/.test(dica), 'diz quanto falta gastar-com-factura (714,29 €)');
 ok(/250/.test(dica), 'e quanto isso lhe vale');
 
 console.log('\n== o mesmo salario, com as facturas pedidas ==');
-await p.fill('#irs-gerais','715');
+await afinar(p,'#irs-gerais','715');
 await p.waitForTimeout(300);
 grande=await p.locator('#irs-resultado .irs-numero b').innerText();
 console.log('   ',grande);
@@ -117,19 +136,19 @@ console.log('\n-- e a quem ja' + "'" + ' nao paga nada nao se promete uma poupan
 /* Muitas deducoes por cima de pouca coleta: a caixa verde nao pode dizer
    "sao mais 145 € de imposto a menos" a quem ja' esta' a zero. Uma deducao so'
    devolve dinheiro enquanto houver imposto para abater. */
-await p.fill('#irs-dep','2');
-await p.fill('#irs-idades','3, 1');
-await p.fill('#irs-asc','1');
-await p.fill('#irs-renda','4800');
-await p.fill('#irs-gerais','300');
+await afinar(p,'#irs-dep','2');
+await afinar(p,'#irs-idades','3, 1');
+await afinar(p,'#irs-asc','1');
+await afinar(p,'#irs-renda','4800');
+await afinar(p,'#irs-gerais','300');
 await p.waitForTimeout(350);
 const cheio=await p.locator('#irs-falta').innerText();
 console.log('   ',cheio.split('\n').join(' / ').slice(0,200));
 ok(euros(await p.locator('#irs-resultado .irs-numero b').innerText())<1, 'nao paga nada');
 ok(!/de imposto a menos/.test(cheio), 'e a app nao lhe inventa euros que nao ha');
 /* Volta ao caso simples para os testes seguintes. */
-await p.fill('#irs-dep',''); await p.fill('#irs-idades','');
-await p.fill('#irs-asc',''); await p.fill('#irs-renda','');
+await afinar(p,'#irs-dep',''); await afinar(p,'#irs-idades','');
+await afinar(p,'#irs-asc',''); await afinar(p,'#irs-renda','');
 await p.waitForTimeout(250);
 
 console.log('\n-- a conta toda esta a' + "'" + " vista --");
@@ -141,9 +160,9 @@ ok(/M[íi]nimo de exist[êe]ncia/i.test(conta), 'o minimo de existencia aparece,
 ok(/Despesas gerais/i.test(conta), 'a deducao das despesas gerais aparece');
 
 console.log('\n== os filhos, com e sem idades ==');
-await p.fill('#irs-trab','25000');
-await p.fill('#irs-ret','3000');
-await p.fill('#irs-dep','3');
+await afinar(p,'#irs-trab','25000');
+await afinar(p,'#irs-ret','3000');
+await afinar(p,'#irs-dep','3');
 await p.waitForTimeout(300);
 const semIdades=euros(await p.locator('#irs-resultado .irs-numero b').innerText());
 /* O `innerText` de um `<details>` fechado só traz o `summary`. Abre-se antes
@@ -153,7 +172,7 @@ await p.locator('#irs-resultado .irs-conta > summary').click();
 await p.waitForTimeout(150);
 const aviso2=await p.locator('#irs-resultado .irs-conta').innerText();
 ok(/Escreva as idades/i.test(aviso2), 'sem idades, pede as idades em vez de calar');
-await p.fill('#irs-idades','3, 2, 1');
+await afinar(p,'#irs-idades','3, 2, 1');
 await p.waitForTimeout(300);
 const comIdades=euros(await p.locator('#irs-resultado .irs-numero b').innerText());
 console.log('   sem idades:',semIdades,' com 3, 2 e 1 ano:',comIdades);
@@ -168,13 +187,15 @@ ok(!/Escreva as idades/i.test(await p.locator('#irs-resultado .irs-conta').inner
    'e o pedido desaparece depois de respondido');
 
 console.log('\n== um casal, e a escolha que quase ninguem faz de proposito ==');
+await p.evaluate(()=>{ const d=document.getElementById('irs-mais'); if(d) d.open=true; });
+await p.waitForTimeout(120);
 await p.locator('#irs-quem button[data-quem="casal"]').click();
 await p.waitForTimeout(200);
 ok(await p.locator('#irs-trab2').isVisible(), 'os campos da outra pessoa aparecem');
-await p.fill('#irs-trab','45000');
-await p.fill('#irs-ret','9000');
-await p.fill('#irs-trab2','8000');
-await p.fill('#irs-ret2','100');
+await afinar(p,'#irs-trab','45000');
+await afinar(p,'#irs-ret','9000');
+await afinar(p,'#irs-trab2','8000');
+await afinar(p,'#irs-ret2','100');
 await p.waitForTimeout(350);
 const melhor=await p.locator('#irs-comparar .irs-melhor').innerText();
 console.log('   ',melhor.split('\n').join(' / ').slice(0,200));

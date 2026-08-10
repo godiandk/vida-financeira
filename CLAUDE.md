@@ -110,6 +110,16 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
   do regime simplificado (artigo 31.º) e a escada dos dez anos do IRS Jovem
   (o folheto da AT). Enquanto estiverem a `null`, a gaveta escreve por cima do
   resultado que os números estão por confirmar, e é assim que fica.
+- **Falta o Benefício Municipal.** Apareceu numa simulação a sério do Portal
+  das Finanças: 16,84 € numa colecta de 1.478,34 €, que são exactamente 2,5%
+  da colecta já deduzida. É a *participação variável no IRS* — o município tem
+  direito a 5% do imposto de quem lá mora e pode abrir mão de parte, e essa
+  parte volta ao contribuinte. O motor não sabe que isto existe, e a conta
+  nunca vai bater com a das Finanças enquanto não souber. A percentagem muda
+  de concelho para concelho e a app não a pode adivinhar: ou se pergunta num
+  campo (a começar em 0, nunca em 5, porque um simulador não pode errar para o
+  lado bom), ou se traz a tabela dos 308 municípios para dentro do `irs.js`.
+  Há um teste no `teste-irs.mjs` que já guarda a conta.
 - **O IRS não vai ao Portal das Finanças, e não deve ir.** Estima e aponta o
   que falta pedir. Nunca pede a senha, nunca entrega nada. Se um dia houver
   cobrança pela ferramenta, é por esta conta — não por entregar a declaração

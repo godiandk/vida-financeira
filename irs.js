@@ -835,6 +835,14 @@ function irsNum(id) {
   return isFinite(v) ? v : 0;
 }
 
+/* Quantos pagamentos tem o ano desta pessoa. Catorze é o normal em Portugal;
+   doze para quem recebe os subsídios diluídos no ordenado. Fica guardado, e
+   troca-se com um botão por baixo do campo. */
+function irsMeses() {
+  const g = irsGuardado();
+  return (Number(g.meses) === 12) ? 12 : 14;
+}
+
 function irsTexto(id) {
   const e = document.getElementById(id);
   return e ? String(e.value || '') : '';
@@ -875,27 +883,55 @@ function irsDesenhar() {
 
     '<div class="irs-resultado" id="irs-resultado"></div>' +
 
+    /* ---- as duas perguntas ----
+       Isto começou com catorze campos numa página, e a primeira pergunta era
+       "ganhou no ano todo, antes dos descontos". Quase ninguém sabe isso de
+       cabeça. As pessoas sabem quanto ganham por mês — é o número que ouvem
+       quando são contratadas e o que veem no recibo todos os meses.
+
+       E quem não sabe responder a uma pergunta não escreve "não sei": fecha a
+       aplicação e fica a achar que o problema é dela. Por isso o que se
+       pergunta primeiro são dois números que estão os dois no mesmo papel, um
+       por baixo do outro. Tudo o resto passou para trás de uma porta, e a
+       conta faz-se sem isso. */
+    '<div class="irs-bloco"><h4>Duas perguntas, e já lhe digo um número</h4>' +
+    irsCampo('irs-mes', 'Quanto ganha por mês, antes dos descontos',
+      'O valor que está em cima no recibo de vencimento — o <b>bruto</b>, não o ' +
+      'que lhe cai na conta.', g.mes) +
+    irsCampo('irs-retmes', 'Quanto lhe descontam de IRS, por mês',
+      'No mesmo recibo, mais abaixo, na linha que diz <b>IRS</b> ou ' +
+      '<b>retenção na fonte</b>. Se não descontam nada, escreva 0.', g.retmes) +
+    '<details class="irs-ajuda"><summary>Não sei onde encontrar isto</summary>' +
+    '<p>É no <b>recibo de vencimento</b> — o papel que vem com o ordenado, ou o ' +
+    'ficheiro que a empresa manda por email todos os meses.</p>' +
+    '<p>Lá dentro procure duas linhas:</p><ul>' +
+    '<li><b>Vencimento base</b>, ou <b>Total ilíquido</b>, ou <b>Bruto</b> — é o ' +
+    'primeiro número, o maior de todos.</li>' +
+    '<li><b>IRS</b>, ou <b>Retenção na fonte</b> — está entre os descontos, ao ' +
+    'lado da Segurança Social.</li></ul>' +
+    '<p>Se receber o ordenado em dinheiro e não tiver recibo nenhum, escreva o ' +
+    'que recebe por mês no primeiro campo e <b>0</b> no segundo.</p></details>' +
+    '<div class="irs-suposicao" id="irs-suposicao"></div>' +
+    '</div>' +
+
+    /* Daqui para baixo é tudo opcional, e fechado. Quem só responder às duas
+       perguntas de cima já leva uma resposta — pior do que a exacta, e muito
+       melhor do que nenhuma. */
+    '<details class="irs-mais" id="irs-mais" ' + (g.abriuMais ? 'open' : '') + '>' +
+    '<summary><b>Quer afinar a conta?</b>' +
+    '<span>Filhos, despesas de saúde, casado ou sozinho. Cada resposta aproxima ' +
+    'o número — mas nenhuma é obrigatória.</span></summary>' +
+
     '<div class="irs-bloco"><h4>Quem entrega</h4>' +
     '<div class="irs-escolhas" id="irs-quem">' +
       '<button type="button" data-quem="so" class="' + (g.quem !== 'casal' ? 'sim' : '') + '">Sozinho</button>' +
       '<button type="button" data-quem="casal" class="' + (g.quem === 'casal' ? 'sim' : '') + '">Casado ou junto</button>' +
     '</div></div>' +
 
-    '<div class="irs-bloco"><h4>O que entrou em 2025</h4>' +
-    irsCampo('irs-trab', 'Ganhou no ano todo (antes dos descontos)',
-      'Está no recibo de Dezembro, na coluna do acumulado. Ou soma os doze.', g.trab) +
-    irsCampo('irs-ret', 'IRS que lhe descontaram no ano todo',
-      'No mesmo sítio, na linha do IRS. É este que decide se recebe ou paga.', g.ret) +
-    irsCampo('irs-ss', 'Segurança Social descontada (se souber)',
-      'Se não souber, deixe em branco — a conta faz-se à mesma.', g.ss) +
-    irsCampo('irs-rv', 'Recibos verdes, se passou algum',
-      'O total facturado no ano. Se não passa recibos verdes, deixe 0.', g.rv) +
-    '</div>' +
-
     '<div class="irs-bloco" id="irs-bloco2" ' + (g.quem === 'casal' ? '' : 'hidden') + '>' +
     '<h4>E a outra pessoa</h4>' +
-    irsCampo('irs-trab2', 'Ganhou no ano todo', '', g.trab2) +
-    irsCampo('irs-ret2', 'IRS descontado no ano todo', '', g.ret2) +
+    irsCampo('irs-mes2', 'Quanto ganha por mês, antes dos descontos', '', g.mes2) +
+    irsCampo('irs-retmes2', 'Quanto lhe descontam de IRS, por mês', '', g.retmes2) +
     '</div>' +
 
     '<div class="irs-bloco"><h4>Quem vive consigo</h4>' +
@@ -926,6 +962,26 @@ function irsDesenhar() {
     irsCampo('irs-renda', 'Renda da casa', 'Só renda de habitação permanente.', g.renda !== undefined ? g.renda : sabe.rendas) +
     irsCampo('irs-gerais', 'Tudo o resto (despesas gerais)', 'Mercado, luz, água, roupa — tudo com factura.', g.gerais !== undefined ? g.gerais : sabe.gerais) +
     '</div>' +
+
+    /* No fim da gaveta e não no princípio: é a parte mais avançada de todas, e
+       quem chegou aqui já respondeu ao que interessa. Quem sabe os valores do
+       ano vai procurá-los; quem não sabe não pode tropeçar neles. */
+    '<div class="irs-bloco"><h4>Se souber os valores do ano inteiro</h4>' +
+    '<p class="irs-nota">Vêm no recibo de Dezembro, na coluna do acumulado. Se ' +
+    'escrever aqui, é isto que conta e a conta de cima deixa de ser usada — ' +
+    'porque um número que a pessoa foi buscar vale mais do que um que eu ' +
+    'estimei.</p>' +
+    irsCampo('irs-trab', 'Ganhou no ano todo', '', g.trab) +
+    irsCampo('irs-ret', 'IRS descontado no ano todo', '', g.ret) +
+    irsCampo('irs-trab2', 'A outra pessoa, no ano todo', '', g.trab2) +
+    irsCampo('irs-ret2', 'IRS dela, no ano todo', '', g.ret2) +
+    irsCampo('irs-ss', 'Segurança Social descontada (se souber)',
+      'Se não souber, deixe em branco — a conta faz-se à mesma.', g.ss) +
+    irsCampo('irs-rv', 'Recibos verdes, se passou algum',
+      'O total facturado no ano. Se não passa recibos verdes, deixe 0.', g.rv) +
+    '</div>' +
+
+    '</details>' +
 
     '<div class="irs-falta" id="irs-falta"></div>' +
     '<div class="irs-comparar" id="irs-comparar"></div>' +
@@ -958,12 +1014,34 @@ function irsContar() {
   const jovem = !!zona.querySelector('#irs-jovem button.sim[data-jovem="sim"]');
   const nFilhos = irsNum('irs-dep');
 
+  /* Do mês para o ano. Em Portugal são catorze pagamentos e não doze — os
+     subsídios de férias e de Natal são ordenado, e sobre eles também se
+     desconta IRS. Multiplicar por doze tirava dois meses de rendimento à
+     conta e prometia um reembolso que não existe.
+
+     Quem recebe os subsídios diluídos no ordenado recebe doze, e para esse
+     está aqui um botão. O pressuposto aparece escrito por baixo dos campos,
+     onde tem de aparecer: é a diferença entre uma conta que se pode conferir
+     e um número que se tem de acreditar. */
+  const dinheiro = v => new Intl.NumberFormat('pt-PT',
+    { style: 'currency', currency: 'EUR' }).format(v || 0);
+
+  const meses = irsMeses();
+  const doAno = (anual, mensal) => {
+    /* O que a pessoa foi buscar ao recibo de Dezembro vale mais do que o que
+       eu estimei a partir de um mês. */
+    const a = irsNum(anual);
+    return a > 0 ? a : arred(irsNum(mensal) * meses);
+  };
+
   const titulares = [{
-    trabalho: irsNum('irs-trab'), retencao: irsNum('irs-ret'),
+    trabalho: doAno('irs-trab', 'irs-mes'), retencao: doAno('irs-ret', 'irs-retmes'),
     segurancaSocial: irsNum('irs-ss'), recibosVerdes: irsNum('irs-rv'),
     jovem: jovem, anoJovem: irsNum('irs-anojovem') || 1
   }];
-  if (casal) titulares.push({ trabalho: irsNum('irs-trab2'), retencao: irsNum('irs-ret2') });
+  if (casal) titulares.push({
+    trabalho: doAno('irs-trab2', 'irs-mes2'), retencao: doAno('irs-ret2', 'irs-retmes2')
+  });
 
   const dados = {
     titulares: titulares, conjunta: casal,
@@ -975,8 +1053,12 @@ function irsContar() {
     }
   };
 
+  const mais = document.getElementById('irs-mais');
   irsGuardar({
     quem: casal ? 'casal' : 'so', jovem: jovem, anojovem: irsNum('irs-anojovem'),
+    mes: irsNum('irs-mes'), retmes: irsNum('irs-retmes'),
+    mes2: irsNum('irs-mes2'), retmes2: irsNum('irs-retmes2'),
+    meses: meses, abriuMais: !!(mais && mais.open),
     trab: irsNum('irs-trab'), ret: irsNum('irs-ret'), ss: irsNum('irs-ss'), rv: irsNum('irs-rv'),
     trab2: irsNum('irs-trab2'), ret2: irsNum('irs-ret2'),
     dep: nFilhos, idades: irsTexto('irs-idades'), asc: irsNum('irs-asc'),
@@ -984,13 +1066,34 @@ function irsContar() {
     renda: irsNum('irs-renda'), gerais: irsNum('irs-gerais')
   });
 
-  const dinheiro = v => new Intl.NumberFormat('pt-PT',
-    { style: 'currency', currency: 'EUR' }).format(v || 0);
+  /* O pressuposto à vista, por baixo dos campos: quantos meses se assumiram, o
+     que isso dá no ano, e um botão para corrigir quem receba de outra maneira.
+     Sem isto o número de cima saía de uma conta que a pessoa não viu fazer. */
+  const sup = document.getElementById('irs-suposicao');
+  if (sup) {
+    const anualEscrito = irsNum('irs-trab') > 0;
+    sup.innerHTML = (!anualEscrito && irsNum('irs-mes') > 0)
+      ? '<span>Contei <b>' + meses + ' pagamentos</b> no ano' +
+        (meses === 14 ? ' — os doze meses, mais o subsídio de férias e o de Natal' : '') +
+        ', o que dá <b>' + dinheiro(dados.titulares[0].trabalho) + '</b>.</span>' +
+        '<button type="button" id="irs-trocar-meses">' +
+        (meses === 14 ? 'Recebo os subsídios diluídos no ordenado (12)'
+                      : 'Recebo os subsídios à parte (14)') + '</button>'
+      : (anualEscrito
+          ? '<span>A usar os <b>' + dinheiro(irsNum('irs-trab')) + '</b> do ano ' +
+            'que escreveu mais abaixo, e não a conta pelo mês.</span>'
+          : '');
+    const bt = document.getElementById('irs-trocar-meses');
+    if (bt) bt.addEventListener('click', () => {
+      irsGuardar(Object.assign({}, irsGuardado(), { meses: meses === 14 ? 12 : 14 }));
+      irsContar();
+    });
+  }
 
   const alvo = document.getElementById('irs-resultado');
   if (!dados.titulares[0].trabalho && !dados.titulares[0].recibosVerdes) {
-    alvo.innerHTML = '<div class="irs-vazio">Escreva quanto ganhou no ano e o IRS que lhe ' +
-      'descontaram — são os dois números do recibo de Dezembro — e a conta aparece aqui.</div>';
+    alvo.innerHTML = '<div class="irs-vazio">Escreva quanto ganha por mês e quanto lhe ' +
+      'descontam de IRS — são dois números do mesmo recibo — e a conta aparece aqui.</div>';
     document.getElementById('irs-comparar').innerHTML = '';
     document.getElementById('irs-falta').innerHTML = '';
     return;

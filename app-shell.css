@@ -391,6 +391,60 @@ body.app-shell .app-float{display:none}
    resultado — é a única coisa desta gaveta que ainda se pode mudar em
    Fevereiro. Ler "faltam-lhe 214 € de facturas" vale mais do que ler quanto
    se vai receber, porque o primeiro ainda se altera e o segundo não. */
+/* A linha que diz de onde veio o número do ano. Fica logo por baixo dos dois
+   campos e não escondida no fim: um pressuposto que só aparece depois do
+   resultado já não é um pressuposto, é uma desculpa. */
+.irs-suposicao:not(:empty){
+  margin-top:-4px;padding:12px 14px;border-radius:12px;
+  background:rgba(217,178,110,.07);border:1px solid rgba(217,178,110,.16)
+}
+.irs-suposicao span{display:block;color:var(--cream-dim);font-size:.82rem;line-height:1.5}
+.irs-suposicao b{color:var(--cream)}
+.irs-suposicao button{
+  margin-top:9px;background:none;border:1px solid rgba(217,178,110,.3);
+  color:var(--gold-soft);font-family:inherit;font-size:.78rem;font-weight:600;
+  padding:7px 12px;border-radius:999px;cursor:pointer;text-align:left;line-height:1.35
+}
+.irs-suposicao button:active{background:rgba(217,178,110,.14)}
+
+/* "Não sei onde encontrar isto" — a porta para quem ficou preso no campo.
+   Discreta, mas sempre no sítio onde a pessoa parou. */
+.irs-ajuda{margin:-4px 0 18px}
+.irs-ajuda summary{
+  cursor:pointer;list-style:none;color:var(--gold-soft);font-size:.83rem;
+  font-weight:600;padding:4px 0;text-decoration:underline;text-underline-offset:3px
+}
+.irs-ajuda summary::-webkit-details-marker{display:none}
+.irs-ajuda p,.irs-ajuda li{color:var(--cream-dim);font-size:.84rem;line-height:1.55}
+.irs-ajuda p{margin:10px 0}
+.irs-ajuda ul{margin:10px 0;padding-left:18px}
+.irs-ajuda li{margin-bottom:7px}
+.irs-ajuda b{color:var(--cream)}
+
+/* Tudo o que é opcional atrás de uma porta fechada. A pessoa que só responde
+   às duas perguntas de cima leva uma resposta e nunca chega a ver isto — que
+   é o objectivo. */
+.irs-mais{
+  border:1px solid rgba(217,178,110,.2);border-radius:16px;
+  padding:0 18px;margin-bottom:22px;background:rgba(217,178,110,.03)
+}
+.irs-mais > summary{
+  cursor:pointer;list-style:none;padding:18px 0;
+  display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center
+}
+.irs-mais > summary::-webkit-details-marker{display:none}
+.irs-mais > summary b{color:var(--cream);font-size:1rem}
+.irs-mais > summary span{
+  grid-column:1;color:var(--cream-dim);font-size:.82rem;line-height:1.45
+}
+.irs-mais > summary::after{
+  content:'›';grid-column:2;grid-row:1/3;color:var(--gold);
+  font-size:1.5rem;transition:transform .2s
+}
+.irs-mais[open] > summary::after{transform:rotate(90deg)}
+.irs-mais[open] > summary{border-bottom:1px solid rgba(217,178,110,.14);margin-bottom:20px}
+.irs-mais .irs-bloco:last-of-type{margin-bottom:22px}
+
 .irs-dica{
   /* O mesmo verde do resultado (`--up`), mas com um terço da tinta e sem
      numero grande: fica a ler-se como a continuacao da caixa de cima e nao

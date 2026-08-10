@@ -551,6 +551,93 @@ testar('e quem ganha pouco deduz mais de renda do que quem ganha muito', () => {
   assert.ok(a.valor > b.valor, 'a elevação da nota 8 não está a ser aplicada');
 });
 
+console.log('\ncontra uma liquidacao a serio das Financas\n');
+
+/* ---- o primeiro caso real ----
+
+   Uma simulação feita no Portal das Finanças, por uma pessoa a sério: sozinha,
+   sem IRS Jovem, só trabalho dependente. Os números estão como a AT os
+   apresentou, e o nome dela não está aqui nem faz falta.
+
+   Isto vale mais do que os setenta e tal testes acima juntos. Os outros
+   confirmam que o motor faz o que eu pensei; este confirma que o que eu pensei
+   é o que a Autoridade Tributária faz. São coisas diferentes, e só a segunda
+   interessa a quem vai entregar uma declaração.
+
+   Confere-se etapa a etapa e não só o valor final, de propósito: se o fim
+   batesse e o meio não, seriam dois erros a cancelarem-se — e esses são os que
+   sobrevivem a um teste que só olha para o resultado. */
+const AT_SOZINHO = {
+  global: 15464.69, especificas: 4462.15, abatimento: 0, coletavel: 11002.54,
+  taxa: 16.00, parcela: 282.07, coletaTotal: 1478.34,
+  deducoes: 804.76, beneficioMunicipal: 16.84, coletaLiquida: 656.73,
+  retencoes: 1063.00, receber: 406.27
+};
+
+testar('caso real: a deducao especifica bate com a da AT', () => {
+  const t = irsRendimentoLiquido({ trabalho: AT_SOZINHO.global });
+  perto(t.especifica, AT_SOZINHO.especificas);
+});
+
+testar('caso real: o minimo de existencia da' + "'" + ' zero, e a AT tambem', () => {
+  /* Com 15.464,69 € de bruto esta pessoa cai na terceira formula do artigo
+     70.º, que dá −820,29 € — e a lei corta em zero. Se a fórmula estivesse
+     mal, saía um número positivo qualquer e o colectável ficava errado. É o
+     ponto onde uma cópia à pressa se denuncia. */
+  const de = IRS_REF.especificas.trabalho;
+  const ab = irsAbatimentoMinimo(AT_SOZINHO.global, de, 1, AT_SOZINHO.global, 0);
+  perto(ab, AT_SOZINHO.abatimento);
+});
+
+testar('caso real: o rendimento colectavel bate ao centimo', () => {
+  const t = irsRendimentoLiquido({ trabalho: AT_SOZINHO.global });
+  const ab = irsAbatimentoMinimo(AT_SOZINHO.global, t.especifica, 1, AT_SOZINHO.global, 0);
+  perto(AT_SOZINHO.global - t.especifica - ab, AT_SOZINHO.coletavel);
+});
+
+testar('caso real: a coleta bate, e pelos dois caminhos', () => {
+  /* O nosso, fatia a fatia, e o da AT, `taxa × colectável − parcela a abater`.
+     Duas contas diferentes sobre a mesma tabela: se a tabela estivesse mal
+     copiada, era muito improvável que as duas errassem para o mesmo sítio. */
+  perto(irsColeta(AT_SOZINHO.coletavel), AT_SOZINHO.coletaTotal);
+  perto(AT_SOZINHO.coletavel * (AT_SOZINHO.taxa / 100) - AT_SOZINHO.parcela,
+        AT_SOZINHO.coletaTotal);
+});
+
+testar('caso real: a declaracao inteira bate, com as deducoes que ela teve', () => {
+  /* Não se sabe a repartição dos 804,76 € entre saúde, educação e o resto, por
+     isso constrói-se uma que dê exactamente esse total: as despesas gerais
+     cheias (250 €, que é o tecto delas) e o resto em saúde. O que aqui se
+     confere é a máquina de somar e não a origem de cada euro.
+
+     Falta o Benefício Municipal, que o motor ainda não conhece: são os 16,84 €
+     de diferença, e estão apontados no CLAUDE.md. */
+  const emGerais = IRS_REF.coleta.gerais.tecto;
+  const emSaude = AT_SOZINHO.deducoes - emGerais;
+  const r = irsCalcular({
+    titulares: [{ trabalho: AT_SOZINHO.global, retencao: AT_SOZINHO.retencoes }],
+    gastos: {
+      gerais: emGerais / IRS_REF.coleta.gerais.pct,
+      saude:  emSaude / IRS_REF.coleta.saude.pct
+    }
+  });
+  perto(r.coletavel, AT_SOZINHO.coletavel);
+  perto(r.coleta, AT_SOZINHO.coletaTotal);
+  perto(r.deduzido, AT_SOZINHO.deducoes, 0.02);
+  perto(r.imposto, AT_SOZINHO.coletaLiquida + AT_SOZINHO.beneficioMunicipal, 0.02,
+    'sem o Benefício Municipal, o imposto fica acima do da AT por esse valor');
+  perto(r.resultado, AT_SOZINHO.receber - AT_SOZINHO.beneficioMunicipal, 0.02);
+});
+
+testar('caso real: o Beneficio Municipal e' + "'" + ' 2,5% da coleta ja deduzida', () => {
+  /* A participação variável no IRS: o município tem direito a 5% do imposto de
+     quem lá mora e pode abrir mão de parte. Esta câmara abriu mão de metade, e
+     essa metade voltou ao contribuinte. O motor ainda não sabe que isto
+     existe — este teste guarda a conta para quando souber. */
+  const base = AT_SOZINHO.coletaTotal - AT_SOZINHO.deducoes;
+  perto(AT_SOZINHO.beneficioMunicipal / base * 100, 2.5, 0.01);
+});
+
 console.log('\nas duas somas de controlo da tabela dos escalões\n');
 
 testar('a taxa média da lei tem de bater com as taxas', () => {
