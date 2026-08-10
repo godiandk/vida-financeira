@@ -310,6 +310,31 @@ const IRS_REF = {
                    acompanhamento90: 2090 }
   },
 
+  /* ---- O BENEFÍCIO MUNICIPAL ----
+
+     Apareceu numa simulação a sério do Portal das Finanças: 16,84 € numa
+     colecta de 1.478,34 €. Não era arredondamento — eram exactamente 2,500% da
+     colecta já deduzida, e essa precisão foi o que o denunciou.
+
+     É a participação variável no IRS: o município tem direito a **até 5%** do
+     imposto de quem lá mora, calculado sobre a colecta líquida das deduções do
+     artigo 78.º n.º 1. Se a câmara decidir levar menos do que os 5%, a
+     diferença volta ao contribuinte como dedução. A do seu concelho levou
+     metade, e a outra metade voltou.
+
+     A app não pode adivinhar a percentagem — muda de concelho para concelho e
+     de ano para ano. Por isso pergunta-se, e **começa em zero**: assumir 5%
+     era prometer dinheiro a quem mora num concelho que leva tudo, e um
+     simulador não pode errar para o lado bom. */
+  beneficioMunicipal: {
+    verificado: '2026-08-10',
+    fonte: 'artigo 26.º da Lei n.º 73/2013, de 3 de setembro — regime financeiro ' +
+           'das autarquias locais · https://diariodarepublica.pt/dr/' +
+           'legislacao-consolidada/lei/2013-105795409-116088603',
+    /* O máximo a que o município tem direito. O que ele não levar, volta. */
+    maximo: 0.05
+  },
+
   /* O tecto de tudo junto, por escalão. Sem isto, quem tem rendimento alto e
      muitas despesas via uma dedução que a lei não deixa ter — e o simulador
      prometia um reembolso que não existe. */
@@ -792,7 +817,17 @@ function irsCalcular(d) {
      doméstica passam por cima dele. */
   const tectoTudo = irsTectoGlobal(coletavelDeReferencia, d.dependentes || 0);
   const deduzido = arred(ded.livre + Math.min(ded.travavel, tectoTudo));
-  const liquida = arred(Math.max(0, coleta - deduzido));
+
+  /* O benefício municipal vem depois das outras deduções, e sobre o que sobra
+     delas — é assim que a lei o define, e é assim que aparece na nota de
+     liquidação. Zero por omissão: quem não souber a percentagem do seu
+     concelho não recebe promessa nenhuma. */
+  const pctMunicipio = Math.min(
+    Math.max(0, Number(d.municipioDevolve) || 0) / 100,
+    IRS_REF.beneficioMunicipal.maximo);
+  const municipal = arred(Math.max(0, coleta - deduzido) * pctMunicipio);
+
+  const liquida = arred(Math.max(0, coleta - deduzido - municipal));
 
   const resultado = arred(retidoTotal - liquida);
 
@@ -804,6 +839,7 @@ function irsCalcular(d) {
     coleta: coleta,
     deducoes: ded,
     deduzido: deduzido,
+    beneficioMunicipal: municipal,
     tectoGlobal: tectoTudo,
     /* O abatimento em euros de rendimento, e o que ele poupou em imposto. */
     abatimentoMinimo: abatimento,
@@ -1439,6 +1475,15 @@ function irsDesenhar() {
     irsCampo('irs-retmes2', 'Quanto lhe descontam de IRS, por mês', '', g.retmes2) +
     '</div>' +
 
+    '<div class="irs-bloco"><h4>O seu concelho devolve parte do IRS?</h4>' +
+    '<p class="irs-nota">A câmara tem direito a ficar com até 5% do seu IRS. ' +
+    'Muitas ficam com menos, e o que não levam <b>volta para si</b> — vem na nota ' +
+    'de liquidação com o nome <i>Benefício Municipal</i>. Procure «participação ' +
+    'variável no IRS» com o nome do seu concelho. Deixe 0 se não souber: mais vale ' +
+    'a conta sair por baixo do que prometer o que não vem.</p>' +
+    irsCampo('irs-municipio', 'Quanto devolve (%)', 'Entre 0 e 5.', g.municipio) +
+    '</div>' +
+
     '<div class="irs-bloco"><h4>Quem vive consigo</h4>' +
     irsCampo('irs-dep', 'Quantos filhos', 'Só os que estão no seu agregado.', g.dep) +
     irsCampo('irs-idades', 'Que idades têm, a 31 de Dezembro',
@@ -1648,6 +1693,7 @@ function irsContar() {
   const dados = {
     titulares: titulares, conjunta: casal, extra: caca.extra,
     dependentes: nFilhos, ascendentes: caca.ascendentes,
+    municipioDevolve: irsNum('irs-municipio'),
     idades: irsIdades(irsTexto('irs-idades'), nFilhos),
     gastos: {
       saude: irsNum('irs-saude'), educacao: irsNum('irs-educ'),
@@ -1665,6 +1711,7 @@ function irsContar() {
     trab2: irsNum('irs-trab2'), ret2: irsNum('irs-ret2'),
     dep: nFilhos, idades: irsTexto('irs-idades'),
     abriuCaca: !!(document.getElementById('irs-caca') || {}).open,
+    municipio: irsNum('irs-municipio'),
     saude: irsNum('irs-saude'), educ: irsNum('irs-educ'),
     renda: irsNum('irs-renda'), gerais: irsNum('irs-gerais')
   });
@@ -1720,6 +1767,9 @@ function irsContar() {
           dinheiro(l.sobra) + ' de dedução</span>' : '') + '</li>').join('') +
       (filhos && filhos.exacto === false ? '<li class="irs-sobra">Escreva as idades dos ' +
         'filhos para a dedução ficar certa — pode dar mais.</li>' : '') +
+      (r.beneficioMunicipal > 0 ? '<li>− Benefício Municipal <b>' +
+        dinheiro(r.beneficioMunicipal) + '</b><span class="irs-sobra">é a parte do ' +
+        'IRS que o seu concelho não levou</span></li>' : '') +
       (r.deduzido < r.deducoes.total ? '<li class="irs-sobra">A saúde, a educação, a casa e ' +
         'o lar juntos pararam no tecto de ' + dinheiro(r.tectoGlobal) + ' — é a lei, não é ' +
         'engano. Os filhos e as despesas gerais ficam de fora deste tecto e contam por ' +

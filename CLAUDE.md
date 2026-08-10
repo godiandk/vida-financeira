@@ -111,16 +111,14 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
   o aviso laranja deixou de aparecer — e há um teste que falha no dia em que
   alguém acrescentar uma tabela sem a conferir, o que o faz voltar sozinho.
   **Mudam todos os anos com a Lei do Orçamento.**
-- **Falta o Benefício Municipal.** Apareceu numa simulação a sério do Portal
-  das Finanças: 16,84 € numa colecta de 1.478,34 €, que são exactamente 2,5%
-  da colecta já deduzida. É a *participação variável no IRS* — o município tem
-  direito a 5% do imposto de quem lá mora e pode abrir mão de parte, e essa
-  parte volta ao contribuinte. O motor não sabe que isto existe, e a conta
-  nunca vai bater com a das Finanças enquanto não souber. A percentagem muda
-  de concelho para concelho e a app não a pode adivinhar: ou se pergunta num
-  campo (a começar em 0, nunca em 5, porque um simulador não pode errar para o
-  lado bom), ou se traz a tabela dos 308 municípios para dentro do `irs.js`.
-  Há um teste no `teste-irs.mjs` que já guarda a conta.
+- **O motor do IRS reproduz uma liquidação a sério, ao cêntimo.** Uma simulação
+  do Portal das Finanças — pessoa sozinha, sem IRS Jovem — está no
+  `teste-irs.mjs` conferida linha a linha: dedução específica, mínimo de
+  existência, colectável, colecta pelos dois caminhos, benefício municipal,
+  colecta líquida e valor a receber. Vale mais do que os outros cem testes
+  juntos: aqueles confirmam que o motor faz o que eu pensei, este confirma que
+  o que eu pensei é o que a AT faz. **Faltam dois casos**: um casal em conjunto
+  e alguém com IRS Jovem.
 - **O IRS não vai ao Portal das Finanças, e não deve ir.** Estima e aponta o
   que falta pedir. Nunca pede a senha, nunca entrega nada. Se um dia houver
   cobrança pela ferramenta, é por esta conta — não por entregar a declaração

@@ -838,18 +838,54 @@ testar('caso real: a declaracao inteira bate, com as deducoes que ela teve', () 
   perto(r.coletavel, AT_SOZINHO.coletavel);
   perto(r.coleta, AT_SOZINHO.coletaTotal);
   perto(r.deduzido, AT_SOZINHO.deducoes, 0.02);
-  perto(r.imposto, AT_SOZINHO.coletaLiquida + AT_SOZINHO.beneficioMunicipal, 0.02,
-    'sem o Benefício Municipal, o imposto fica acima do da AT por esse valor');
-  perto(r.resultado, AT_SOZINHO.receber - AT_SOZINHO.beneficioMunicipal, 0.02);
+});
+
+testar('caso real: a declaracao INTEIRA bate, ate ao ultimo centimo', () => {
+  /* O teste mais valioso deste ficheiro. Não é uma conta que eu inventei e
+     conferi contra mim próprio: é uma liquidação a sério das Finanças,
+     reproduzida linha a linha pelo motor.
+
+     A margem é de um cêntimo porque a AT arredonda em sítios ligeiramente
+     diferentes dos nossos. Um cêntimo é arredondamento; um euro seria um
+     defeito. */
+  const emGerais = IRS_REF.coleta.gerais.tecto;
+  const emSaude = AT_SOZINHO.deducoes - emGerais;
+  const r = irsCalcular({
+    titulares: [{ trabalho: AT_SOZINHO.global, retencao: AT_SOZINHO.retencoes }],
+    municipioDevolve: 2.5,
+    gastos: {
+      gerais: emGerais / IRS_REF.coleta.gerais.pct,
+      saude:  emSaude / IRS_REF.coleta.saude.pct
+    }
+  });
+  perto(r.beneficioMunicipal, AT_SOZINHO.beneficioMunicipal, 0.01, 'benefício municipal');
+  perto(r.imposto, AT_SOZINHO.coletaLiquida, 0.01, 'colecta líquida');
+  perto(r.resultado, AT_SOZINHO.receber, 0.01, 'valor a receber');
 });
 
 testar('caso real: o Beneficio Municipal e' + "'" + ' 2,5% da coleta ja deduzida', () => {
-  /* A participação variável no IRS: o município tem direito a 5% do imposto de
-     quem lá mora e pode abrir mão de parte. Esta câmara abriu mão de metade, e
-     essa metade voltou ao contribuinte. O motor ainda não sabe que isto
-     existe — este teste guarda a conta para quando souber. */
+  /* Não era arredondamento: eram exactamente 2,500%, e essa precisão foi o que
+     o denunciou. O município tem direito a 5% e esta câmara levou metade. */
   const base = AT_SOZINHO.coletaTotal - AT_SOZINHO.deducoes;
   perto(AT_SOZINHO.beneficioMunicipal / base * 100, 2.5, 0.01);
+});
+
+testar('e um concelho que leve tudo nao devolve nada', () => {
+  /* Zero por omissão. Assumir 5% era prometer dinheiro a quem mora num
+     concelho que fica com tudo. */
+  const d = { titulares: [{ trabalho: 20000, retencao: 2000 }], gastos: {} };
+  assert.equal(irsCalcular(d).beneficioMunicipal, 0);
+  assert.ok(irsCalcular(Object.assign({}, d, { municipioDevolve: 5 })).beneficioMunicipal > 0);
+});
+
+testar('e ninguem devolve mais do que os 5% que a lei permite', () => {
+  const d = { titulares: [{ trabalho: 40000, retencao: 6000 }], gastos: {},
+              municipioDevolve: 80 };
+  const r = irsCalcular(d);
+  const semLimite = (r.coleta - r.deduzido) * 0.80;
+  assert.ok(r.beneficioMunicipal < semLimite,
+    'uma percentagem impossivel tem de ser travada nos 5%');
+  perto(r.beneficioMunicipal, (r.coleta - r.deduzido) * IRS_REF.beneficioMunicipal.maximo, 0.02);
 });
 
 console.log('\nas duas somas de controlo da tabela dos escalões\n');
