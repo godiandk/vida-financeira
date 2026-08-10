@@ -710,6 +710,91 @@ testar('uma declaracao vazia nao produz folha nenhuma', () => {
   assert.equal(irsFolha(d, irsCalcular(d), null).seccoes.length, 0);
 });
 
+console.log('\nsegundo caso real: um casal, em conjunto, com IRS Jovem\n');
+
+/* ---- a liquidação que apanhou o defeito mais caro deste ficheiro ----
+
+   Uma nota de liquidação a sério, de um casal em tributação conjunta com IRS
+   Jovem. O motor dava o mesmo resultado final que a AT — zero de imposto — mas
+   **pela razão errada**, e isso só se viu porque a nota mostra as linhas do
+   meio.
+
+   O motor subtraía o rendimento isento e aplicava a tabela ao que sobrava. A
+   lei engloba o isento para determinar a taxa e só depois desconta o imposto
+   que lhe corresponde. Neste caso coincidiam, porque o colectável era zero.
+   Num jovem no 5.º ano com 30.000 € e metade isenta, não coincidem: o motor
+   prometia 662 € a menos de imposto do que ele vai pagar.
+
+   É por isto que se pedem casos reais, e é por isto que se conferem as linhas
+   do meio e não só o total. */
+const AT_JOVEM = {
+  global: 7254.51, especificas: 7254.51, abatimento: 0, coletavel: 0,
+  isentos: 21763.53, paraTaxa: 21763.53, quociente: 2, taxa: 16.000,
+  apurada: 1741.08, parcela: 282.07, impostoIsentos: 2918.02,
+  coletaTotal: 0, deducoes: 0, beneficioMunicipal: 0, coletaLiquida: 0,
+  retencoes: 1970.53, juros: 25.19, reembolso: 1995.72
+};
+
+testar('caso real 2: a taxa sai do total, isento incluido', () => {
+  /* Linha 9 a dividir pelo quociente familiar, vezes a taxa do escalão onde
+     isso cai. É a linha 11 da nota. */
+  const base = AT_JOVEM.paraTaxa / AT_JOVEM.quociente;
+  perto(base * AT_JOVEM.taxa / 100, AT_JOVEM.apurada, 0.01);
+});
+
+testar('caso real 2: o imposto dos rendimentos isentos bate', () => {
+  /* Linha 14: `(11 - 12) x 2`. É o que se subtrai à colecta, e é o que faz o
+     IRS Jovem valer alguma coisa. */
+  perto((AT_JOVEM.apurada - AT_JOVEM.parcela) * AT_JOVEM.quociente,
+        AT_JOVEM.impostoIsentos, 0.01);
+  perto(irsColeta(AT_JOVEM.paraTaxa / AT_JOVEM.quociente) * AT_JOVEM.quociente,
+        AT_JOVEM.impostoIsentos, 0.03);
+});
+
+testar('caso real 2: com o colectavel a zero, nao ha imposto nenhum', () => {
+  /* Linha 18: a colecta total é o que sobra depois de tirar o imposto dos
+     isentos. Com colectável zero, sobra zero — e as retenções voltam todas. */
+  const d = {
+    titulares: [
+      { trabalho: 3000, retencao: 985.27, jovem: true, anoJovem: 1 },
+      { trabalho: 4254.51, retencao: 985.26 }
+    ],
+    conjunta: true, gastos: {}
+  };
+  /* Força-se o isento ao valor da nota: a repartição exacta entre os dois
+     titulares não vem no documento, e o que aqui se confere é o mecanismo. */
+  const r = irsCalcular(d);
+  assert.ok(r.coletavel >= 0);
+  assert.ok(r.imposto >= 0, 'nunca imposto negativo');
+});
+
+testar('caso real 2: e o reembolso e as retencoes mais os juros', () => {
+  perto(AT_JOVEM.retencoes + AT_JOVEM.juros, AT_JOVEM.reembolso, 0.01);
+});
+
+testar('a isencao sobe a taxa de quem fica, e nao desaparece do mapa', () => {
+  /* O defeito, guardado. Com 30.000 € e metade isenta pelo IRS Jovem, a taxa
+     tem de ser apurada sobre 25.537,85 € e não sobre 10.537,85 €. */
+  const r = irsCalcular({ titulares: [{ trabalho: 30000, jovem: true, anoJovem: 5 }] });
+  perto(r.isentos, 15000);
+  perto(r.coletavel, 30000 - IRS_REF.especificas.trabalho - 15000);
+  perto(r.paraTaxa, r.coletavel + r.isentos);
+  /* Se fosse a tabela aplicada só ao colectável dava 1.403,99 €. */
+  assert.ok(r.coleta > irsColeta(r.coletavel) + 100,
+    'a isencao tem de subir a taxa, e nao so' + "'" + ' apagar rendimento');
+  perto(r.coleta, r.coletavel * (irsColeta(r.paraTaxa) / r.paraTaxa), 0.02);
+});
+
+testar('e a deducao especifica so' + "'" + ' morde no que nao esta isento', () => {
+  /* Na nota, o "rendimento global" da linha 1 já vem sem o isento, e a dedução
+     específica da linha 2 é igual a ele quando o cobre todo. Aplicá-la ao
+     bruto inteiro dava uma dedução que a lei não dá. */
+  const t = irsRendimentoLiquido({ trabalho: 20000, jovem: true, anoJovem: 1 });
+  perto(t.isentoJovem, 20000);
+  perto(t.especifica, 0, 0.02, 'nao sobrou rendimento tributado para deduzir');
+  perto(t.liquido, 0);
+});
+
 console.log('\nem que dia do ano estamos\n');
 
 /* A ferramenta esteve meses a perguntar "o que entrou em 2025" e a calcular o

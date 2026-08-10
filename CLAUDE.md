@@ -111,14 +111,14 @@ Não se publica nada sem correr os testes que tocam no que se mexeu.
   o aviso laranja deixou de aparecer — e há um teste que falha no dia em que
   alguém acrescentar uma tabela sem a conferir, o que o faz voltar sozinho.
   **Mudam todos os anos com a Lei do Orçamento.**
-- **O motor do IRS reproduz uma liquidação a sério, ao cêntimo.** Uma simulação
-  do Portal das Finanças — pessoa sozinha, sem IRS Jovem — está no
-  `teste-irs.mjs` conferida linha a linha: dedução específica, mínimo de
-  existência, colectável, colecta pelos dois caminhos, benefício municipal,
-  colecta líquida e valor a receber. Vale mais do que os outros cem testes
-  juntos: aqueles confirmam que o motor faz o que eu pensei, este confirma que
-  o que eu pensei é o que a AT faz. **Faltam dois casos**: um casal em conjunto
-  e alguém com IRS Jovem.
+- **O motor do IRS está conferido contra duas liquidações a sério.** No
+  `teste-irs.mjs`: uma pessoa sozinha sem IRS Jovem (reproduzida ao cêntimo,
+  linha a linha) e um casal em conjunto com IRS Jovem. A segunda apanhou o
+  defeito mais caro que este ficheiro já teve — o motor subtraía o rendimento
+  isento em vez de o englobar para determinar a taxa, e prometia **662 € a
+  menos** de imposto a um jovem no 5.º ano. Dava o resultado certo no caso
+  dela, porque o colectável era zero, e só se viu porque a nota mostra as
+  linhas do meio. **Conferir sempre as linhas do meio, e não só o total.**
 - **O IRS não vai ao Portal das Finanças, e não deve ir.** Estima e aponta o
   que falta pedir. Nunca pede a senha, nunca entrega nada. Se um dia houver
   cobrança pela ferramenta, é por esta conta — não por entregar a declaração

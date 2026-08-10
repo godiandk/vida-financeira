@@ -653,7 +653,13 @@ function irsRendimentoLiquido(t) {
   const ss = Math.max(0, Number(t.segurancaSocial) || 0);
   const tectoTrabalho = t.ordemProfissional
     ? IRS_REF.especificas.comOrdemProfissional : IRS_REF.especificas.trabalho;
-  const especDep = dep > 0 ? Math.min(dep, Math.max(tectoTrabalho, ss)) : 0;
+  /* A dedução específica aplica-se ao que **não** está isento, e não pode ser
+     maior do que ele. Numa nota de liquidação a sério vê-se isto à letra: o
+     "rendimento global" da linha 1 já vem sem o rendimento isento, e a dedução
+     da linha 2 é igual a ele quando o cobre todo. */
+  const depTributado = Math.max(0, dep - Math.min(isento, dep));
+  const especDep = depTributado > 0
+    ? Math.min(depTributado, Math.max(tectoTrabalho, ss)) : 0;
   const especPen = pen > 0 ? Math.min(pen, IRS_REF.especificas.pensoes) : 0;
   /* A parte dos recibos verdes que o coeficiente tira também é uma dedução
      específica para efeitos do mínimo de existência — está na legenda do
@@ -674,7 +680,7 @@ function irsRendimentoLiquido(t) {
     especifica: de,
     especificaTributavel: arred(especDep + especPen),
     isentoJovem: arred(isento),
-    liquido: arred(Math.max(0, tributavel - especDep - especPen - isento)),
+    liquido: arred(Math.max(0, tributavel - isento - especDep - especPen)),
     retido: Math.max(0, Number(t.retencao) || 0)
   };
 }
@@ -774,13 +780,41 @@ function irsCalcular(d) {
   const coletaveis = titulares.map((t, i) => arred(Math.max(0, t.liquido - abatimentos[i])));
   const liquidoTotal = arred(coletaveis.reduce((s, c) => s + c, 0));
 
+  /* ---- ISENÇÃO COM PROGRESSIVIDADE ----
+
+     Isto esteve mal, e mal do lado perigoso. O motor subtraía o rendimento
+     isento pelo IRS Jovem e aplicava a tabela ao que sobrava — o que dá uma
+     taxa mais baixa e um imposto menor do que o da lei. Num jovem no 5.º ano
+     com 30.000 € de bruto e metade isenta, prometia **662 € a menos** do que
+     ele vai pagar. Um simulador que erra sempre a favor de quem o lê é o pior
+     defeito que esta aplicação pode ter.
+
+     A lei faz outra coisa, e vê-se à letra numa nota de liquidação: o
+     rendimento isento é **englobado para determinação da taxa** (linha 8), a
+     taxa é apurada sobre o total (linha 9), e depois subtrai-se o imposto
+     correspondente à parte isenta (linha 14). O que sobra é a colecta.
+
+     Equivale a apurar a **taxa média** sobre tudo — colectável mais isento — e
+     aplicá-la só ao colectável. É o que está aqui em baixo, e é o que faz o
+     IRS Jovem baixar o imposto sem apagar o rendimento do mapa. */
+  const isentosTotal = arred(titulares.reduce((s, t) => s + t.isentoJovem, 0));
+  const paraTaxa = arred(liquidoTotal + isentosTotal);
+
   /* O quociente conjugal: divide-se por dois, aplica-se a tabela, e
      multiplica-se por dois. É isto que faz a tributação conjunta compensar
      quando um ganha muito mais do que o outro — e é uma escolha que quase
      toda a gente faz sem saber que está a escolher. */
+  const coef = conjunta ? 2 : 1;
   const coletavelDeReferencia = conjunta ? arred(liquidoTotal / 2) : liquidoTotal;
+
   let coleta;
-  if (conjunta) {
+  if (isentosTotal > 0) {
+    /* Com isenção: a taxa sai do total, e só depois se guarda a parte do
+       colectável. Sem separar por titular, porque a taxa é do agregado. */
+    const impostoDeTudo = arred(irsImposto(paraTaxa / coef) * coef);
+    const taxaMedia = paraTaxa > 0 ? impostoDeTudo / paraTaxa : 0;
+    coleta = arred(liquidoTotal * taxaMedia);
+  } else if (conjunta) {
     coleta = arred(irsImposto(liquidoTotal / 2) * 2);
   } else {
     coleta = arred(coletaveis.reduce((s, c) => s + irsImposto(c), 0));
@@ -835,6 +869,11 @@ function irsCalcular(d) {
     conjunta: conjunta,
     bruto: brutoTotal,
     coletavel: liquidoTotal,
+    /* O que o IRS Jovem isentou, e o total sobre o qual a taxa foi apurada.
+       São as linhas 8 e 9 da nota de liquidação, e sem elas não se percebe de
+       onde saiu a taxa. */
+    isentos: isentosTotal,
+    paraTaxa: paraTaxa,
     coletavelPorSujeito: coletavelDeReferencia,
     coleta: coleta,
     deducoes: ded,
