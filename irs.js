@@ -1193,6 +1193,49 @@ function irsQuantoFaltaParaOTecto(gasto, regra, tecto) {
   return { faltaGastar: arred(precisa - g), ganha: arred(t - g * regra.pct) };
 }
 
+/* ---- a comparação que justifica esta ferramenta inteira ----
+
+   Está prometida no cabeçalho deste ficheiro desde o primeiro dia e nunca
+   tinha sido construída: o `irsFacturasEmFalta()` existia, estava testado,
+   estava exportado, e nenhum ecrã lhe chamava. Era código morto — e era o
+   único código aqui dentro que faz uma coisa que o simulador das Finanças não
+   consegue fazer.
+
+   A app sabe onde a pessoa gastou, porque a acompanhou durante o ano. O
+   e-fatura só tem o que foi pedido com o número de contribuinte. **A diferença
+   entre os dois é dinheiro que se perde** — e perde-se a 25 de Fevereiro, não
+   em Junho.
+
+   Devolve uma linha por categoria, e só das que têm buraco: uma lista de
+   quatro zeros não é um aviso, é ruído. */
+function irsBuracoDoEfactura(viu, noEfactura, coleta) {
+  const c = IRS_REF.coleta;
+  const quais = [
+    { id: 'saude',    nome: 'Saúde',           regra: c.saude },
+    { id: 'educacao', nome: 'Educação',        regra: c.educacao },
+    { id: 'rendas',   nome: 'Renda da casa',   regra: c.rendas },
+    { id: 'gerais',   nome: 'Despesas gerais', regra: c.gerais }
+  ];
+
+  const linhas = [];
+  quais.forEach(q => {
+    const r = irsFacturasEmFalta((viu || {})[q.id], (noEfactura || {})[q.id], q.regra);
+    if (r && r.falta > 0) {
+      linhas.push({ id: q.id, nome: q.nome, falta: r.falta, perde: r.perde });
+    }
+  });
+
+  const perde = arred(linhas.reduce((s, l) => s + l.perde, 0));
+  return {
+    linhas: linhas,
+    falta: arred(linhas.reduce((s, l) => s + l.falta, 0)),
+    /* Uma dedução só devolve dinheiro enquanto houver imposto para abater.
+       Sem este travão dizia-se a quem já paga zero que estava a perder 143 € —
+       que é a mesma mentira da caixa dos conselhos, vista do outro lado. */
+    perde: (coleta === undefined) ? perde : arred(Math.min(perde, Math.max(0, coleta)))
+  };
+}
+
 function arred(v) {
   return Math.round((Number(v) || 0) * 100) / 100;
 }
@@ -1205,7 +1248,8 @@ if (typeof module !== 'undefined' && module.exports) {
     irsTectoGlobal, irsTectoRendas, irsConferirMedias, irsConferirParcelas,
     irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
     irsDeducaoDependentes, irsRendimentoLiquido, irsIsencaoJovem,
-    irsFacturasEmFalta, irsQuantoFaltaParaOTecto, irsPorConfirmar,
+    irsFacturasEmFalta, irsBuracoDoEfactura, irsQuantoFaltaParaOTecto,
+    irsPorConfirmar,
     irsFolha, irsFolhaTexto, irsCaca, irsCacaLista
   };
 }
@@ -1494,6 +1538,29 @@ function irsDesenhar() {
        resultado a favor de quem o lê — o resto só o calcula melhor. */
     '<div id="irs-caca-zona"></div>' +
 
+    /* Só a quem a app acompanhou durante o ano: sem movimentos lançados não há
+       nada para comparar com o e-fatura, e um bloco vazio é pior do que
+       nenhum. */
+    (temNoAno
+      ? '<details class="irs-efac" id="irs-efac" ' + (g.abriuEfac ? 'open' : '') + '>' +
+        '<summary><b>O que lhe falta pedir com o seu número</b>' +
+        '<span id="irs-efac-resumo">A app viu o que gastou. O e-fatura só tem o que ' +
+        'foi pedido com o seu contribuinte — e a diferença é dinheiro que se ' +
+        'perde.</span></summary>' +
+        '<p class="irs-nota">Abra o <b>e-fatura</b> ao lado e escreva o que lá está. ' +
+        'Se ainda não foi ver, deixe em branco: isto não estraga a conta de cima.</p>' +
+        [['saude', 'Saúde', sabe.saude], ['educacao', 'Educação', sabe.educacao],
+         ['rendas', 'Renda da casa', sabe.rendas], ['gerais', 'Tudo o resto', sabe.gerais]]
+          .filter(x => x[2] > 0)
+          .map(x => '<div class="irs-efac-linha">' +
+            '<div class="irs-efac-viu">A app viu <b>' + fmt(x[2]) + '</b> em ' + x[1] + '</div>' +
+            irsCampo('efac-' + x[0], 'No e-fatura está', '', g['efac-' + x[0]]) +
+            '<div class="irs-efac-falta" id="falta-' + x[0] + '"></div>' +
+            '</div>').join('') +
+        '<div class="irs-efac-total" id="irs-efac-total"></div>' +
+        '</details>'
+      : '') +
+
     /* Daqui para baixo é tudo opcional, e fechado. Quem só responder às duas
        perguntas de cima já leva uma resposta — pior do que a exacta, e muito
        melhor do que nenhuma. */
@@ -1751,6 +1818,9 @@ function irsContar() {
     dep: nFilhos, idades: irsTexto('irs-idades'),
     abriuCaca: !!(document.getElementById('irs-caca') || {}).open,
     municipio: irsNum('irs-municipio'),
+    abriuEfac: !!(document.getElementById('irs-efac') || {}).open,
+    'efac-saude': irsNum('efac-saude'), 'efac-educacao': irsNum('efac-educacao'),
+    'efac-rendas': irsNum('efac-rendas'), 'efac-gerais': irsNum('efac-gerais'),
     saude: irsNum('irs-saude'), educ: irsNum('irs-educ'),
     renda: irsNum('irs-renda'), gerais: irsNum('irs-gerais')
   });
@@ -1857,6 +1927,60 @@ function irsContar() {
         'não lhe devolve mais nada este ano — mas continua a valer a pena em ' +
         'Janeiro, quando o ano recomeça.</li></ul></div>'
       : '');
+
+  /* ---- o buraco entre o que se gastou e o que se pediu ----
+     A app viu; o e-fatura só tem o que foi pedido com o número. A diferença
+     perde-se a 25 de Fevereiro, não em Junho. */
+  const zonaEfac = document.getElementById('irs-efac');
+  if (zonaEfac) {
+    const viu = irsDoQueJaSabemos(irsAnoEscolhido());
+    const cats = ['saude', 'educacao', 'rendas', 'gerais'];
+    const noEfac = {};
+    cats.forEach(k => { noEfac[k] = irsNum('efac-' + k); });
+    const buraco = irsBuracoDoEfactura(viu, noEfac, r.imposto);
+    const escritos = cats.filter(k => noEfac[k] > 0).length;
+    /* A época pergunta-se aqui e não se herda do `irsDesenhar`: o `irsContar`
+       corre a cada tecla e não tem acesso ao que aquele calculou. Herdá-la
+       calada dava um `ep is not defined` que só aparece quando alguém escreve
+       um número — ou seja, nunca em quem só olha para o ecrã. */
+    const epoca = irsEpoca();
+
+    cats.forEach(k => {
+      const alvo = document.getElementById('falta-' + k);
+      if (!alvo) return;
+      const l = buraco.linhas.find(x => x.id === k);
+      if (!(noEfac[k] > 0)) { alvo.innerHTML = ''; return; }
+      alvo.innerHTML = l
+        ? 'Faltam <b>' + dinheiro(l.falta) + '</b> de facturas' +
+          (l.perde > 0 ? ' — até <b>' + dinheiro(l.perde) + '</b> que não vai receber' : '')
+        : '<span class="irs-efac-ok">Está tudo pedido.</span>';
+    });
+
+    const tot = document.getElementById('irs-efac-total');
+    if (tot) tot.innerHTML = (escritos === 0) ? ''
+      : (buraco.falta > 0
+        ? '<b>Faltam ' + dinheiro(buraco.falta) + ' de facturas com o seu número.</b>' +
+          (buraco.perde > 0
+            ? '<span>São até <b>' + dinheiro(buraco.perde) + '</b> que não vai receber. ' +
+              (epoca.modo === 'facturas'
+                ? 'Ainda dá para classificar no e-fatura até 25 de Fevereiro — e depois desse dia não dá.'
+                : epoca.modo === 'aCorrer'
+                  ? 'O ano ainda não acabou: cada factura que pedir daqui para a frente conta.'
+                  : 'O prazo das facturas já fechou; fica para o ano que vem.') + '</span>'
+            : '<span>Mas já não paga imposto nenhum este ano, por isso não perde ' +
+              'nada com isso.</span>')
+        : '<b>Está tudo pedido.</b><span>O que gastou e o que está no e-fatura ' +
+          'batem certo. Não há nada a perder aqui.</span>');
+
+    const res = document.getElementById('irs-efac-resumo');
+    if (res && escritos > 0) {
+      res.className = buraco.perde > 0 ? 'irs-efac-perde' : 'irs-efac-ok';
+      res.textContent = buraco.perde > 0
+        ? 'Está a perder ' + dinheiro(buraco.perde) + ' por facturas que não foram ' +
+          'pedidas com o seu número.'
+        : 'Está tudo pedido — não há nada a perder aqui.';
+    }
+  }
 
   /* ---- a folha para quem entrega ----
      Nasce fechada: quem só quer saber o número não precisa de a ver. Quem vai

@@ -626,3 +626,45 @@ body.app-shell .app-float{display:none}
 }
 .irs-caca-mais b{color:var(--cream)}
 .irs-caca-mais .irs-campo{margin-bottom:0}
+
+/* O buraco entre o que se gastou e o que se pediu com o número. É a única
+   coisa desta aplicação que o simulador das Finanças não consegue fazer,
+   porque nenhum simulador acompanhou a pessoa durante o ano. */
+.irs-efac{
+  border:1px solid rgba(226,124,90,.28);border-radius:16px;
+  padding:0 18px;margin-bottom:22px;
+  background:linear-gradient(135deg,rgba(226,124,90,.07),rgba(226,124,90,.01))
+}
+.irs-efac > summary{
+  cursor:pointer;list-style:none;padding:18px 0;
+  display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center
+}
+.irs-efac > summary::-webkit-details-marker{display:none}
+.irs-efac > summary b{color:#f0a98c;font-size:1.02rem}
+.irs-efac > summary span{grid-column:1;color:var(--cream-dim);font-size:.83rem;line-height:1.45}
+.irs-efac > summary .irs-efac-perde{color:#f0a98c;font-weight:700;font-size:.9rem}
+.irs-efac > summary .irs-efac-ok{color:#8fe3bb;font-weight:700;font-size:.9rem}
+.irs-efac > summary::after{
+  content:'›';grid-column:2;grid-row:1/3;color:#f0a98c;font-size:1.5rem;transition:transform .2s
+}
+.irs-efac[open] > summary::after{transform:rotate(90deg)}
+.irs-efac[open] > summary{border-bottom:1px solid rgba(226,124,90,.18)}
+
+.irs-efac-linha{padding:14px 0;border-bottom:1px solid rgba(217,178,110,.1)}
+.irs-efac-linha:last-of-type{border-bottom:0}
+.irs-efac-viu{color:var(--cream);font-size:.9rem;margin-bottom:10px;font-weight:600}
+.irs-efac-viu b{color:var(--gold-soft)}
+.irs-efac-linha .irs-campo{margin-bottom:0}
+.irs-efac-falta:not(:empty){
+  margin-top:9px;color:var(--cream-dim);font-size:.82rem;line-height:1.45
+}
+.irs-efac-falta b{color:#f0a98c}
+.irs-efac-falta .irs-efac-ok{color:#8fe3bb}
+
+.irs-efac-total:not(:empty){
+  margin:16px 0 20px;padding:14px 16px;border-radius:12px;
+  background:rgba(226,124,90,.1);border:1px solid rgba(226,124,90,.28)
+}
+.irs-efac-total b{display:block;color:#f0a98c;font-size:.94rem;margin-bottom:6px}
+.irs-efac-total span{display:block;color:var(--cream-dim);font-size:.83rem;line-height:1.5}
+.irs-efac-total span b{display:inline;color:var(--cream)}

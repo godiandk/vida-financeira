@@ -243,6 +243,13 @@ ok(await p.locator('#irs-trab').inputValue()==='45000', 'os rendimentos ficaram 
 ok(await p.locator('#irs-idades').inputValue()==='3, 2, 1', 'as idades tambem');
 ok(await p.locator('#irs-quem button[data-quem="casal"].sim').count()===1, 'e a escolha de casal tambem');
 
+console.log('\n== o buraco do e-fatura ==');
+/* Sem movimentos lancados nao ha' nada para comparar, e o bloco nao aparece —
+   e' o unico caso em que um bloco ausente e' melhor do que um bloco vazio.
+   Esta suite corre sem movimentos, por isso e' isso que se confirma. */
+ok(await p.locator('#irs-efac').count()===0,
+   'sem nada lancado, nao se pergunta pelo e-fatura');
+
 console.log('\n== a folha para quem entrega ==');
 /* Serve quem entrega a sua propria declaracao e quem foi autorizado a entregar
    a de outra pessoa, no Portal, pela "Gestao de Autorizacoes de Acessos". */

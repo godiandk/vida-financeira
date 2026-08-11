@@ -38,7 +38,7 @@ const irs = new Function('module', 'document', 'localStorage', 'Intl',
 const { IRS_REF, irsColeta, irsSolidariedade, irsImposto,
         irsCalcular, irsMelhorOpcao, irsRendimentoLiquido,
         irsIsencaoJovem, irsFolha, irsFolhaTexto, irsCaca, irsCacaLista,
-        irsFacturasEmFalta, irsQuantoFaltaParaOTecto,
+        irsFacturasEmFalta, irsBuracoDoEfactura, irsQuantoFaltaParaOTecto,
         irsPorConfirmar, irsTectoGlobal, irsTectoRendas,
         irsConferirMedias, irsConferirParcelas,
         irsAbatimentoMinimo, irsValorReferencia, irsLimiteL,
@@ -629,6 +629,65 @@ testar('mas nunca abaixo de zero: nao se recebe o que nao se descontou', () => {
   const r = irsCalcular(d);
   assert.ok(r.imposto >= 0);
   assert.ok(r.resultado <= 0.01, 'sem retencoes nao ha nada a receber, deu ' + r.resultado);
+});
+
+console.log('\no buraco entre o que se gastou e o que se pediu\n');
+
+/* A promessa do cabeçalho deste ficheiro, escrita no primeiro dia e construída
+   só agora: a app sabe onde a pessoa gastou porque a acompanhou durante o ano;
+   o e-fatura só tem o que foi pedido com o número. A diferença é dinheiro que
+   se perde — e perde-se a 25 de Fevereiro, não em Junho.
+
+   O `irsFacturasEmFalta()` esteve escrito, testado e exportado durante todo
+   este tempo, e nenhum ecrã lhe chamava. Era código morto, e era o único aqui
+   dentro que faz uma coisa que o simulador das Finanças não consegue fazer. */
+
+testar('so aparece o que tem buraco, e nao uma lista de zeros', () => {
+  const r = irsBuracoDoEfactura({ saude: 340, educacao: 200, gerais: 900 },
+                                { saude: 340, educacao: 200, gerais: 400 });
+  assert.equal(r.linhas.length, 1, 'so as gerais tinham buraco');
+  assert.equal(r.linhas[0].id, 'gerais');
+});
+
+testar('quem pediu tudo nao tem nada a perder', () => {
+  const r = irsBuracoDoEfactura({ saude: 340 }, { saude: 340 });
+  assert.deepEqual(r.linhas, []);
+  assert.equal(r.perde, 0);
+});
+
+testar('e quem ainda nao foi ver o e-fatura nao leva susto nenhum', () => {
+  /* Com o campo em branco, o e-fatura conta zero e a diferença seria o gasto
+     todo. É verdade aritmeticamente e é inútil como aviso — mas tem de ser o
+     ecrã a calar-se, não a função a mentir. Aqui confirma-se o que ela devolve
+     para que o ecrã possa decidir. */
+  const r = irsBuracoDoEfactura({ saude: 340 }, {});
+  perto(r.falta, 340);
+});
+
+testar('o buraco da saude vale 15% do que falta', () => {
+  const r = irsBuracoDoEfactura({ saude: 340 }, { saude: 120 });
+  perto(r.linhas[0].falta, 220);
+  perto(r.linhas[0].perde, 220 * IRS_REF.coleta.saude.pct);
+});
+
+testar('mas nunca mais do que o tecto daquela deducao', () => {
+  const r = irsBuracoDoEfactura({ saude: 999999 }, { saude: 0 });
+  assert.ok(r.linhas[0].perde <= IRS_REF.coleta.saude.tecto);
+});
+
+testar('e nunca mais do que o imposto que a pessoa ainda paga', () => {
+  /* O travão que evita a mesma mentira da caixa dos conselhos, vista do outro
+     lado: dizer a quem já paga zero que está a perder 143 €. Uma dedução só
+     devolve dinheiro enquanto houver imposto para abater. */
+  const semTravao = irsBuracoDoEfactura({ saude: 340, gerais: 900 },
+                                        { saude: 120, gerais: 400 });
+  perto(semTravao.perde, 143);
+  const comPoucoImposto = irsBuracoDoEfactura({ saude: 340, gerais: 900 },
+                                              { saude: 120, gerais: 400 }, 20);
+  perto(comPoucoImposto.perde, 20);
+  const semImposto = irsBuracoDoEfactura({ saude: 340, gerais: 900 },
+                                         { saude: 120, gerais: 400 }, 0);
+  perto(semImposto.perde, 0);
 });
 
 console.log('\na folha para quem entrega\n');
