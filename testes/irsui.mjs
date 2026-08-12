@@ -273,6 +273,87 @@ const rodape=await p.locator('#irs-corpo .irs-rodape').innerText();
 ok(/nunca lhe vai pedir/i.test(rodape), 'esta' + "'" + ' escrito que a senha das Financas nunca e pedida');
 await p.close();
 
+console.log('\n== quem esta no Brasil nao ve um imposto que nao e o dele ==');
+/* O defeito: o separador "IRS" aparecia a toda a gente. Quem tinha a aplicacao
+   em reais carregava la' e recebia uma conta em euros, feita com os escaloes
+   do Diario da Republica, apresentada com a mesma confianca com que se
+   apresenta a que esta' certa. Este ficheiro inteiro e' lei portuguesa. */
+const pbr=await b.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+pbr.on('pageerror',e=>{console.log('  !! JS:',e.message);falhas.push('erro JS (br): '+e.message);});
+await pbr.addInitScript(()=>{
+  const doc={get:()=>Promise.resolve({exists:false,data:()=>({})}),
+             set:()=>Promise.resolve(), delete:()=>Promise.resolve()};
+  const col=()=>({doc:()=>doc,get:()=>Promise.resolve({docs:[],forEach(){}}),
+                  orderBy(){return this},limit(){return this},add:()=>Promise.resolve({id:'x'})});
+  window.firebase={initializeApp(){},
+    auth:()=>({onAuthStateChanged(f){setTimeout(()=>f(null),60)},signOut(){}}),
+    firestore:()=>({collection:col})};
+  try{localStorage.setItem('vf:lingua','br');
+      localStorage.setItem('vf:moeda','BRL');
+      localStorage.setItem('vf:banner-fechado','1');
+      localStorage.setItem('vf:arranque',JSON.stringify({feito:true,pedidoAposConta:true}));
+  }catch(e){}
+});
+await pbr.goto(B+'/app/',{waitUntil:'domcontentloaded'});
+await pbr.waitForTimeout(1200);
+
+const abasBR=await pbr.locator('.aba[data-ecra]:visible small').allInnerTexts();
+console.log('   a barra: ',abasBR.join(' · '));
+ok(abasBR.length===5, 'a barra fecha de seis separadores para cinco (tem '+abasBR.length+')');
+ok(await pbr.locator('.aba[data-ecra="irs"]').isVisible()===false,
+   'e o separador do IRS nao esta la');
+
+/* O ecra continua a existir: quem la' chegar por um endereco antigo merece a
+   explicacao, e nao um ecra em branco nem — pior — a conta portuguesa. */
+/* Um `goto` que so' muda o `#` nao recarrega nada, e o bloco `abas()` — que e'
+   quem le o endereco — corre uma vez so'. Sem este `reload` o teste ficava a
+   olhar para o ecra anterior e a queixar-se do ecra do IRS. */
+await pbr.goto(B+'/app/#irs',{waitUntil:'domcontentloaded'});
+await pbr.reload({waitUntil:'domcontentloaded'});
+await pbr.waitForTimeout(1000);
+ok(await pbr.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)==='ecra-irs',
+   'o endereco antigo ainda abre o ecra');
+const fora=await pbr.locator('#irs-corpo').innerText();
+console.log('   ',fora.split('\n').join(' / ').slice(0,200));
+ok(await pbr.locator('#irs-corpo .irs-fora').count()===1, 'e o que la esta e a explicacao');
+ok(await pbr.locator('#irs-corpo input').count()===0,
+   'nao se pergunta nada a quem nao paga este imposto');
+/* Nem um numero. A tabela do IRPF nao esta' conferida neste repositorio, e um
+   valor escrito de cabeca poe alguem a decidir se declara ou nao. */
+ok(!/€/.test(fora), 'e nao se lhe mostra conta nenhuma em euros');
+ok(/Receita Federal/i.test(fora), 'aponta-lhe o programa oficial, que e gratuito');
+ok(!/O meu IRS/i.test(await pbr.locator('#irs-titulo').innerText()),
+   '"O meu IRS" e falso para quem nao o paga, e o titulo muda');
+/* O fuso horario engana-se, e um portugues mal adivinhado nao pode ficar sem a
+   ferramenta sem saber porque'. */
+ok(await pbr.locator('#irs-ir-moeda').count()===1, 'e diz onde se muda a moeda');
+await pbr.click('#irs-ir-moeda');
+await pbr.waitForTimeout(400);
+ok(await pbr.evaluate(()=>(document.querySelector('.ecra.activo')||{}).id)==='ecra-lancar',
+   'o botao leva mesmo la');
+
+/* E mudar mesmo a moeda tem de trazer o separador de volta sem fechar a
+   aplicacao. Se so' funcionasse no arranque seguinte, quem carregou no botao
+   ficava a olhar para o sitio onde o IRS devia estar. */
+await pbr.selectOption('#f-moeda','EUR');
+await pbr.waitForTimeout(400);
+ok(await pbr.locator('.aba[data-ecra="irs"]').isVisible()===true,
+   'trocar para euro traz o separador de volta na hora');
+await pbr.click('.aba[data-ecra="irs"]');
+await pbr.waitForTimeout(500);
+ok(await pbr.locator('#irs-corpo input#irs-mes').count()===1,
+   'e as perguntas voltam com ele');
+/* Nao se procura "IRS" no titulo: em "br" a chave `irs.titulo` diz "O meu
+   imposto", e esta pessoa pode muito bem ser um brasileiro a viver em Portugal
+   com a aplicacao na sua lingua. O que se confirma e' que o titulo voltou a
+   ser o traduzido e nao o de quem esta' fora. */
+const tituloDeVolta=await pbr.locator('#irs-titulo').innerText();
+ok(!/Imposto sobre o rendimento/i.test(tituloDeVolta) && tituloDeVolta.trim().length>0,
+   'e o titulo volta ao da lingua da pessoa ("'+tituloDeVolta+'")');
+ok(await pbr.locator('#irs-titulo').getAttribute('data-t')==='irs.titulo',
+   'com o `data-t` reposto, senao a proxima traducao apaga-o');
+await pbr.close();
+
 await b.close();
 console.log(`\n=== ${falhas.length?'FALHAS:\n - '+falhas.join('\n - '):'TODAS PASSARAM'} ===`);
 if(falhas.length) process.exit(1);

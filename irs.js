@@ -1250,7 +1250,12 @@ if (typeof module !== 'undefined' && module.exports) {
     irsDeducaoDependentes, irsRendimentoLiquido, irsIsencaoJovem,
     irsFacturasEmFalta, irsBuracoDoEfactura, irsQuantoFaltaParaOTecto,
     irsPorConfirmar,
-    irsFolha, irsFolhaTexto, irsCaca, irsCacaLista
+    irsFolha, irsFolhaTexto, irsCaca, irsCacaLista,
+    /* Está declarado lá em baixo, na parte do ecrã, mas é uma pergunta de
+       motor — "esta lei é a desta pessoa?" — e por isso tem de poder ser
+       testada sem navegador. As declarações de função sobem, e por isso já
+       existe aqui. */
+    irsEPortugal
   };
 }
 
@@ -1468,9 +1473,121 @@ function irsAnoEscolhido() {
   return (a >= 2000 && a <= ep.entrega) ? a : ep.ano;
 }
 
+/* ---- De que país é a pessoa que está a ver isto ----
+
+   Este ficheiro inteiro é lei portuguesa: os escalões do artigo 68.º, a
+   dedução específica do 25.º, o mínimo de existência do 70.º. Nenhum desses
+   números quer dizer o que quer que seja no Brasil, e no entanto o separador
+   "IRS" aparecia na barra a toda a gente. Um brasileiro carregava lá e recebia
+   uma conta em euros, feita com o Diário da República, apresentada com a
+   mesma confiança com que se apresenta a certa — que é exactamente o defeito
+   contra o qual está escrita a regra do "um simulador não pode errar para o
+   lado bom".
+
+   Segue-se a moeda e não a língua, e a razão é gente a sério: há muito
+   português a viver no Brasil e muito brasileiro a viver em Portugal, e quem
+   está em Portugal paga IRS português mesmo que tenha a aplicação em
+   "br". Quem escolhe onde vive é a moeda das contas, não o sotaque. A ordem
+   de perguntas é a mesma do `investMoeda()` do investir.js — variável da
+   aplicação, depois o que ficou guardado, e só à falta das duas é que se
+   adivinha pela língua. */
+function irsEPortugal() {
+  if (typeof moeda !== 'undefined' && moeda) return moeda === 'EUR';
+  try {
+    const g = localStorage.getItem('vf:moeda');
+    if (g) return g === 'EUR';
+  } catch (e) { /* sem localStorage, segue-se pela língua */ }
+  return !(typeof idioma === 'function' && idioma() === 'br');
+}
+
+/* O separador só existe para quem paga este imposto. Esconde-se pelo atributo
+   `hidden` e não por `style`, para que quem lê o documento com um leitor de
+   ecrã também não o encontre; a barra é uma grelha de colunas automáticas e
+   fecha sozinha de seis para cinco.
+
+   O ecrã em si continua a existir e continua a abrir por `app/#irs` — quem lá
+   chegar por um endereço antigo merece a explicação do `irsForaDePortugal()`,
+   e não um ecrã em branco. */
+function irsArrumarSeparador() {
+  const aba = document.querySelector('.aba[data-ecra="irs"]');
+  if (!aba) return;
+  const portugal = irsEPortugal();
+  if (portugal) aba.removeAttribute('hidden');
+  else aba.setAttribute('hidden', '');
+
+  /* "O meu IRS" é falso para quem não o paga, e o título está no HTML e não
+     aqui. Tira-se-lhe o `data-t` enquanto durar, senão a próxima passagem do
+     `traduzirPagina()` escreve o título português por cima outra vez; guarda-se
+     a chave no próprio elemento para o poder repor a quem mude a moeda de
+     volta para euro sem fechar a aplicação. */
+  const trocas = [
+    ['irs-titulo', 'irs.titulo', 'Imposto sobre o rendimento'],
+    ['irs-sub', 'irs.ecrasub', 'Esta conta é a de Portugal.']
+  ];
+  trocas.forEach(([id, chave, foraTxt]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!portugal) {
+      if (el.hasAttribute('data-t')) el.dataset.tGuardado = el.getAttribute('data-t');
+      el.removeAttribute('data-t');
+      el.textContent = foraTxt;
+    } else if (!el.hasAttribute('data-t')) {
+      el.setAttribute('data-t', el.dataset.tGuardado || chave);
+      el.textContent = (typeof T === 'function') ? T(chave) : el.textContent;
+    }
+  });
+}
+
+/* O que se mostra a quem não paga IRS português. Não leva número nenhum de
+   propósito: a tabela do IRPF brasileiro não está conferida neste ficheiro, e
+   escrever de cabeça um valor de isenção seria pôr alguém a decidir se
+   declara ou não com um número que ninguém verificou. */
+function irsForaDePortugal() {
+  return '<div class="irs-fora">' +
+    '<h4>Esta conta é a de Portugal, e a sua aplicação está em reais</h4>' +
+    '<p>O que está construído aqui dentro é o <b>IRS português</b> — os ' +
+    'escalões, a dedução específica, o mínimo de existência. São as regras de ' +
+    'um país só, e em euros.</p>' +
+    '<p>O imposto sobre o rendimento no Brasil, o <b>IRPF</b>, tem outra ' +
+    'tabela, outros prazos e outras deduções. Ainda não está feito aqui, e ' +
+    'enquanto não estiver não lhe mostro conta nenhuma: um número errado dito ' +
+    'com confiança é pior do que não haver número.</p>' +
+    '<p>A declaração no Brasil faz-se no programa da <b>Receita Federal</b>, ' +
+    'que é gratuito e é o oficial. Não pague a ninguém para lhe dar acesso a ' +
+    'uma coisa que é de graça.</p>' +
+    '<p>O resto da aplicação — os movimentos, o mês, as contas fixas, as ' +
+    'ferramentas — funciona igual dos dois lados do Atlântico. É só esta ' +
+    'ferramenta que é de um país.</p>' +
+    '<div class="irs-fora-moeda">' +
+    '<p><b>Está em Portugal e a aplicação adivinhou mal?</b> A moeda foi ' +
+    'escolhida pelo fuso horário do telemóvel, e o fuso engana-se. Mude-a para ' +
+    'euro e o separador do IRS volta.</p>' +
+    '<button type="button" id="irs-ir-moeda">Onde se muda a moeda</button>' +
+    '</div></div>';
+}
+
 function irsDesenhar() {
   const zona = document.getElementById('irs-corpo');
   if (!zona) return;
+
+  /* Antes de tudo, porque a resposta decide se há sequer conta para fazer. */
+  irsArrumarSeparador();
+  if (!irsEPortugal()) {
+    zona.innerHTML = irsForaDePortugal();
+    const bt = zona.querySelector('#irs-ir-moeda');
+    if (bt) bt.addEventListener('click', () => {
+      /* Quem manda nos ecrãs é o app/index.html; daqui só se pede. */
+      if (typeof window.irEcra === 'function') window.irEcra('lancar');
+      setTimeout(() => {
+        const sel = document.getElementById('f-moeda');
+        if (!sel) return;
+        sel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        sel.focus();
+      }, 80);
+    });
+    return;
+  }
+
   const g = irsGuardado();
   const ep = irsEpoca();
   const ano = irsAnoEscolhido();
@@ -2049,6 +2166,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const ecra = document.getElementById('ecra-irs');
   if (!ecra) return;
 
+  /* Isto corre sempre, e não só quando o ecrã abre: o separador é o primeiro
+     sítio onde a promessa se quebra, e quem está no Brasil não pode chegar a
+     ver na barra um imposto que não é o dele. */
+  irsArrumarSeparador();
+
   let desenhado = false;
   const ver = () => {
     if (!ecra.classList.contains('activo') || desenhado) return;
@@ -2068,4 +2190,13 @@ document.addEventListener('DOMContentLoaded', () => {
      tem de refazer. Guarda-se o que estava escrito — está no localStorage, e
      é de lá que o `irsDesenhar()` o volta a ler. */
   window.addEventListener('vf:lingua-mudou', () => { if (desenhado) irsDesenhar(); });
+
+  /* Trocar de moeda é trocar de país, e com ele troca a lei do imposto. Não se
+     vai perguntar a moeda a cada segundo: o app-financas.js avisa quando ela
+     muda, e é esse aviso que faz o separador aparecer ou desaparecer sem ter
+     de fechar a aplicação. */
+  window.addEventListener('vf:moeda-mudou', () => {
+    irsArrumarSeparador();
+    if (desenhado) irsDesenhar();
+  });
 });

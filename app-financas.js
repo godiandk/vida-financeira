@@ -5386,6 +5386,10 @@ document.addEventListener('DOMContentLoaded', () => {
     /* Trocar de moeda troca de país, e com ele trocam os sítios onde o
        dinheiro está seguro. Um Tesouro Selic a render em euros seria mentira. */
     if (typeof desenharInvestir === 'function') desenharInvestir();
+    /* E troca também a lei do imposto. Avisa-se em vez de chamar o irs.js
+       directamente: o dia em que houver uma terceira coisa presa ao país, ela
+       fica à escuta daqui sem que este bloco tenha de saber que ela existe. */
+    window.dispatchEvent(new CustomEvent('vf:moeda-mudou', { detail: moeda }));
   });
 
   desenhar();

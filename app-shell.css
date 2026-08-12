@@ -156,6 +156,12 @@ body.app-shell .app-float{display:none}
   max-width:100%;padding:0 2px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+/* O `hidden` do HTML vale `display:none`, mas o `.aba` acima diz `display:flex`
+   e ganha por ser mais específico — o separador do IRS ficava marcado como
+   escondido e continuava lá à vista de quem está no Brasil. Com a grelha de
+   colunas automáticas, tirar um separador faz a barra fechar de seis para
+   cinco sem se lhe tocar em mais nada. */
+.aba[hidden]{display:none}
 .aba[aria-selected="true"]{color:var(--gold)}
 .aba[aria-selected="true"] .ic{transform:translateY(-1px) scale(1.1)}
 .aba:active .ic{transform:scale(.9)}
@@ -394,6 +400,30 @@ body.app-shell .app-float{display:none}
 /* Em que dia do ano estamos, e o que é útil hoje. É a primeira coisa do ecrã
    e muda de cor com a estação: âmbar quando há um prazo a correr, verde
    sereno quando o que há é tempo. A cor é lida antes das palavras. */
+/* O ecrã de quem não paga IRS português. Não leva a cor de alarme dos avisos
+   nem a cor de prazo da época: não se está a avisar ninguém de nada nem a
+   apressar ninguém — está-se a explicar que esta ferramenta é de um país e a
+   pessoa é de outro. Fica com a cor neutra da casa. */
+.irs-fora{
+  border-radius:16px;padding:20px;
+  background:rgba(217,178,110,.05);border:1px solid rgba(217,178,110,.16)
+}
+.irs-fora h4{
+  margin:0 0 12px;color:var(--cream);font-size:1.02rem;line-height:1.35;font-weight:700
+}
+.irs-fora p{margin:0 0 12px;color:var(--cream-dim);font-size:.87rem;line-height:1.6}
+.irs-fora b{color:var(--cream)}
+.irs-fora-moeda{
+  margin-top:18px;padding-top:16px;border-top:1px solid rgba(217,178,110,.14)
+}
+.irs-fora-moeda p{margin-bottom:10px}
+.irs-fora-moeda button{
+  background:none;border:1px solid rgba(217,178,110,.3);
+  color:var(--gold-soft);font-family:inherit;font-size:.8rem;font-weight:600;
+  padding:9px 15px;border-radius:999px;cursor:pointer
+}
+.irs-fora-moeda button:active{background:rgba(217,178,110,.14)}
+
 .irs-epoca{
   border-radius:16px;padding:18px 20px;margin-bottom:20px;
   background:linear-gradient(135deg,rgba(62,207,142,.10),rgba(62,207,142,.02));

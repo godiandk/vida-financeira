@@ -1138,6 +1138,42 @@ testar('a escada do IRS Jovem sao dez anos, e bate com o folheto da AT', () => {
   assert.equal(IRS_REF.jovem.idadeMaxima, 35);
 });
 
+/* ---- de quem é esta lei ----
+
+   O `irsEPortugal()` lê o mundo à volta (a moeda da aplicação, o que ficou no
+   localStorage, a língua), e o mundo à volta é o que o `new Function` lá em
+   cima injecta. Para lhe mudar as respostas carrega-se o ficheiro outra vez
+   com outro `localStorage` de mentira — é mais barato do que dar ao módulo
+   uma porta de trás só para os testes. */
+function irsComMoeda(guardada) {
+  return new Function('module', 'document', 'localStorage', 'Intl',
+    readFileSync('irs.js', 'utf8') + '\n; return module.exports;')(
+    { exports: {} },
+    { addEventListener: () => {}, getElementById: () => null, querySelectorAll: () => [] },
+    { getItem: k => (k === 'vf:moeda' ? guardada : null), setItem: () => {} },
+    Intl
+  );
+}
+
+testar('quem tem a aplicação em reais não é de cá, e não paga este imposto', () => {
+  /* O defeito que isto impede de voltar: o separador "IRS" aparecia a toda a
+     gente, e um brasileiro que lá carregasse recebia uma conta em euros feita
+     com os escalões do Diário da República — apresentada com a mesma
+     confiança com que se apresenta a que está certa. */
+  assert.equal(irsComMoeda('BRL').irsEPortugal(), false);
+});
+
+testar('quem tem a aplicação em euros paga este imposto', () => {
+  assert.equal(irsComMoeda('EUR').irsEPortugal(), true);
+});
+
+testar('sem moeda guardada, presume-se Portugal', () => {
+  /* Enganar-se para o lado de mostrar a ferramenta é reparável — a pessoa vê
+     "escalões" e "Finanças" e percebe logo que não é dela. Enganar-se para o
+     lado de a esconder é uma ferramenta que desaparece sem explicação. */
+  assert.equal(irsComMoeda(null).irsEPortugal(), true);
+});
+
 testar('o ano dos rendimentos não é o ano da entrega', () => {
   /* O erro mais fácil de cometer aqui: usar as tabelas que saem nas notícias
      em Janeiro, que são as do ano que começa e não as do que se vai declarar. */

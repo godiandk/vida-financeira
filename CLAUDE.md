@@ -54,8 +54,8 @@ Nomes de funções e de variáveis em português (`desenharInvestir`,
 | `ia.js` + `servidor/` | a IA. **Ligada**, no worker grátis da Cloudflare |
 | `app/index.html` | a aplicação. Tudo numa página, com gavetas `<details>` |
 
-A barra tem seis separadores: **Início · Lançar · Mês · IRS · Ferramentas ·
-Escrever**. O IRS tem separador próprio e não é uma gaveta das Ferramentas —
+A barra tem seis separadores em Portugal e cinco no Brasil: **Início · Lançar ·
+Mês · IRS · Ferramentas · Escrever**. O IRS tem separador próprio e não é uma gaveta das Ferramentas —
 é a única coisa aqui dentro com um prazo, e entre Abril e Junho não pode
 estar escondida dentro de um grupo. Cada separador é uma `<section class="ecra"
 id="ecra-…">`; quem troca é o bloco `abas()` no fim do `app/index.html`, e a
@@ -68,6 +68,15 @@ dívida e os apoios são caixas nas Ferramentas. A tabela `ANCORAS` é a lista a
 sério do que existe, e é a ela que se pergunta se um endereço é válido:
 perguntar aos elementos é frágil, porque a resposta muda conforme a ordem por
 que os blocos correm.
+
+**Nem tudo aqui dentro serve os dois países.** O `irs.js` é lei portuguesa de
+fio a pavio, e por isso pergunta ao `irsEPortugal()` antes de desenhar seja o
+que for: quem tem a aplicação em reais não vê o separador e, se lá chegar por
+um endereço antigo, recebe uma explicação em vez de uma conta em euros. A
+pergunta segue a **moeda** e não a língua — há muito português a viver no
+Brasil e muito brasileiro a viver em Portugal, e quem paga IRS é quem cá está.
+Quem escrever a seguir uma ferramenta presa a um país faz o mesmo, e fica à
+escuta do `vf:moeda-mudou`.
 
 Duas coisas que já morderam e convém saber antes de mexer:
 
